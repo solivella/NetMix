@@ -1,0 +1,4 @@
+useDynLib(NetMix)
+exportPattern("^[[:alpha:]]+")
+importFrom(Rcpp, evalCpp)
+

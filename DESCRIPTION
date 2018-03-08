@@ -1,0 +1,18 @@
+Package: NetMix
+Type: Package
+Title: Mixed-membership network regression models
+Version: 0.1
+Date: 2018-04-08
+Author: Kosuke Imai [aut, cre],
+	Tyler Pratt [aut, cre],
+	Adeline Lo [aut, cre],
+	Santiago Olivella [aut, cre]
+Maintainer: Santiago Olivella <olivella@unc.edu>
+Description: Fast, hierarchical, dynamic version of the mixed-membership
+	     stochastic block model.
+NeedsCompilation: yes
+License: GPL (>= 2)
+Depends: R (>= 3.1.0)
+SystemRequirements: C++11
+Imports: Rcpp (>= 0.12.13), cluster (>= 2.0.6), DirichletReg (>= 0.6-3), lpSolve (>= 5.6.13)
+LinkingTo: Rcpp
