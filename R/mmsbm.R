@@ -117,9 +117,13 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   edges <- split(Y, mfd[, "(tid)"])
   soc_mats <- mapply(function(mat, y){
     nnode <- length(unique(c(mat)))
-    adj_mat <- matrix(NA, nnode, nnode,
-                      dimnames = list(unique(mat[,1]),
-                                      unique(mat[,2])))
+    ifelse(directed,
+           adj_mat <- matrix(NA, nnode, nnode,
+                             dimnames = list(unique(mat[,1]),
+                                            unique(mat[,2]))),
+           adj_mat <- matrix(NA, nnode, nnode,
+                             dimnames = list(unique(c(mat)),
+                                             unique(c(mat)))))
     adj_mat[mat] <- y
     if(!directed)
       adj_mat[mat[,c(2,1)]] <- y

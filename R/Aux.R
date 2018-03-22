@@ -3,6 +3,7 @@
   k <- ncol(block.list[[1]])
   block.norm <- lapply(block.list, 
                        function(mat){
+                         if(all(mat==0)){mat <- mat + 1e-6}
                          prop.table(mat, 1)
                        })
   block.norm.p <- block.norm
@@ -62,28 +63,40 @@
 ## Define functions for displaying model results
 
 summary.mmsbm <- function(fm){
-  summ <- list(nrow(fm$dyadic.data), ncol(fm$BlockModel), rowMeans(fm$MixedMembership),
-               sapply(unique(fm$monadic.data[,"(tid)"]), function(x){rowMeans(fm$MixedMembership[,fm$monadic.data[,"(tid)"]==x])}),
-               fm$BlockModel, fm$DyadCoef, fm$MonadCoef)
+  monad <- fm$MonadCoef
+  states <- rowMeans(fm$Kappa)
+  names(states) <- paste("Markov State", as.character(1:nrow(fm$Kappa)))
+  rownames(monad) <- c("Intercept", 
+                       colnames(fit_onset$monadic.data)[1:(ncol(fit_onset$monadic.data)-2)])
+  summ <- list(nrow(fm$dyadic.data), ncol(fm$BlockModel), 
+               rowMeans(fm$MixedMembership),
+               exp(fm$BlockModel) / (1 + exp(fm$BlockModel)), 
+               fm$DyadCoef, monad, states)
   names(summ) <- c("N", "Number of Clusters", "Percent of Observations in Each Cluster",
-                   "Percent of Observations in Each Cluster by Time Period",
-                   "Edge Formation Probabilities", "Dyadic Coefficients", "Monadic Coefficients")
+                   "Edge Formation Probabilities", "Dyadic Coefficients", "Monadic Coefficients",
+                   "Markov State Probabilities")
   print(summ)
 }
+
 
 
 plot.mmsbm <- function(fm, directed=FALSE){ # network graph showing B-matrix
   mode <- ifelse(directed, "directed", "undirected")
   require("igraph", quietly=TRUE)
-  block.G <- graph.adjacency(fm$BlockModel, mode=mode, weighted=TRUE)
+  block.G <- graph.adjacency(exp(fm$BlockModel) / (1 + exp(fm$BlockModel)), mode=mode, weighted=TRUE)
   linMap <- function(x, from, to){(x - min(x)) / max(x - min(x)) * (to - from) + from}
-  e.weight <- E(block.G)$weight
-  if(all(E(block.G)$weight!=1)){
-    e.weight <- linMap(E(block.G)$weight, 1, 20)
+  e.weight <- E(block.G)$weight*100
+  if(any(e.weight < 0.1)){
+    e.weight <- e.weight*200
   }
-  v.size <- rowSums(fm$MixedMembership)
-  if(any(rowSums(fm$MixedMembership) < 10 | rowSums(fm$MixedMembership) > 100)){
-    v.size <- linMap(rowSums(fm$MixedMembership), 10, 100)}
+  if(any(e.weight > 20)){
+    e.weight[e.weight > 20] <- 20}
+  #if(all(E(block.G)$weight!=1)){
+  #  e.weight <- linMap(e.weight, min(e.weight), 10)
+  #}
+  v.size <- rowMeans(fm$MixedMembership)*150
+  #if(any(rowSums(fm$MixedMembership) < 10 | rowSums(fm$MixedMembership) > 100)){
+  #  v.size <- linMap(rowSums(fm$MixedMembership), 10, 120)}
   plot(block.G, main = "Edge Formation across Clusters",
        edge.width=e.weight, vertex.size=v.size)
 }
@@ -94,10 +107,14 @@ cluster.time.node <- function(fm){
   require(ggplot2)
   for(i in unique(fm$monadic.data[,"(nid)"])){
     avgmem <- lapply(1:nrow(fm$MixedMembership), function(x){fm$MixedMembership[x,which(fm$monadic.data[,"(nid)"]==i)]})
-    avgmem <- as.data.frame(cbind(rep(unique(fm$monadic.data[,"(tid)"]), nrow(fm$MixedMembership)), unlist(avgmem),
-                                  rep(1:nrow(fm$MixedMembership), each=length(unique(fm$monadic.data[,"(tid)"])))))
+    pds <- as.character(fm$monadic.data[fm$monadic.data[,"(nid)"]==i, "(tid)"])
+    avgmem <- as.data.frame(cbind(rep(pds, nrow(fm$MixedMembership)),
+                                  unlist(avgmem),
+                                  rep(1:nrow(fm$MixedMembership), each=length(pds))))
     colnames(avgmem) <- c("Time", "Membership", "Group")
     avgmem$Group <- factor(avgmem$Group, levels=4:1)
+    if(class(avgmem$Membership) == "factor"){avgmem$Membership <- as.numeric(as.character(avgmem$Membership))}
+    if(class(avgmem$Time) == "factor"){avgmem$Time <- as.numeric(as.character(avgmem$Time))}
     print(ggplot() + ggtitle(paste("Group Membership Over Time, Node", i)) + theme(plot.title = element_text(hjust = 0.5)) +
             geom_area(aes(y = Membership, x = Time, fill=Group), data = avgmem,
                       stat="identity", position="stack")  + guides(fill=guide_legend(title="Group")))
@@ -124,7 +141,7 @@ cluster.time.node2 <- function(fm){
 cluster.time <- function(fm){
   avgmems <- lapply(1:nrow(fm$MixedMembership), function(x){
     tapply(fm$MixedMembership[x,], fm$monadic.data[,"(tid)"], mean)})
-  avgmems <- as.data.frame(cbind(rep(unique(fm$monadic.data[,"(tid)"]), nrow(fm$MixedMembership)),unlist(avgmems),
+  avgmems <- as.data.frame(cbind(rep(unique(as.character(fm$monadic.data[,"(tid)"])), nrow(fm$MixedMembership)),unlist(avgmems),
                                  rep(1:nrow(fm$MixedMembership), each=length(unique(fm$monadic.data[,"(tid)"])))))
   colnames(avgmems) <- c("Time", "Avg.Membership", "Group")
   avgmems$Group <- factor(avgmems$Group, levels=length(unique(avgmems$Group)):1)
@@ -135,6 +152,7 @@ cluster.time <- function(fm){
     geom_area(aes(y = Avg.Membership, x = Time, fill=Group), data = avgmems,
               stat="identity", position="stack")  + guides(fill=guide_legend(title="Group"))
 }
+
 
 
 radar.plot <- function(fm){
@@ -163,11 +181,11 @@ cluster.node <- function(fm){
 
 
 cluster.top <- function(fm, num){
-  node.mems <- t(do.call(cbind, lapply(unique(fm$monadic.data[,"(nid)"]), function(x){
-    rowMeans(as.matrix(fm$MixedMembership[,fm$monadic.data[,"(nid)"]==x]))})))
-  rownames(node.mems) <- as.character(unique(fm$monadic.data[,"(nid)"]))
-  top <- lapply(1:ncol(node.mems), function(x){names(sort(node.mems[,x], decreasing=T)[1:num])})
-  print(paste("Top", num, "nodes by group membership"))
+  top <- sapply(1:fm$n_blocks, function(x){
+    ref <- order(fm$MixedMembership[x,], decreasing=TRUE)[1:num]
+    paste(fm$monadic.data$`(nid)`[ref], fm$monadic.data$`(tid)`[ref])
+  })
+  print(paste("Top", num, "node-years by group membership"))
   print(top)
 }
 
@@ -231,27 +249,68 @@ est.pi <- function(fm, monad=fm$monadic.data){
   return(Reduce("+", pi.states))
 }
 
-predict.mmsbm <- function(fm, dyad=fm$dyadic.data, monad=fm$monadic.data){ ## adjust for new datasets
-  pis <- est.pi(fm, monad)
-  pi1 <- pis[,match(dyad[,"(sid)"],monad[,"(nid)"])]
-  pi2 <- pis[,match(dyad[,"(rid)"],monad[,"(nid)"])]
+predict.mmsbm <- function(fm, dyad=fm$dyadic.data, monad=fm$monadic.data, 
+                          out.sample=FALSE){ 
+  if(!out.sample){
+    pis <- est.pi(fm, monad)
+    sid <- ifelse(identical(fm$dyadic.data, dyad), "(sid)", fm$call$senderID)
+    rid <- ifelse(identical(fm$dyadic.data, dyad), "(rid)", fm$call$receiverID)
+    nid <- ifelse(identical(fm$dyadic.data, dyad), "(nid)", fm$call$nodeID)
+    pi1 <- pis[,match(dyad[,sid],monad[,nid])]
+    pi2 <- pis[,match(dyad[,rid],monad[,nid])]
+  }
+  
+  if(out.sample){
+    tid <- ifelse(all(colnames(fm$monadic.data) %in% colnames(monad)), "(tid)", fm$call$timeID)
+    kappa.last <- fm$Kappa[,ncol(fm$Kappa)]
+    kappa.new <- list()
+    kappa.new[[1]] <- fm$TransitionKernel %*% kappa.last
+    if(length(unique(dyad$year))>1){
+      for(i in 2:length(unique(dyad$year))){
+        kappa.new[[i]] <- fm$TransitionKernel %*% kappa.new[[i-1]]
+      }
+    }
+    #kappa.new[[1]] <- kappa.new[[2]] <- c(1, 0, 0)
+    new.pis <- list()
+    for(i in 1:fm$n_states){
+      ifelse(!is.null(fm$call$formula.monad),
+             monad.vars <- cbind(rep(1, nrow(monad)), get_all_vars(fm$call$formula.monad, monad)),
+             monad.vars <- rep(1, nrow(fm$monadic.data)))
+      new.pis[[i]] <- as.matrix(monad.vars) %*% fm$MonadCoef[,,i]
+    }
+    mean.pis <- new.pis[[1]]
+    for(j in 1:length(unique(monad[,tid]))){
+      kappa.rel <- kappa.new[[j]]
+      mean.pi.sub <- mean.pis[monad[,tid]==unique(monad[,tid])[j],]
+      for(q in 1:nrow(mean.pi.sub)){
+        pi.mean <- rep(0, ncol(mean.pi.sub))
+        for(v in 1:fm$n_states){
+          pi.mean <- pi.mean + new.pis[[v]][q,] * kappa.new[[j]][v]
+        }
+        mean.pi.sub[q,] <- pi.mean
+      }
+      mean.pis[monad[,tid]==unique(monad[,tid])[j],] <- mean.pi.sub
+    }
+    pi1 <- t(mean.pis[match(dyad[,fm$call$senderID], monad[,fm$call$nodeID]),])
+    pi2 <- t(mean.pis[match(dyad[,fm$call$receiverID], monad[,fm$call$nodeID]),])
+  }
+  
   est.ties <- rep(0, ncol(pi1))
   for(a in 1:nrow(pi1)){ 
     for(b in 1:nrow(pi2)){
-      est.ties <- est.ties + (pi1[a,]*pi2[b,]*fm$BlockModel[a,b]) # NAs in pi?
+      est.ties <- est.ties + (pi1[a,]*pi2[b,]*fm$BlockModel[a,b])
     }
   }
-  est.ties <- est.ties  + t(fm$DyadCoef)%*%t(dyad[,2:(ncol(dyad)-3)])
+  est.ties <- est.ties  + t(fm$DyadCoef)%*%t(get_all_vars(fm$call$formula.dyad, dyad)[,-1])
   return(exp(est.ties) / (1 + exp(est.ties)))
 }
 
 
-
 covFX <- function(fm, cov, shift){
-  predict.ties <- predict.net(fm)
+  predict.ties <- predict(fm)
   monadic.data2 <- fm$monadic.data
   monadic.data2[,cov] <- fm$monadic.data[,cov] + 1
-  predict.ties2 <- predict.net(fm, monad=monadic.data2)
+  predict.ties2 <- predict(fm, monad=monadic.data2)
   FX <- list(mean(predict.ties2 - predict.ties), #avg
              tapply(predict.ties2-predict.ties, fm$dyadic.data[,3], mean), #time
              sapply(unique(fm$monadic.data[,"(nid)"]), function(x){ #node
