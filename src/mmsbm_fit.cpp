@@ -125,7 +125,9 @@ List mmsbm_fit(const NumericMatrix& z_t,
   }
   
   //Form return objects
-  NumericMatrix phi_res = Model.getC();
+  NumericMatrix pi_res = Model.getC();
+  NumericMatrix phi_send_res = Model.getPhi(true);
+  NumericMatrix phi_rec_res = Model.getPhi(false);
   NumericMatrix A = Model.getWmn();
   NumericMatrix kappa_res = Model.getKappa();
   NumericMatrix B = Model.getB();
@@ -134,7 +136,9 @@ List mmsbm_fit(const NumericMatrix& z_t,
 
 
   List res;
-  res["MixedMembership"] = phi_res;
+  res["MixedMembership"] = pi_res;
+  res["PhiSend"] = phi_send_res;
+  res["PhiRec"] = phi_rec_res;
   res["BlockModel"] = B;
   res["DyadCoef"] = gamma_res;
   res["MonadCoef"] = beta_res;

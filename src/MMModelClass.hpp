@@ -39,6 +39,7 @@ public:
 
 
   Rcpp::NumericMatrix getC();
+  Rcpp::NumericMatrix getPhi(bool);
   Rcpp::NumericMatrix getWmn();
   Rcpp::NumericMatrix getKappa();
   Rcpp::NumericMatrix getB();

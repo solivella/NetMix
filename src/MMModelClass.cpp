@@ -162,13 +162,16 @@ double MMModel::alphaLB()
 #pragma omp parallel for firstprivate(alpha_row, alpha_val) reduction(+:res)
   for(int m = 0; m < N_STATE; ++m){
     for(int p = 0; p < N_NODE; ++p){
+      n_node_term = directed ? 2 * (n_nodes_time[time_id_node[p]]) : n_nodes_time[time_id_node[p]];
       alpha_row = 0.0;
       for(int g = 0; g < N_BLK; ++g){
         alpha_val = alpha(g, p, m);
         alpha_row += alpha_val;
         res += lgamma(alpha_val + e_c_t(g, p)) - lgamma(alpha_val);
+        //res += (alpha_val - 1) * log((e_c_t(g, p) * (n_node_term-1) 
+                                        //+ 1/N_BLK)/n_node_term); 
+        //res -= lgamma(alpha_val);
       }
-      n_node_term = directed ? 2 * (n_nodes_time[time_id_node[p]]) : n_nodes_time[time_id_node[p]];
       res += lgamma(alpha_row) - lgamma(alpha_row + n_node_term);
       res *= kappa_t(m, time_id_node[p]);
     }
@@ -207,6 +210,9 @@ void MMModel::alphaGr(int N_PAR, double *gr)
           n_node_term = directed ? 2 * (n_nodes_time[t]): n_nodes_time[t];
           res += digamma(alpha_row) - digamma(alpha_row + n_node_term);
           res += digamma(alpha(g, p, m) + e_c_t(g, p)) - digamma(alpha(g, p, m));
+          //res += digamma(alpha_row) + log((e_c_t(g, p) * (n_node_term - 1) 
+                                             //+ 1/N_BLK)/n_node_term);
+          //res -= digamma(alpha(g, p, m));
           res *= kappa_t(m, t) * alpha(g, p, m) * x_t(x, p);
         }
         gr[x + N_MONAD_PRED * (g + N_BLK * m)] = -(res - beta(x, g, m) / sd_beta);
@@ -675,6 +681,17 @@ NumericMatrix MMModel::getC()
     for(int g = 0; g < N_BLK; ++g){
       res(g, p) = e_c_t(g, p) / row_total;
     }
+  }
+  return res;
+}
+
+NumericMatrix MMModel::getPhi(bool send)
+{
+  NumericMatrix res(N_BLK, N_DYAD);
+  if(send){
+  std::copy(send_phi.begin(), send_phi.end(), res.begin());
+  } else {
+    std::copy(rec_phi.begin(), rec_phi.end(), res.begin());
   }
   return res;
 }

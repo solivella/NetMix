@@ -22,33 +22,49 @@
     }
     ## Step 2
     ## Compute loss matrix (KL)
+    # loss.mat <- lapply(block.norm,
+    #                    function(mat){
+    #                      apply(B.prime, 2,
+    #                            function(vec){
+    #                              colSums(abs(mat * (log(mat) - log(vec))))
+    #                            })
+    #                    })
+    # 
     loss.mat <- lapply(block.norm,
                        function(mat){
-                         apply(B.prime, 2,
+                         apply(mat, 1,
                                function(vec){
-                                 colSums(mat * (log(mat) - log(vec)))
+                                 colSums((B.prime - vec)^2)
                                })
                        })
-    
-    
     ##Get optimal perm 
-    perm.mat <- lapply(loss.mat,
-                       function(mat){
-                         lpSolve::lp.assign(mat)$solution
-                       })
-    block.norm.p <- mapply("%*%",block.norm,perm.mat, SIMPLIFY = FALSE)
+    perm.vecs <- lapply(loss.mat,
+                        function(mat){
+                          clue::solve_LSAP(mat)
+                        })
+    # perm.mat <- lapply(loss.mat,
+    #                    function(mat){
+    #                      lpSolve::lp.assign(mat)$solution
+    #                    })
+    block.norm.p <- mapply(function(ind, mat){mat[ind,]}, perm.vecs, block.norm, SIMPLIFY = FALSE)
+    # block.norm.p <- mapply("%*%",block.norm,perm.mat, SIMPLIFY = FALSE)
     
     ##Compute risk
     new.risk <- mean(sapply(block.norm.p,
                             function(mat,tar){
-                              sum(mat * (log(mat)-log(tar)))
+                              sum(abs(mat * (log(mat)-log(tar))))
                             },
                             tar = B.prime))
+    # new.risk <- mean(sapply(block.norm.p,
+    #                         function(mat,tar){
+    #                           sum((mat-tar)^2)
+    #                         },
+    #                         tar = B.prime))
     chg <- abs(new.risk - old.risk)
     old.risk <- new.risk
     iter <- iter + 1
   }
-  perm.mat
+  perm.vecs
 }
 
 .transf <- function(mat){
