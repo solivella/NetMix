@@ -108,7 +108,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                lda_alpha = 0.3,
                em_iter = 5000,
                opt_iter = 10e3,
-               mu_b = c(1.0, 0.0),
+               mu_b = c(5.0, -5.0),
                var_b = c(1.0, 1.0),
                var_beta = 5.0,
                var_gamma = 5.0,
@@ -139,11 +139,17 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                              dimnames = list(unique(c(mat)),
                                              unique(c(mat))))
     }
+    diag(adj_mat) <- 0
     adj_mat[mat] <- y
-    if(!directed)
+    if(!directed){
       adj_mat[mat[,c(2,1)]] <- y
-    
+    }
     adj_mat[is.na(adj_mat)] <- sample(0:1, sum(is.na(adj_mat)), replace = TRUE)
+    if(!directed){
+      mat_ind <- which(upper.tri(adj_mat), arr.ind = TRUE)
+      adj_mat[mat_ind[,c(2,1)]] <- adj_mat[upper.tri(adj_mat)]
+    }
+    
     return(adj_mat)
   },
   dyads, edges,

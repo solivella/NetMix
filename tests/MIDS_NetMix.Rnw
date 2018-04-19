@@ -70,7 +70,7 @@ options(width = 60)
 
 <<1, eval=FALSE, echo=TRUE, comment=NA, message=FALSE, warning=FALSE, tidy=TRUE>>=
 library(NetMix)
-load("MID_data.Rdata")  
+load("tests/MID_data.Rdata")  
 set.seed(999)
 
 fit_onset <- mmsbm(formula.dyad = mid_onset ~ hially + lowally + 
@@ -87,7 +87,9 @@ fit_onset <- mmsbm(formula.dyad = mid_onset ~ hially + lowally +
                                directed=FALSE,
                                mmsbm.control = list(verbose = TRUE,
                                                     em_iter = 1000,
-                                                    threads = parallel::detectCores()
+                                                    lda_iter = 5000,
+                                                    threads = 22,
+                                                    mu_b = c(5, -5)
                                                     ))
 @ 
 
