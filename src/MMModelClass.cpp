@@ -168,9 +168,9 @@ double MMModel::alphaLB()
         alpha_val = alpha(g, p, m);
         alpha_row += alpha_val;
         res += lgamma(alpha_val + e_c_t(g, p)) - lgamma(alpha_val);
-        //res += (alpha_val - 1) * log((e_c_t(g, p) * (n_node_term-1) 
-                                        //+ 1/N_BLK)/n_node_term); 
-        //res -= lgamma(alpha_val);
+        // res += (alpha_val - 1) * log((e_c_t(g, p) * (n_node_term-1) 
+        //                                 + 1/N_BLK)/n_node_term); 
+        // res -= lgamma(alpha_val);
       }
       res += lgamma(alpha_row) - lgamma(alpha_row + n_node_term);
       res *= kappa_t(m, time_id_node[p]);
@@ -178,9 +178,9 @@ double MMModel::alphaLB()
     
     //Prior for beta
     for(int g = 0; g < N_BLK; ++g){
-      for(int x = 0; x < N_MONAD_PRED; ++x){
-        res -= 0.5 * pow(beta(x, g, m), 2.0) / var_beta;
-      }
+     for(int x = 0; x < N_MONAD_PRED; ++x){
+       res -= 0.5 * pow(beta(x, g, m), 2.0) / var_beta;
+     }
     }
   }
   
@@ -210,9 +210,9 @@ void MMModel::alphaGr(int N_PAR, double *gr)
           n_node_term = directed ? 2 * (n_nodes_time[t]): n_nodes_time[t];
           res += digamma(alpha_row) - digamma(alpha_row + n_node_term);
           res += digamma(alpha(g, p, m) + e_c_t(g, p)) - digamma(alpha(g, p, m));
-          //res += digamma(alpha_row) + log((e_c_t(g, p) * (n_node_term - 1) 
-                                             //+ 1/N_BLK)/n_node_term);
-          //res -= digamma(alpha(g, p, m));
+          // res += digamma(alpha_row) + log((e_c_t(g, p) * (n_node_term - 1)
+          // + 1/N_BLK)/n_node_term);
+          // res -= digamma(alpha(g, p, m));
           res *= kappa_t(m, t) * alpha(g, p, m) * x_t(x, p);
         }
         gr[x + N_MONAD_PRED * (g + N_BLK * m)] = -(res - beta(x, g, m) / sd_beta);

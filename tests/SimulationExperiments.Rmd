@@ -14,7 +14,6 @@ library(tidyverse)
 library(RColorBrewer)
 library(AUC)
 source("NetGenerator.R")
-set.seed(831213)
 ```
 
 
@@ -22,6 +21,7 @@ set.seed(831213)
 Our first simulation exercise estimates the original mixed-membership stochastic block model of Airoldi et al. (2008): a model without covariates and without dynamics. We simulate a single network of 100 nodes and 3 latent blocs using the model's DGP. We set the blocmodel parameters to reflect high in-group interaction probabilities and low out-group interaction probabilities, and generate mixed-memberships that are roughly uniform. The following figure displays the mixed-membership vectors for all 100 nodes in our simulated network. While some nodes are clearly in one of the three blocks (and are therefore depicted in one of the vertices of the simplex), many spread their memberships much more evenly among two or three blocs.       
 
 ```{r,fig.align='center', fig.height=3.5, fig.width=5.5}
+set.seed(831213)
 net1 <-  NetSim(BLK = 3
                 ,NODE = 100
                 ,STATE = 1
@@ -41,6 +41,7 @@ vcd::ternaryplot(net1$pi_vecs[[1]], col=rgb(1,0,0,0.7), dimnames = 1:3, cex=0.7,
 We estimate our model using a a k-means initialization streategy, and set special priors for the the blockmodel means that reflect the known DGP. All other hyper-parameters are left at their default values. 
 
 ```{r, echo = TRUE}
+set.seed(831213)
 strt <- proc.time()
 net1.model <- mmsbm(formula.dyad = Y ~ 1,
                     senderID = "sender",
@@ -86,6 +87,7 @@ our_auc <- auc((roc(test_theta, as.factor(test_net1$Y))))
 sociomat <- array(NA, c(100, 100))
 sociomat[as.matrix(net1$dyad.data[train_index,c("sender", "receiver")])] <- net1$dyad.data[train_index, "Y"]
 sociomat[is.na(sociomat)] <- sample(0:1, sum(is.na(sociomat)), TRUE)
+set.seed(831213)
 strt <- proc.time()
 net1.lda <- lda::mmsb.collapsed.gibbs.sampler(sociomat,
                                               K = 3,
@@ -112,6 +114,11 @@ Whereas our implementation takes around `r round(our_time["elapsed"], 2)` second
 
 Our second set of simulations illustrates our model's ability to define a regression model for the mixed-membership vector. We generate 50 networks of 300 nodes and 3 latent blocs, generating mixed-membership vectors as a function of a hypothetical binary treatment assigment. Specifically, the treatment makes nodes much more likely to be part of bloc 2 and less likely to be part of either of the other two blocs. Figure 3 below shows a typical mixed-membership profile for these 50 networks, showing treated nodes as black circles and control nodes as red triangles.  
 ```{r,fig.align='center', fig.height=3.5, fig.width=5.5}
+set.seed(831213)
+true_beta <- array(c(0.55, 0.75, 0,
+                     -0.5, 1.95, 0,
+                     0.75, -0.75, 0),
+                   c(3, 3, 1))
 net2_list <-  replicate(50, 
                         NetSim(BLK = 3
                                ,NODE = 150
@@ -121,10 +128,7 @@ net2_list <-  replicate(50,
                                ,N_PRED = 2
                                ,B_t = matrix(c(5, rep(-5, 3), 5, rep(-5, 3), 5), 
                                              ncol=3)
-                               ,beta_arr = array(c(0.25, -0.75, 0,
-                                                   -0.5, 0.25, 0,
-                                                   0.25, -0.75, 0)*2.5,
-                                                 c(3, 3, 1))
+                               ,beta_arr = true_beta
                                ,gamma_vec = c(0, 0)),
                         simplify = FALSE)
 vcd::ternaryplot(net2_list[[1]]$pi_vecs[[1]],
@@ -137,9 +141,10 @@ vcd::ternaryplot(net2_list[[1]]$pi_vecs[[1]],
 vcd::grid_legend(x = 0.3, y = 0.7,pch=c(17,19),labels = c("Control", "Treated"), col = c("red", "black"), title="Treatment status", frame =FALSE)
 ```
 
-## Retrieve unbiased estimate 
+## Retrieve effect estimates 
 We first obtain effect estimates for each of the 50 networks, and plot estimates for the treatment effect for each group of using boxplots in the figure below. We also show the known value of the treatment effect. In all cases, the treatment effect is correctly identified, although our ridge penalty, introduced to avoid early divergence of coefficient estimates, results in attenuation bias.    
 ```{r, message=FALSE, results='hide'}
+set.seed(831213)
 system.time(net2.models <- lapply(1:50,
                       function(i){res <- mmsbm(formula.dyad = Y ~ 1,
                               formula.monad= ~ V1,
@@ -152,8 +157,9 @@ system.time(net2.models <- lapply(1:50,
                               directed = net2_list[[i]]$DIRECTED,
                               mmsbm.control = list(mu_b = c(5,-5),
                                                    init = "kmeans",
-                                                   var_beta = 1000,
-                                                   em_iter = 10000,
+                                                   lda_iter = 5000,
+                                                   var_beta = 1,
+                                                   em_iter = 5000,
                                                    threads = 22))
                         loss.mat <- apply((res$MixedMembership), 1,
                                function(vec){
@@ -178,13 +184,11 @@ est_fx_df <- do.call(rbind, est_fx)
 ggplot(est_fx_df, aes(x=grp, y=val)) +
   geom_boxplot(outlier.shape = NA) +
   geom_point(data = data.frame(x=rep(c("1","2","3"), each = 1),
-                               y=c( -0.75*1.15,
-                                    0.75*1.15,
-                                    -0.75*1.15)),
+                               y=true_beta[2,,1]),
              aes(x=x, y=y),
              color = "red",
              cex = 2.5) +
-  scale_y_continuous(limits = c(-2,1.7))+
+  scale_y_continuous(limits = c(min(true_beta[2,,1]),max(true_beta[2,,1])))+
   theme_bw() + 
   ylab("Estimated Posterior Median of Treatment Effect") +
   xlab("Group")
@@ -192,6 +196,7 @@ ggplot(est_fx_df, aes(x=grp, y=val)) +
 ## Correct classification
 Next, we consider the predictive accuracy of the model with covariates. We compute the area under the ROC curve for a held-out set of 1000 edges. The accuracy measure is then compared to that of a model estimated on the same data but excluding information on the binary treatment variable. We find that, on average, predictive accuracy is higher for the model that incorporates the treatment covarite information.   
 ```{r, results='hide'}
+set.seed(831213)
 system.time(net2.models.ridge <- lapply(1:50,
                       function(i){
                         test_index <- sample(1:nrow(net2_list[[i]]$dyad.data),
@@ -208,9 +213,7 @@ system.time(net2.models.ridge <- lapply(1:50,
                               directed = net2_list[[i]]$DIRECTED,
                               mmsbm.control = list(mu_b = c(5,-5),
                                                    init = "kmeans",
-                                                   lda_iter = 5000,
                                                    var_beta = 1,
-                                                   em_iter = 5000,
                                                    threads = 22))
                         res2 <- mmsbm(formula.dyad = Y ~ 1,
                               formula.monad= ~ 1,
@@ -222,9 +225,8 @@ system.time(net2.models.ridge <- lapply(1:50,
                               n.blocks = net2_list[[i]]$BLK,
                               directed = net2_list[[i]]$DIRECTED,
                               mmsbm.control = list(mu_b = c(5,-5),
-                                                   init = "lda",
+                                                   init = "kmeans",
                                                    var_beta = 1,
-                                                   lda_iter = 5000,
                                                    em_iter = 5000,
                                                    threads = 22))
 
@@ -254,17 +256,22 @@ system.time(net2.models.ridge <- lapply(1:50,
                       ))
 ```
 ```{r, results='asis'}
+library(kableExtra)
+auc1 <- median(sapply(net2.models.ridge, function(x)x$auroc1))
+auc2 <- median(sapply(net2.models.ridge, function(x)x$auroc2))
 knitr::kable(data.frame(Model = c("With covariate", "Without covariate"),
-                        AUROC = c(0.89,0.65)),
-             format = "latex", booktabs = TRUE,
-             align = c("l","c"))
+                        AUROC = c(auc1,auc2)),
+             format = "latex", booktabs = TRUE, digits = 2,
+             align = c("l","c")) %>%
+  kable_styling(position = "center")
 ```
 
 
 # Experiment 3: Dynamic network with covariates
 
-For our third set of simulations, we illustrate the ability of our model to model the network dynamics using a hidden Markov model for the mixed-membership vectors. We generate a network with 200 nodes, and let it evolve over 9 years according to a forward-moving, 2-state hidden Markov model. During the first stage of this 9-year history, a binary treatment is associated with a higher probability of being part of bloc 2. In turn, the relationship is reversed during the second stage of history. Figure 4 shows the distribution of node-level probabilities of belonging to bloc 2 for each time period (a transition occurs from year 4 to year 5).  
-```{r, fig.align='center', fig.height=8, fig.width=10}
+For our third set of simulations, we illustrate the ability of our model to model the network dynamics using a hidden Markov model for the mixed-membership vectors. We generate a network with 200 nodes, and let it evolve over 9 years according to a forward-moving, 2-state hidden Markov model. During the first stage of this 9-year history, a binary treatment is associated with a higher probability of being part of bloc 2. In turn, the relationship is reversed during the second stage of history. Figure 4 shows the distribution of node-level probabilities of belonging to bloc 2 for each time period (a transition occurs from year 5 to year 6).  
+```{r, fig.align='center', fig.width=9, fig.height=6}
+set.seed(831213)
 net3 <- NetSim(BLK = 3
                 ,NODE = 200
                 ,STATE = 2
@@ -284,7 +291,7 @@ net3 <- NetSim(BLK = 3
                 ,gamma_vec = c(0, 0))
 
 ggplot(net3$monad.data, aes(x=as.factor(V1), y=pi2)) +
-  geom_boxplot() +
+  geom_boxplot(outlier.shape = NA) +
   facet_wrap(~year) +
   theme_bw() + 
   xlab("Treatment status") +
@@ -292,8 +299,9 @@ ggplot(net3$monad.data, aes(x=as.factor(V1), y=pi2)) +
 ```
 
 We compare our model's performance to that of a separate estimation for each time period.
-```{r, eval=FALSE}
-system.time(net3.model <- mmsbm(formula.dyad = Y ~ 1,
+```{r, results='hide'}
+set.seed(831213)
+net3.model <- mmsbm(formula.dyad = Y ~ 1,
                     formula.monad= ~ V1,
                     senderID = "sender",
                     receiverID = "receiver",
@@ -304,20 +312,25 @@ system.time(net3.model <- mmsbm(formula.dyad = Y ~ 1,
                     n.blocks = net3$BLK,
                     n.hmmstates = net3$STATE,
                     directed = net3$DIRECTED,
-                    mmsbm.control = list(var_b = c(1, 1),
+                    mmsbm.control = list(mu_b = c(5,-5),
+                                         var_b = c(1, 1),
                                          init = "kmeans",
                                          lda_iter = 50000,
                                          threads = 12
-                                         )))
+                                         ))
 loss.mat.net3 <- apply((net3.model$MixedMembership), 1,
                        function(vec){
                          colSums((do.call(rbind,net3$pi_vecs) - vec)^2)
                        })
 net3_order <- clue::solve_LSAP((loss.mat.net3))
 
+```
+
+```{r}
 ##Separate models for each year
 sep_dyaddata <- split(net3$dyad.data, net3$dyad.data$year)
 sep_monaddata <- split(net3$monad.data, net3$monad.data$year)
+set.seed(831213)
 static.models <- lapply(1:9, 
                         function(y){
                           temp_res <- mmsbm(formula.dyad = Y ~ V1,
@@ -329,7 +342,8 @@ static.models <- lapply(1:9,
                                 data.monad = sep_monaddata[[y]],
                                 n.blocks = net3$BLK,
                                 directed = net3$DIRECTED,
-                                mmsbm.control = list(var_b = c(1, 1),
+                                mmsbm.control = list(mu_b = c(5,-5),
+                                                     var_b = c(1, 1),
                                                      init = "kmeans",
                                                      lda_iter = 50000,
                                                      threads = 12))
@@ -340,6 +354,20 @@ static.models <- lapply(1:9,
                           ord <- clue::solve_LSAP((loss.mat))
                           t(temp_res$MixedMembership[ord, ])
                         })
+```
+```{r, fig.align='center', fig.width=11, fig.height=6}
+net3$monad.data$pred_pi2_full <- net3.model$MixedMembership[net3_order[2],]
+net3$monad.data$pred_pi2_sep <- do.call(rbind,static.models)[,2]
+long_net3 <- net3$monad.data %>%
+  select(year, V1, pi2, pred_pi2_full, pred_pi2_sep) %>%
+  gather(Source, val, c(pi2, pred_pi2_full, pred_pi2_sep)) %>%
+  mutate(Source = recode(Source, pi2="Truth", pred_pi2_full="Dynamic Model", pred_pi2_sep="Separate Static Models"))
+ggplot(long_net3, aes(x=as.factor(V1), y=val, color=Source)) +
+  geom_boxplot(outlier.shape = NA) +
+  facet_wrap(~year) +
+  theme_bw() + 
+  xlab("Treatment status") +
+  ylab("Probability of being in bloc 2")
 ```
 
 
