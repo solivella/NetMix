@@ -8,7 +8,7 @@ NetSim <- function(BLK = 3, NODE = 5, STATE = 2, TIME = 10, DIRECTED = TRUE, N_P
                       B_t = NULL, A_orig = NULL, beta_arr, gamma_vec, alpha_conc = 0){
   library(expm, quietly=TRUE, warn.conflicts=FALSE)
   stopifnot()
-  stopifnot(nrow(beta_arr)==N_PRED+1&ncol(beta_arr)==(BLK-1))
+  stopifnot(nrow(beta_arr)==N_PRED+1&ncol(beta_arr)==BLK)
   beta_arr[,1,] <- rep(0, (N_PRED+1)*STATE) 
   if(N_PRED>0){
     stopifnot(length(gamma_vec)==N_PRED)
@@ -83,7 +83,7 @@ NetSim <- function(BLK = 3, NODE = 5, STATE = 2, TIME = 10, DIRECTED = TRUE, N_P
   ## Form alpha
   alpha <- lapply(1:TIME
                   ,function(t){
-                    exp(X[[t]] %*% beta_arr[,,sVec[t]])
+                    a <- exp(X[[t]] %*% beta_arr[,,sVec[t]])
                     prop.table(a, 1) * alpha_conc
                   })
   

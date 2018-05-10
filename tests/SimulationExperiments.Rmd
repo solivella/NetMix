@@ -31,9 +31,10 @@ net1 <-  NetSim(BLK = 3
                 ,N_PRED=0
                 ,B_t = matrix(c(5, rep(-5, 3), 5, rep(-5, 3), 5), 
                               ncol=3)
-                ,beta_arr = array(c(-1.5, -1.5, -1.5),
+                ,beta_arr = array(c(0.0, -0.5, 0.5),
                                  c(1, 3, 1))
-                ,gamma_vec = c(0))
+                ,gamma_vec = c(0)
+                ,alpha_conc = 0.5)
 train_index <- sample(1:10000, 9000)
 vcd::ternaryplot(net1$pi_vecs[[1]], col=rgb(1,0,0,0.7), dimnames = 1:3, cex=0.7,
                  main = "Mixed-membership\nNetwork I")
@@ -116,10 +117,10 @@ Whereas our implementation takes around `r round(our_time["elapsed"], 2)` second
 Our second set of simulations illustrates our model's ability to define a regression model for the mixed-membership vector. We generate 50 networks of 300 nodes and 3 latent blocs, generating mixed-membership vectors as a function of a hypothetical binary treatment assigment. Specifically, the treatment makes nodes much more likely to be part of bloc 2 and less likely to be part of either of the other two blocs. Figure 3 below shows a typical mixed-membership profile for these 50 networks, showing treated nodes as black circles and control nodes as red triangles.  
 ```{r,fig.align='center', fig.height=3.5, fig.width=5.5}
 set.seed(831213)
-true_beta <- array(c( -1.5, 0.5, 1.6, 0,
+true_beta <- array(c( 0, 0, 0, 0,
                      -1.5, -0.5, 1.95, -0.95),
                    c(4, 2, 1))
-net2_list <-  replicate(1, 
+net2_list <-  replicate(50, 
                         NetSim(BLK = 2
                                ,NODE = 300
                                ,STATE = 1
@@ -129,7 +130,8 @@ net2_list <-  replicate(1,
                                ,B_t = matrix(c(5, rep(-5, 2), 5), 
                                              ncol=2)
                                ,beta_arr = true_beta
-                               ,gamma_vec = c(1.5, -0.5, 0.5)),
+                               ,gamma_vec = c(1.5, -0.5, 0.5)
+                               ,alpha_conc = 0.5),
                         simplify = FALSE)
 #vcd::ternaryplot(net2_list[[1]]$pi_vecs[[1]], col=rgb(1,0,0,0.7), dimnames = 1:3, cex=0.7,
  #                main = "Mixed-membership\nNetwork I")
@@ -139,7 +141,7 @@ net2_list <-  replicate(1,
 We first obtain effect estimates for each of the 50 networks, and plot estimates for the treatment effect for each group of using boxplots in the figure below. We also show the known value of the treatment effect. In all cases, the treatment effect is correctly identified, although our ridge penalty, introduced to avoid early divergence of coefficient estimates, results in attenuation bias.    
 ```{r, message=FALSE, results='hide'}
 set.seed(831213)
-system.time(net2.models <- lapply(1,
+system.time(net2.models <- lapply(1:50,
                       function(i){res <- mmsbm(formula.dyad = Y ~ V1 + V2 + V3,
                               formula.monad= ~ V1 + V2 + V3,
                               senderID = "sender",
@@ -151,11 +153,6 @@ system.time(net2.models <- lapply(1,
                               directed = net2_list[[i]]$DIRECTED,
                               mmsbm.control = list(mu_b = c(5,-5),
                                                    init = "kmeans",
-                                                   lda_iter = 5000,
-                                                   var_b = c(10, 10),
-                                                   var_beta = 100,
-                                                   var_gamma = 10,
-                                                   em_iter = 5000,
                                                    threads = 4))
                         loss.mat <- apply((res$MixedMembership), 1,
                                function(vec){
@@ -194,7 +191,7 @@ ggplot(est_fx_df, aes(x=grp, y=val)) +
   xlab("Group")
 ```
 ## Correct classification
-Next, we consider the predictive accuracy of the model with covariates. We compute the area under the ROC curve for a held-out set of 1000 edges. The accuracy measure is then compared to that of a model estimated on the same data but excluding information on the binary treatment variable. We find that, on average, predictive accuracy is higher for the model that incorporates the treatment covarite information.   
+Next, we consider the predictive accuracy of the model with covariates. We compute the area under the ROC curve for a held-out set of 1000 edges. The accuracy measure is then compared to that of a model estimated on the same data but excluding information on the binary treatment variable. We find that, on average, predictive accuracy is higher for the model that incorporates the treatment covariate information.   
 ```{r, results='hide'}
 set.seed(831213)
 system.time(net2.models.ridge <- lapply(1:50,
@@ -272,29 +269,28 @@ knitr::kable(data.frame(Model = c("With covariate", "Without covariate"),
 For our third set of simulations, we illustrate the ability of our model to model the network dynamics using a hidden Markov model for the mixed-membership vectors. We generate a network with 200 nodes, and let it evolve over 9 years according to a forward-moving, 2-state hidden Markov model. During the first stage of this 9-year history, a binary treatment is associated with a higher probability of being part of bloc 2. In turn, the relationship is reversed during the second stage of history. Figure 4 shows the distribution of node-level probabilities of belonging to bloc 2 for each time period (a transition occurs from year 5 to year 6).  
 ```{r, fig.align='center', fig.width=9, fig.height=6}
 set.seed(831213)
-net3 <- NetSim(BLK = 3
-                ,NODE = 200
+net3 <- NetSim(BLK = 2
+                ,NODE = 300
                 ,STATE = 2
                 ,TIME = 9
                 ,DIRECTED = TRUE
-               ,N_PRED = 2
-                ,B_t = matrix(c(5, rep(-5, 3), 5, rep(-5, 3), 5), 
-                              ncol=3)
+                ,N_PRED = 3
+                ,B_t = matrix(c(5, rep(-5, 2), 5), 
+                              ncol=2)
                 ,A_orig = matrix(c(0.75, 0, 0.25, 1.0), ncol = 2)
-                ,beta_arr = array(c(.5, -1.25, 0,
-                                   -.5, 1.25, 0,
-                                   .5, -1.25, 0,
-                                   -1.2, 1.2, 0,
-                                   1.2, -1.2, 0,
-                                   -1.2, 1.2, 0),
-                                 c(3, 3, 2))
-                ,gamma_vec = c(0, 0))
+                ,beta_arr = array(c(0, 0, 0, 0,
+                                   -.05, 1.75, 0.15, 0,
+                                   0, 0, 0, 0,
+                                   0.02, -1.7, 0.35, 0),
+                                 c(4, 2, 2))
+                ,gamma_vec = c(0, 0, 0)
+               ,alpha_conc = 100.5)
 
-ggplot(net3$monad.data, aes(x=as.factor(V1), y=pi2)) +
-  geom_boxplot(outlier.shape = NA) +
+ggplot(net3$monad.data, aes(x=V1, y=(pi2))) +
+  geom_point() +
   facet_wrap(~year) +
   theme_bw() + 
-  xlab("Treatment status") +
+  xlab("Predictor") +
   ylab("Probability of being in bloc 2")
 ```
 
@@ -315,7 +311,6 @@ net3.model <- mmsbm(formula.dyad = Y ~ 1,
                     mmsbm.control = list(mu_b = c(5,-5),
                                          var_b = c(1, 1),
                                          init = "kmeans",
-                                         lda_iter = 50000,
                                          threads = 12
                                          ))
 loss.mat.net3 <- apply((net3.model$MixedMembership), 1,
@@ -345,7 +340,6 @@ static.models <- lapply(1:9,
                                 mmsbm.control = list(mu_b = c(5,-5),
                                                      var_b = c(1, 1),
                                                      init = "kmeans",
-                                                     lda_iter = 50000,
                                                      threads = 12))
                           loss.mat <- apply((temp_res$MixedMembership), 1,
                                             function(vec){
