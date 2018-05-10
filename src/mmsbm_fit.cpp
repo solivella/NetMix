@@ -91,17 +91,17 @@ List mmsbm_fit(const NumericMatrix& z_t,
      Model.getB(Old_B);
      Model.getGamma(Old_Gamma);
      Model.getBeta(Old_Beta);
- #pragma omp parallel sections
-     {
- #pragma omp section
-       {
+ // #pragma omp parallel sections
+ //     {
+ // #pragma omp section
+ //       {
   	Model.optim(true); //optimize alphaLB
-       }
- #pragma omp section
-       {
+ //       }
+ // #pragma omp section
+ //       {
   	Model.optim(false); //optimize thetaLB
-       }
-     }
+     //   }
+     // }
     
     //Check convergence
     newLL = Model.cLL();

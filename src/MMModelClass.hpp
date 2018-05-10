@@ -4,6 +4,7 @@
 #include <vector>
 #include <Rcpp.h>
 #include "Aux.hpp"
+#include <R_ext/Applic.h>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -69,10 +70,12 @@ private:
 
   const double eta,
     var_gamma,
-    var_beta;
+    var_beta,
+    var_xi;
 
   double fminAlpha,
-    fminTheta;
+    fminTheta,
+    xi_param;
 
 
   int fncountAlpha,
@@ -95,6 +98,7 @@ private:
     masktheta;
 
   Array<double> theta_par,
+    alpha_par,  
     e_wm,
     gamma;
 

@@ -4,11 +4,12 @@
 #######################
 
 
-NetSim <- function(BLK = 3, NODE = 5, STATE = 2, TIME = 10, DIRECTED = TRUE, N_PRED = c(0,2),
-                      B_t = NULL, A_orig = NULL, beta_arr, gamma_vec, alpha_scale = 0){
+NetSim <- function(BLK = 3, NODE = 5, STATE = 2, TIME = 10, DIRECTED = TRUE, N_PRED = c(0,3),
+                      B_t = NULL, A_orig = NULL, beta_arr, gamma_vec, alpha_conc = 0){
   library(expm, quietly=TRUE, warn.conflicts=FALSE)
   stopifnot()
-  stopifnot(nrow(beta_arr)==N_PRED+1&ncol(beta_arr)==BLK)
+  stopifnot(nrow(beta_arr)==N_PRED+1&ncol(beta_arr)==(BLK-1))
+  beta_arr[,1,] <- rep(0, (N_PRED+1)*STATE) 
   if(N_PRED>0){
     stopifnot(length(gamma_vec)==N_PRED)
   }
@@ -42,7 +43,7 @@ NetSim <- function(BLK = 3, NODE = 5, STATE = 2, TIME = 10, DIRECTED = TRUE, N_P
   if(N_PRED==0){
     baseMatInd <- array(1, c(NODE, 1))
   } else{
-    baseMatInd <- cbind(1, sample(0:1,NODE, 1), runif(NODE))
+    baseMatInd <- cbind(1, runif(NODE), runif(NODE), runif(NODE))
   }
   #baseMateInd <- scale(baseMatInd)
   X <- replicate(TIME,baseMatInd, simplify = FALSE)
@@ -51,13 +52,13 @@ NetSim <- function(BLK = 3, NODE = 5, STATE = 2, TIME = 10, DIRECTED = TRUE, N_P
     if(N_PRED==0){
       array(0, c(NODE^2, 1))
     } else {
-    cbind(sample(0:1,NODE^2,1), runif(NODE^2))
+      cbind(runif(NODE^2), runif(NODE^2), runif(NODE^2))
     }
   } else {
     if(N_PRED==0){
       array(0, c((1 + NODE) * NODE / 2, 1))
     } else {
-    cbind(sample(0:1, (1 + NODE) * NODE / 2,1), runif((1 + NODE) * NODE / 2))
+      cbind(runif((1 + NODE) * NODE / 2), runif((1 + NODE) * NODE / 2),  runif((1 + NODE) * NODE / 2))
     }
   }
   #baseMatDyad <- scale(baseMatDyad)
@@ -83,7 +84,7 @@ NetSim <- function(BLK = 3, NODE = 5, STATE = 2, TIME = 10, DIRECTED = TRUE, N_P
   alpha <- lapply(1:TIME
                   ,function(t){
                     exp(X[[t]] %*% beta_arr[,,sVec[t]])
-                    #prop.table(a, 1)
+                    prop.table(a, 1) * alpha_conc
                   })
   
   ## Simulate pi

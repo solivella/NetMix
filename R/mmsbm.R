@@ -101,9 +101,10 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                phi_init_t = NULL,
                kappa_init_t = NULL,
                b_init_t = NULL,
+               xi_init = 1.0,
                beta_init = NULL,
                gamma_init = NULL,
-               init = "lda",
+               init = "kmeans",
                lda_iter = 1000,
                lda_alpha = 0.3,
                em_iter = 5000,
@@ -112,6 +113,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                var_b = c(1.0, 1.0),
                var_beta = 5.0,
                var_gamma = 5.0,
+               var_xi = 1,
                eta = 1.3,
                threads = 4,
                conv_tol = 1e-4,
@@ -262,6 +264,18 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                              },
                              dm = X, df = mfm, phi_i = ctrl$phi_init_t, states = state_init,
                              simplify = "array")
+  } else {
+    ctrl$beta_init <- vapply(ctrl$beta_init,
+                             function(mat, sd_vec, mean_vec){
+                               constx <- which(sd_vec==0)
+                               if(length(constx)!=0)
+                                 mat[constx, ] <- mat[constx, ] + mean_vec[-constx] %*% mat[-constx, ]
+                               mat[-constx, ] <- mat[-constx, ] * sd_vec[-constx]
+                               return(mat)
+                             },
+                             array(0.0, c(ncol(X), n.blocks)),
+                             sd_vec = X_sd,
+                             mean_vec = X_mean)
   }
   
   if(is.null(ctrl$gamma_init)){
@@ -270,6 +284,8 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
     } else {
       0
     }
+  } else {
+    ctrl$gamma_init <- ctrl$gamma_init * Z_sd[-which(Z_sd==0)]
   }
   
   if(ncol(Z) == 0)

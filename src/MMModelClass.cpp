@@ -48,8 +48,10 @@ MMModel::MMModel(const NumericMatrix& z_t,
   eta(as<double>(control["eta"])),
   var_gamma(as<double>(control["var_gamma"])),
   var_beta(as<double>(control["var_beta"])),
+  var_xi(as<double>(control["var_xi"])),
   fminAlpha(0.0),
   fminTheta(0.0),
+  xi_param(as<double>(control["xi_init"])),
   fncountAlpha(0),
   fncountTheta(0),
   grcountAlpha(0),
@@ -62,9 +64,10 @@ MMModel::MMModel(const NumericMatrix& z_t,
   time_id_dyad({N_DYAD}, time_id_dyad),
   time_id_node({N_NODE},time_id_node),
   n_nodes_time({N_TIME}, nodes_per_period),
-  maskalpha(N_MONAD_PRED * N_BLK * N_STATE, 1),
+  maskalpha(N_MONAD_PRED * (N_BLK - 1) * N_STATE + 1, 1),
   masktheta(N_B_PAR + N_DYAD_PRED, 1),
   theta_par({N_B_PAR + N_DYAD_PRED}, 0.0),
+  alpha_par({N_MONAD_PRED * (N_BLK - 1) * N_STATE + 1}, 0.0),
   e_wm({N_STATE}, 0.0),
   gamma({N_DYAD_PRED}, gamma_init),
   node_id_dyad({N_DYAD, 2}, node_id_dyad),
@@ -83,7 +86,7 @@ MMModel::MMModel(const NumericMatrix& z_t,
   e_c_t({N_BLK, N_NODE}, 0.0),
   alpha({N_BLK, N_NODE, N_STATE}, 0.0),
   theta({N_BLK, N_BLK, N_DYAD}, 0.0),
-  beta({N_MONAD_PRED, N_BLK, N_STATE}, beta_init),
+  beta({N_MONAD_PRED, N_BLK - 1, N_STATE}, beta_init),
   new_e_c_t(N_THREAD, Array<double>({N_BLK, N_NODE}, 0.0))
 {
   //Assign initial values to  W parameters
@@ -140,6 +143,13 @@ MMModel::MMModel(const NumericMatrix& z_t,
   if(N_DYAD_PRED > 0)
     std::copy(gamma.begin(), gamma.end(), theta_par.begin() + N_B_PAR);
   
+  //Assign alpha paramters
+  alpha_par[0] = xi_param;
+  int N_BETA_PAR = N_MONAD_PRED * (N_BLK - 1) * N_STATE;
+  for(int r1 = 0; r1 < N_BETA_PAR; ++r1) {
+    alpha_par[r1 + 1] = beta[r1];
+  }
+  
   
   //Assign initial values to alpha and theta
   computeAlpha();
@@ -158,31 +168,28 @@ double MMModel::alphaLB()
 {
   computeAlpha();
   int n_node_term;
-  double res = 0.0, alpha_row = 0.0, alpha_val = 0.0;
-#pragma omp parallel for firstprivate(alpha_row, alpha_val) reduction(+:res)
+  double res = 0.0, alpha_val = 0.0;
+#pragma omp parallel for firstprivate(alpha_val) reduction(+:res)
   for(int m = 0; m < N_STATE; ++m){
     for(int p = 0; p < N_NODE; ++p){
       n_node_term = directed ? 2 * (n_nodes_time[time_id_node[p]]) : n_nodes_time[time_id_node[p]];
-      alpha_row = 0.0;
       for(int g = 0; g < N_BLK; ++g){
         alpha_val = alpha(g, p, m);
-        alpha_row += alpha_val;
         res += lgamma(alpha_val + e_c_t(g, p)) - lgamma(alpha_val);
-        // res += (alpha_val - 1) * log((e_c_t(g, p) * (n_node_term-1) 
-        //                                 + 1/N_BLK)/n_node_term); 
-        // res -= lgamma(alpha_val);
       }
-      res += lgamma(alpha_row) - lgamma(alpha_row + n_node_term);
+      res += lgamma(xi_param) - lgamma(xi_param + n_node_term);
       res *= kappa_t(m, time_id_node[p]);
     }
     
     //Prior for beta
-    for(int g = 0; g < N_BLK; ++g){
+    for(int g = 0; g < (N_BLK - 1); ++g){
      for(int x = 0; x < N_MONAD_PRED; ++x){
        res -= 0.5 * pow(beta(x, g, m), 2.0) / var_beta;
      }
     }
   }
+  //Prior for xi
+  res -= 0.5 * pow(log(xi_param), 2.0) / var_xi;
   
   
   res *= -1; //VMMIN minimizes.
@@ -195,30 +202,35 @@ double MMModel::alphaLB()
 
 void MMModel::alphaGr(int N_PAR, double *gr)
 {
+  computeAlpha();
   int t, n_node_term;
-  double res,  alpha_row, sd_beta = sqrt(var_beta);
+  double res, di_a, di_ac, alpha_val, mu, dg_xin;
+  double res_xi = 0.0;
+  double dg_xi = digamma(xi_param);
   for(int m = 0; m < N_STATE; ++m){
-    for(int g = 0; g < N_BLK; ++g){
+    for(int g = 1; g < N_BLK; ++g){
       for(int x = 0; x < N_MONAD_PRED; ++x){
         res = 0.0;
         for(int p = 0; p < N_NODE; ++p){
           t = time_id_node[p];
-          alpha_row = 0.0;
-          for(int h = 0; h < N_BLK; ++h){
-            alpha_row += alpha(h, p, m);
+          n_node_term = directed ? 2 * (n_nodes_time[t]) : n_nodes_time[t];
+          dg_xin = digamma(xi_param + n_node_term);
+          alpha_val = alpha(g, p, m);
+          mu = alpha_val / xi_param;
+          di_ac = digamma(alpha_val + e_c_t(g, p));
+          di_a = digamma(alpha_val);
+          if(x == 0){
+            res_xi += dg_xi - dg_xin + (di_ac - di_a) * mu ;
+            res_xi *= kappa_t(m,t);
           }
-          n_node_term = directed ? 2 * (n_nodes_time[t]): n_nodes_time[t];
-          res += digamma(alpha_row) - digamma(alpha_row + n_node_term);
-          res += digamma(alpha(g, p, m) + e_c_t(g, p)) - digamma(alpha(g, p, m));
-          // res += digamma(alpha_row) + log((e_c_t(g, p) * (n_node_term - 1)
-          // + 1/N_BLK)/n_node_term);
-          // res -= digamma(alpha(g, p, m));
-          res *= kappa_t(m, t) * alpha(g, p, m) * x_t(x, p);
+          res += di_ac - di_a;
+          res *= kappa_t(m, t) * x_t(x, p) * (alpha_val - pow(mu, 2.) * xi_param);
         }
-        gr[x + N_MONAD_PRED * (g + N_BLK * m)] = -(res - beta(x, g, m) / sd_beta);
+        gr[1 + x + N_MONAD_PRED * ((g - 1) + N_BLK * m)] = -(res - beta(x, g - 1, m) / var_beta);
       }
     }
   }
+  gr[0] = -(res_xi - log(xi_param) / var_xi);
 }
 
 
@@ -231,25 +243,32 @@ void MMModel::computeAlpha()
   std::fill(alpha_term1.begin(), alpha_term1.end(), 0.0);
   std::fill(alpha_term2.begin(), alpha_term2.end(), 0.0);
   
-  double linpred, row_sum;
+  xi_param = exp(alpha_par[0]);
+  std::copy(alpha_par.begin() + 1, alpha_par.end(), beta.begin());
+  
+  double linpred, linpred_sum;
   int n_node_term;
   for(int m = 0; m < N_STATE; ++m){
     for(int p = 0; p < N_NODE; ++p){
-      row_sum = 0.0;
-      for(int g = 0; g < N_BLK; ++g){
+      linpred_sum = 1.0;
+      alpha(0, p, m) = xi_param;
+      for(int g = 1; g < N_BLK; ++g){
         linpred = 0.0;
         for(int x = 0; x < N_MONAD_PRED; ++x){
-          linpred += x_t(x, p) * beta(x, g, m);
+          linpred += x_t(x, p) * beta(x, g - 1, m);
         }
-        linpred = exp(linpred);
-        row_sum += linpred;
-        alpha(g, p, m) = linpred;
+        alpha(g, p, m) = exp(linpred);
+        linpred_sum += exp(linpred);
+      }
+      linpred_sum /= xi_param;
+      for(int g = 0; g < N_BLK; ++g) {
+        alpha(g, p, m) /= linpred_sum;
         alpha_term2(m, time_id_node[p]) += lgamma(linpred + e_c_t(g, p)) - lgamma(linpred);
       }
       n_node_term = directed ?
       2 * (n_nodes_time[time_id_node[p]]) :
         n_nodes_time[time_id_node[p]];
-      alpha_term1(m, time_id_node[p]) += lgamma(row_sum) - lgamma(row_sum + n_node_term);
+      alpha_term1(m, time_id_node[p]) += lgamma(xi_param) - lgamma(xi_param + n_node_term);
     }
   }
 }
@@ -302,7 +321,7 @@ double MMModel::thetaLB(bool entropy = false)
  */
 void MMModel::thetaGr(int N_PAR, double *gr)
 {
-  double sd_gamma = sqrt(var_gamma);
+  computeTheta();
   double res_local, res = 0.0;
   for(int i = 0; i < N_PAR; ++i)
     gr[i] = 0.0;
@@ -328,7 +347,7 @@ void MMModel::thetaGr(int N_PAR, double *gr)
     }
   }
   for(int z = 0; z < N_DYAD_PRED; ++z){
-    gr[N_B_PAR + z] += gamma[z] / sd_gamma;
+    gr[N_B_PAR + z] += gamma[z] / var_gamma;
   }
   for(int g = 0; g < N_BLK; ++g){
     for(int h = 0; h < N_BLK; ++h){
@@ -336,7 +355,7 @@ void MMModel::thetaGr(int N_PAR, double *gr)
         continue;
       }
       npar = par_ind(h, g);
-      gr[npar] += (b_t(h, g) - mu_b_t(h, g)) / sqrt(var_b_t(h, g));
+      gr[npar] += (b_t(h, g) - mu_b_t(h, g)) / var_b_t(h, g);
     }
   }
 }
@@ -394,10 +413,10 @@ double MMModel::cLL()
 void MMModel::optim(bool alpha)
 {
   if(alpha){
-    vmmin_ours(N_MONAD_PRED * N_BLK * N_STATE, &beta[0], &fminAlpha, alphaLBW, alphaGrW, OPT_ITER, 0,
+    vmmin(N_MONAD_PRED * (N_BLK - 1) * N_STATE + 1, &alpha_par[0], &fminAlpha, alphaLBW, alphaGrW, OPT_ITER, 0,
                &maskalpha[0], -1.0e+35, 1.0e-6, 1, this, &fncountAlpha, &grcountAlpha, &m_failAlpha);
   } else {
-    vmmin_ours(N_B_PAR + N_DYAD_PRED, &theta_par[0], &fminTheta, thetaLBW, thetaGrW, OPT_ITER, 0,
+    vmmin(N_B_PAR + N_DYAD_PRED, &theta_par[0], &fminTheta, thetaLBW, thetaGrW, OPT_ITER, 0,
                &masktheta[0], -1.0e+35, 1.0e-6, 1, this, &fncountTheta, &grcountTheta, &m_failTheta);
   }
 }
