@@ -114,6 +114,7 @@ private:
     b_t,
     alpha_term1,
     alpha_term2,
+    sum_u_mu,
     send_phi,
     rec_phi,
     e_wmn_t,

@@ -169,7 +169,7 @@ matplot(net2_list[[1]]$pi_vecs[[1]],t(net2.models[[1]]$res$MixedMembership[net2.
 est_fx <- lapply(1:50,
                  function(i){
                    x <- net2.models[[i]]
-                   data.frame(var = rep(c("V0","V1", "V2", "V3"), 3),
+                   data.frame(var = rep(c("V0","V1", "V2", "V3"), 2),
                               grp = rep(c("1","2","3"), each = 4),
                               val = c(x$res$MonadCoef[,x$ord,1]),
                               iter = i)

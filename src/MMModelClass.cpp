@@ -80,6 +80,7 @@ MMModel::MMModel(const NumericMatrix& z_t,
   b_t({N_BLK, N_BLK}, b_init_t),
   alpha_term1({N_STATE, N_TIME}, 0.0),
   alpha_term2({N_STATE, N_TIME}, 0.0),
+  sum_u_mu({N_NODE, N_STATE},0.0),
   send_phi({N_BLK, N_DYAD}, 0.0),
   rec_phi({N_BLK, N_DYAD}, 0.0),
   e_wmn_t({N_STATE, N_STATE}, 0.0),
@@ -204,7 +205,7 @@ void MMModel::alphaGr(int N_PAR, double *gr)
 {
   computeAlpha();
   int t, n_node_term;
-  double res, di_a, di_ac, alpha_val, mu, dg_xin;
+  double res, alpha_val, alpha_val_h;
   double res_xi = 0.0;
   double dg_xi = digamma(xi_param);
   for(int m = 0; m < N_STATE; ++m){
@@ -214,17 +215,23 @@ void MMModel::alphaGr(int N_PAR, double *gr)
         for(int p = 0; p < N_NODE; ++p){
           t = time_id_node[p];
           n_node_term = directed ? 2 * (n_nodes_time[t]) : n_nodes_time[t];
-          dg_xin = digamma(xi_param + n_node_term);
           alpha_val = alpha(g, p, m);
-          mu = alpha_val / xi_param;
-          di_ac = digamma(alpha_val + e_c_t(g, p));
-          di_a = digamma(alpha_val);
           if(x == 0){
-            res_xi += dg_xi - dg_xin + (di_ac - di_a) * mu ;
+            res_xi += dg_xi - digamma(xi_param + n_node_term) +
+              (digamma(alpha_val + e_c_t(g, p)) - digamma(alpha_val)) * alpha_val / xi_param;
             res_xi *= kappa_t(m,t);
           }
-          res += di_ac - di_a;
-          res *= kappa_t(m, t) * x_t(x, p) * (alpha_val - pow(mu, 2.) * xi_param);
+          for(int h = 0; h < N_BLK; ++h){
+            if(h==g) {
+              continue;
+            }
+            alpha_val_h = alpha(h, p, m);
+            res += alpha_val * (digamma(alpha_val_h) - digamma(alpha_val_h + e_c_t(h, p)));
+          }
+          res *= 1./sum_u_mu(p, m);
+          res += (digamma(alpha_val + e_c_t(g, p)) - digamma(alpha_val))
+            * (alpha_val - alpha_val * alpha_val / xi_param);
+          res *= kappa_t(m, t) * x_t(x, p);
         }
         gr[1 + x + N_MONAD_PRED * ((g - 1) + N_BLK * m)] = -(res - beta(x, g - 1, m) / var_beta);
       }
@@ -260,6 +267,7 @@ void MMModel::computeAlpha()
         alpha(g, p, m) = exp(linpred);
         linpred_sum += exp(linpred);
       }
+      sum_u_mu(p, m) = linpred_sum;
       linpred_sum /= xi_param;
       for(int g = 0; g < N_BLK; ++g) {
         alpha(g, p, m) /= linpred_sum;

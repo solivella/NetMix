@@ -212,7 +212,8 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                                 target <- mat
                               }
                               clust_internal <- kmeans(target,
-                                                       n.blocks,
+                                                       jitter(target[sample(nrow(target),n.blocks),]),
+                                                       algorithm = "Lloyd",
                                                        nstart = 15)$cluster
                               phi_internal <- model.matrix(~ as.factor(clust_internal) - 1)
                               phi_internal <- prop.table(phi_internal + runif(length(phi_internal)), 1)
