@@ -1,48 +1,17 @@
 #include "Aux.hpp"
+#include "MMModelClass.hpp"
 
-// Coming from Abramowitz and Stegun 6.4.13 and 6.4.6
-inline double tetragamma(double x)
-{
-  x += 6;
-  double p = 1.0/(x*x);
-  p = p*(-1-p*(0.5+p*(0.16666666666667
-                        - p*(0.16666666666667
-                               + p*(0.3-p*(0.83333333333333
-                               + p*3.2904761904762))))))-1.0/(x*x*x);
-                               for(int i = 0; i<6; ++i){
-                                 x -= 1;
-                                 p -= 2.0/(x*x*x);
-                               }
-                               return p;
-}
-
-// Coming from Blei's lda implementation in C (github.com/blei-lab/lda-c)
-inline double trigamma(double x)
-{
-  double p;
-  int i;
-  
-  x+=6;
-  p=1.0/(x*x);
-  p=(((((0.075757575757576*p-0.033333333333333)*p+0.0238095238095238)
-         *p-0.033333333333333)*p+0.166666666666667)*p+1)/x+0.5*p;
-  for (i=0; i<6 ;i++){
-    x-=1;
-    p+=1.0/(x*x);
+// Compute Psi(alpha + C) - Psi(alpha)
+// without need of digammas
+double DigammaDiff(double alpha, int C) {
+  int upper = C-1;
+  double seq = 1./alpha;
+  for(int i = 1; i <= upper; ++i) {
+    seq += 1./++alpha;
   }
-  return p;
+  return(seq);
 }
 
-// inline double digamma(double x)
-// {
-//   double p;
-//   x+=6;
-//   p=1.0/(x*x);
-//   p=(((0.004166666666667*p-0.003968253986254)*p+
-//       0.008333333333333)*p-0.083333333333333)*p;
-//   p+=log(x)-0.5/x-1./(x-1)-1./(x-2)-1./(x-3)-1./(x-4)-1./(x-5)-1./(x-6);
-//   return p;
-// }
 
 double logSumExp(const std::vector<double>& invec)
 {
@@ -88,6 +57,8 @@ void vmmin_ours(int n0, double *b, double *Fmin, optimfn fminfn, optimgr fmingr,
   std::vector<double> c(n, 0.0);
   std::vector< std::vector<double> > B(n, std::vector<double>(n));
   f = fminfn(n0, b, ex);
+  
+  
   if (!R_FINITE(f))
     Rcpp::stop("initial value in 'vmmin' is not finite");
   if (trace) Rprintf("initial  value %f \n", f);
@@ -116,15 +87,15 @@ void vmmin_ours(int n0, double *b, double *Fmin, optimfn fminfn, optimgr fmingr,
       gradproj += s * g[l[i]];
     }
     
-    if (gradproj < 0.0) {	/* search direction is downhill */
-steplength = 1.0;
+    if (gradproj < 0.0) {	// search direction is downhill 
+      steplength = 1.0;
       accpoint = FALSE;
       do {
         count = 0;
         for (i = 0; i < n; i++) {
           b[l[i]] = X[i] + steplength * t[i];
-          if (10.0 + X[i] == 10.0 + b[l[i]]) /* no change */
-count++;
+          if (10.0 + X[i] == 10.0 + b[l[i]]) // no change
+            count++;
         }
         if (count < n) {
           f = fminfn(n0, b, ex);
@@ -138,7 +109,7 @@ count++;
       } while (!(count == n || accpoint));
       enough = (f > abstol) &&
         fabs(f - *Fmin) > reltol * (fabs(*Fmin) + reltol);
-      /* stop if value if small or if relative change is low */
+      // stop if value if small or if relative change is low 
       if (!enough) {
         count = n;
         *Fmin = f;
@@ -171,26 +142,26 @@ count++;
               B[i][j] += (D2 * t[i] * t[j]
                             - X[i] * t[j] - t[i] * X[j]) / D1;
           }
-        } else {	/* D1 < 0 */
-      ilast = gradcount;
+        } else {	// D1 < 0 
+          ilast = gradcount;
         }
-      } else {	/* no progress */
-      if (ilast < gradcount) {
-        count = 0;
-        ilast = gradcount;
+      } else {	// no progress
+        if (ilast < gradcount) {
+          count = 0;
+          ilast = gradcount;
+        }
       }
-      }
-    } else {		/* uphill search */
+    } else {		// uphill search 
       count = 0;
       if (ilast == gradcount) count = n;
       else ilast = gradcount;
-      /* Resets unless has just been reset */
+      // Resets unless has just been reset 
     }
     if (trace && (iter % nREPORT == 0))
       Rprintf("iter%4d value %f\n", iter, f);
     if (iter >= maxit) break;
     if (gradcount - ilast > 2 * n)
-      ilast = gradcount;	/* periodic restart */
+      ilast = gradcount;	// periodic restart 
   } while (count != n || ilast != gradcount);
   if (trace) {
     Rprintf("final  value %f \n", *Fmin);

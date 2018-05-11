@@ -53,7 +53,11 @@ net1.model <- mmsbm(formula.dyad = Y ~ 1,
                     n.blocks = net1$BLK,
                     directed = net1$DIRECTED,
                     mmsbm.control = list(mu_b = c(5,-5),
-                                         init = "kmeans"))
+                                         var_xi = 10,
+                                         init = "kmeans",
+                                         beta_init = array(c(0,3,3), c(1,3,1))
+                                         #em_iter = 1
+                                         ))
 our_time <- proc.time() - strt
 ```
 
@@ -115,7 +119,7 @@ Whereas our implementation takes around `r round(our_time["elapsed"], 2)` second
 # Experiment 2: Static network with covariates
 
 Our second set of simulations illustrates our model's ability to define a regression model for the mixed-membership vector. We generate 50 networks of 300 nodes and 3 latent blocs, generating mixed-membership vectors as a function of a hypothetical binary treatment assigment. Specifically, the treatment makes nodes much more likely to be part of bloc 2 and less likely to be part of either of the other two blocs. Figure 3 below shows a typical mixed-membership profile for these 50 networks, showing treated nodes as black circles and control nodes as red triangles.  
-```{r,fig.align='center', fig.height=3.5, fig.width=5.5}
+```{r,fig.align='center', fig.height=3.5, fig.width=5.5, message=FALSE}
 set.seed(831213)
 true_beta <- array(c( 0, 0, 0, 0,
                      -1.5, -0.5, 1.95, -0.95),
@@ -170,7 +174,7 @@ est_fx <- lapply(1:50,
                  function(i){
                    x <- net2.models[[i]]
                    data.frame(var = rep(c("V0","V1", "V2", "V3"), 2),
-                              grp = rep(c("1","2","3"), each = 4),
+                              grp = rep(c("1","2"), each = 4),
                               val = c(x$res$MonadCoef[,x$ord,1]),
                               iter = i)
                  }) 
@@ -179,8 +183,8 @@ ggplot(est_fx_df, aes(x=grp, y=val)) +
   facet_wrap(~var, scales="free") +
   geom_boxplot(outlier.shape = NA) +
   geom_point(data = data.frame(
-    var = rep(c("V0","V1", "V2", "V3"), 3),
-    x=rep(c("1","2","3"), each = 4),
+    var = rep(c("V0","V1", "V2", "V3"), 2),
+    x=rep(c("1","2"), each = 4),
     y = c(true_beta[,,1])),
              aes(x=x, y=y),
              color = "red",

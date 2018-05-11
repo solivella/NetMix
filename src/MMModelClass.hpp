@@ -16,7 +16,7 @@ class MMModel
 public:
   MMModel(const Rcpp::NumericMatrix& z_t,
 	  const Rcpp::NumericMatrix& x_t,
-	  const Rcpp::IntegerVector& y,
+	  const Rcpp::NumericVector& y,
 	  const int N_THREAD,
 	  const Rcpp::IntegerVector& time_id_dyad,
 	  const Rcpp::IntegerVector& time_id_node,
@@ -44,6 +44,7 @@ public:
   Rcpp::NumericMatrix getWmn();
   Rcpp::NumericMatrix getKappa();
   Rcpp::NumericMatrix getB();
+  double getConcentration();
   void getB(Rcpp::NumericVector&);
   Rcpp::NumericVector getGamma();
   void getGamma(Rcpp::NumericVector&);
@@ -89,7 +90,7 @@ private:
   bool verbose,
     directed;
 
-  const Array<int> y, //vectors
+  const Array<int>  //vectors
     time_id_dyad,
     time_id_node,
     n_nodes_time;
@@ -97,7 +98,8 @@ private:
   std::vector<int> maskalpha, //vectors
     masktheta;
 
-  Array<double> theta_par,
+  Array<double> y,
+    theta_par,
     alpha_par,  
     e_wm,
     gamma;
@@ -114,13 +116,14 @@ private:
     b_t,
     alpha_term1,
     alpha_term2,
-    sum_u_mu,
+    sum_e_xb,
     send_phi,
     rec_phi,
     e_wmn_t,
     e_c_t;
 
   Array<double> alpha, //3d array (column major)
+    e_xb,
     theta,
     beta;
 
@@ -143,6 +146,11 @@ private:
 			 double*,
 			 double*,
 			 double*);
+friend
+  void vmmin_ours(int n0, double *b, double *Fmin, optimfn fminfn, optimgr fmingr,
+             int maxit, int trace, int *mask,
+             double abstol, double reltol, int nREPORT, void *ex,
+             int *fncount, int *grcount, int *fail);
 
 };
 

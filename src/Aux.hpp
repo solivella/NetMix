@@ -58,11 +58,7 @@ private:
 
 
 
-// Coming from Abramowitz and Stegun 6.4.13 and 6.4.6
-double tetragamma(double);
-// Coming from Blei's lda implementation in C (github.com/blei-lab/lda-c)
-double trigamma(double);
-// double digamma(double x);
+double DigammaDiff(double alpha, int C);
 
 double logSumExp(const std::vector<double>& invec);
 

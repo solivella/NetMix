@@ -101,7 +101,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                phi_init_t = NULL,
                kappa_init_t = NULL,
                b_init_t = NULL,
-               xi_init = 1.0,
+               xi_init = 10,
                beta_init = NULL,
                gamma_init = NULL,
                init = "kmeans",
@@ -114,7 +114,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                var_beta = 5.0,
                var_gamma = 5.0,
                var_xi = 1,
-               eta = 1.3,
+               eta = 100.3,
                threads = 4,
                conv_tol = 1e-4,
                verbose = FALSE)
@@ -211,10 +211,10 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                               } else {
                                 target <- mat
                               }
-                              clust_internal <- kmeans(target,
+                              clust_internal <- suppressWarnings(kmeans(target,
                                                        jitter(target[sample(nrow(target),n.blocks),]),
                                                        algorithm = "Lloyd",
-                                                       nstart = 15)$cluster
+                                                       nstart = 15))$cluster
                               phi_internal <- model.matrix(~ as.factor(clust_internal) - 1)
                               phi_internal <- prop.table(phi_internal + runif(length(phi_internal)), 1)
                               rownames(phi_internal) <- rownames(mat)
@@ -255,22 +255,30 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   
   
   if(is.null(ctrl$beta_init)){
-    ctrl$beta_init <- sapply(1:n.hmmstates,
+    alpha_par_init <- lapply(1:n.hmmstates,
                              function(m, dm, df, phi_i, states){
                                dinm <- with(df, `(tid)` %in% unique(`(tid)`)[states == m])
                                phi_temp <- t(phi_i[,dinm])
                                X_sub <- dm[dinm, , drop = FALSE]
                                ytemp <- suppressWarnings(DirichletReg::DR_data(phi_temp))
-                               do.call(cbind,coef(suppressWarnings(DirichletReg::DirichReg(ytemp~.-1, as.data.frame(X_sub)))))
+                               mtemp <- suppressWarnings(DirichletReg::DirichReg(ytemp~.-1, model = "alternative", as.data.frame(X_sub)))
+                               beta <- do.call(cbind,coef(mtemp)$beta)
+                               xi <- coef(mtemp)$gamma
+                               return(list(beta=beta, xi=xi))
                              },
-                             dm = X, df = mfm, phi_i = ctrl$phi_init_t, states = state_init,
+                             dm = X, df = mfm, phi_i = ctrl$phi_init_t, states = state_init)
+    ctrl$beta_init <- sapply(alpha_par_init,
+                             function(x)cbind(0,x$beta),
                              simplify = "array")
+    ctrl$xi_init <- mean(sapply(alpha_par_init, function(x)exp(x$xi$gamma)))
   } else {
-    ctrl$beta_init <- vapply(ctrl$beta_init,
+    ctrl$beta_init <- vapply(lapply(seq(dim(ctrl$beta_init)[3]), function(x) ctrl$beta_init[ , , x]), 
                              function(mat, sd_vec, mean_vec){
+                               mat <- matrix(mat, ncol=n.blocks, nrow=ncol(X))
                                constx <- which(sd_vec==0)
-                               if(length(constx)!=0)
+                               if(length(constx)!=0){
                                  mat[constx, ] <- mat[constx, ] + mean_vec[-constx] %*% mat[-constx, ]
+                               }
                                mat[-constx, ] <- mat[-constx, ] * sd_vec[-constx]
                                return(mat)
                              },
@@ -316,8 +324,12 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   fit[["Kappa"]] <- fit[["Kappa"]][,order(time_order)]
   fit[["BlockModel"]] <- t(fit[["BlockModel"]])
   
-  ## Rescale coefficients
+  
+  
+  ## Rescale and name coefficients
   fit[["DyadCoef"]] <- fit[["DyadCoef"]] / Z_sd[-which(Z_sd==0)]
+  fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]]) 
+  names(fit[["DyadCoef"]]) <- colnames(X)[-1] 
   fit[["MonadCoef"]] <- vapply(fit[["MonadCoef"]],
                                function(mat, sd_vec, mean_vec){
                                  constx <- which(sd_vec==0)
@@ -329,6 +341,9 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                                array(0.0, c(ncol(X), n.blocks)),
                                sd_vec = X_sd,
                                mean_vec = X_mean)
+  if(ncol(X) > 1){
+    rownames(fit[["MonadCoef"]]) <- colnames(X)
+  }
   ## Include used data in original order
   fit$monadic.data <- mfm[order(monadic_order),]
   fit$dyadic.data <- mfd[order(dyadic_order),]

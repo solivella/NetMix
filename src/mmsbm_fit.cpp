@@ -12,7 +12,7 @@ using Rcpp::as;
 // [[Rcpp::export]]
 List mmsbm_fit(const NumericMatrix& z_t,
 	       const NumericMatrix& x_t,
-	       const IntegerVector& y,
+	       const NumericVector& y,
 	       const IntegerVector& time_id_dyad,
 	       const IntegerVector& time_id_node,
 	       const IntegerVector& nodes_per_period,
@@ -96,9 +96,9 @@ List mmsbm_fit(const NumericMatrix& z_t,
  // #pragma omp section
  //       {
   	Model.optim(true); //optimize alphaLB
- //       }
+ // }
  // #pragma omp section
- //       {
+ // {
   	Model.optim(false); //optimize thetaLB
      //   }
      // }
@@ -133,6 +133,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
   NumericMatrix B = Model.getB();
   NumericVector gamma_res = Model.getGamma();
   List beta_res = Model.getBeta();
+  double conc = Model.getConcentration();
 
 
   List res;
@@ -142,6 +143,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
   res["BlockModel"] = B;
   res["DyadCoef"] = gamma_res;
   res["MonadCoef"] = beta_res;
+  res["MMConcentration"] = conc;
   res["TransitionKernel"] = A;
   res["Kappa"] = kappa_res;
   res["n_states"] = as<int>(control["states"]);
