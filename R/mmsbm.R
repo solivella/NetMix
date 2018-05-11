@@ -329,7 +329,9 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   ## Rescale and name coefficients
   fit[["DyadCoef"]] <- fit[["DyadCoef"]] / Z_sd[-which(Z_sd==0)]
   fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]]) 
-  names(fit[["DyadCoef"]]) <- colnames(X)[-1] 
+  if(ncol(Z)>1){
+    names(fit[["DyadCoef"]]) <- colnames(Z)[-1] 
+  }
   fit[["MonadCoef"]] <- vapply(fit[["MonadCoef"]],
                                function(mat, sd_vec, mean_vec){
                                  constx <- which(sd_vec==0)
