@@ -105,8 +105,8 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                beta_init = NULL,
                gamma_init = NULL,
                init = "kmeans",
-               lda_iter = 1000,
-               lda_alpha = 0.3,
+               lda_iter = 2000,
+               lda_alpha = 1,
                em_iter = 5000,
                opt_iter = 10e3,
                mu_b = c(5.0, -5.0),
@@ -128,6 +128,9 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   
   
   ## Create initial values
+  if(ctrl$verbose){
+    cat("Finding optimal starting values...\n")
+  }
   dyads <- split.data.frame(dntid, mfd[, "(tid)"])
   edges <- split(Y, mfd[, "(tid)"])
   soc_mats <- mapply(function(mat, y){
@@ -167,9 +170,9 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
     if(n.hmmstates > 1){
       state_internal <- kmeans(dyad_time,
                                        n.hmmstates,
-                                       nstart = 5)$cluster
+                                       nstart = 15)$cluster
       kappa_internal <- model.matrix(~ as.factor(state_internal) - 1)
-      kappa_internal <- prop.table(kappa_internal+runif(length(kappa_internal)), 1)
+      kappa_internal <- prop.table(kappa_internal + runif(length(kappa_internal),0,0.1),1)
       ctrl$kappa_init_t <- t(kappa_internal)
     } else {
       ctrl$kappa_init_t <- t(matrix(1, nrow = length(ut)))
@@ -183,6 +186,8 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   } else {
     state_init <- apply(ctrl$kappa_init_t, 2, which.max)
   }
+  
+  
   
   if(is.null(ctrl$phi_init)) {
     phi_init_temp <- lapply(soc_mats,
@@ -216,13 +221,23 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                                                        algorithm = "Lloyd",
                                                        nstart = 15))$cluster
                               phi_internal <- model.matrix(~ as.factor(clust_internal) - 1)
-                              phi_internal <- prop.table(phi_internal + runif(length(phi_internal)), 1)
+                              phi_internal <- prop.table(phi_internal + runif(length(phi_internal),0,0.1),1)
                               rownames(phi_internal) <- rownames(mat)
                               return(t(phi_internal))
                               }
                             })
-    dyad_internal <- mapply(function(mat1, mat2)
-    {
+    start_change <- which(duplicated(state_init)==FALSE)
+    phi_init_temp <- lapply(1:periods,
+                            function(x){
+                              if(x %in% start_change){
+                                return(phi_init_temp[[x]])
+                              } else {
+                                target <- max(start_change[start_change < x])
+                                ord <- clue::solve_LSAP(phi_init_temp[[target]] %*% t(phi_init_temp[[x]]), TRUE)
+                                return(phi_init_temp[[x]][ord,])
+                              }
+                            })
+    dyad_internal <- mapply(function(mat1, mat2){
       cbind(match(mat1[,1], colnames(mat2)) - 1,
             match(mat1[,2], colnames(mat2)) - 1) 
     }, dyads, phi_init_temp, SIMPLIFY = FALSE)
@@ -241,10 +256,6 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                                      right_perm,
                                      phi_init_temp,
                                      SIMPLIFY = FALSE))
-                              # mapply(function(perm_mat, phi_mat){perm_mat%*%phi_mat},
-                              # right_perm,
-                              # phi_init_temp,
-                              # SIMPLIFY = FALSE))
   } else {
     ctrl$phi_init_t <- ctrl$phi_init_t[, monadic_order]
   }
@@ -317,6 +328,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                    ctrl$gamma_init,
                    ctrl
   )
+
   
   
   ##Reorder to match original order
@@ -328,9 +340,12 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   
   ## Rescale and name coefficients
   fit[["DyadCoef"]] <- fit[["DyadCoef"]] / Z_sd[-which(Z_sd==0)]
-  fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]]) 
+  if(length(fit[["DyadCoef"]])){
+    fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]]) 
+  }
+  dimnames(fit[["BlockModel"]]) <- replicate(2,paste("Block",1:n.blocks), simplify = FALSE)
   if(ncol(Z)>1){
-    names(fit[["DyadCoef"]]) <- colnames(Z)[-1] 
+    names(fit[["DyadCoef"]]) <- colnames(Z) 
   }
   fit[["MonadCoef"]] <- vapply(fit[["MonadCoef"]],
                                function(mat, sd_vec, mean_vec){
@@ -346,6 +361,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   if(ncol(X) > 1){
     rownames(fit[["MonadCoef"]]) <- colnames(X)
   }
+  colnames(fit[["MonadCoef"]]) <- paste("Block",1:n.blocks)
   ## Include used data in original order
   fit$monadic.data <- mfm[order(monadic_order),]
   fit$dyadic.data <- mfd[order(dyadic_order),]

@@ -21,7 +21,7 @@ source("NetGenerator.R")
 # Experiment 1: Static network without covariates. 
 Our first simulation exercise estimates the original mixed-membership stochastic block model of Airoldi et al. (2008): a model without covariates and without dynamics. We simulate a single network of 100 nodes and 3 latent blocs using the model's DGP. We set the blocmodel parameters to reflect high in-group interaction probabilities and low out-group interaction probabilities, and generate mixed-memberships that are roughly uniform. The following figure displays the mixed-membership vectors for all 100 nodes in our simulated network. While some nodes are clearly in one of the three blocks (and are therefore depicted in one of the vertices of the simplex), many spread their memberships much more evenly among two or three blocs.       
 
-```{r,fig.align='center', fig.height=3.5, fig.width=5.5}
+```{r,fig.align='center', fig.height=3.5, fig.width=5.5, message=FALSE}
 set.seed(831213)
 net1 <-  NetSim(BLK = 3
                 ,NODE = 100
@@ -36,7 +36,7 @@ net1 <-  NetSim(BLK = 3
                 ,gamma_vec = c(0)
                 ,alpha_conc = 0.5)
 train_index <- sample(1:10000, 9000)
-vcd::ternaryplot(net1$pi_vecs[[1]], col=rgb(1,0,0,0.7), dimnames = 1:3, cex=0.7,
+vcd::ternaryplot(net1$pi_vecs[[1]], col=rgb(1,0,0,0.7),dimnames = NULL, cex=0.7,
                  main = "Mixed-membership\nNetwork I")
 ```
 
@@ -54,27 +54,22 @@ net1.model <- mmsbm(formula.dyad = Y ~ 1,
                     directed = net1$DIRECTED,
                     mmsbm.control = list(mu_b = c(5,-5),
                                          var_xi = 10,
-                                         init = "kmeans",
-                                         beta_init = array(c(0,3,3), c(1,3,1))
-                                         #em_iter = 1
+                                         init = "kmeans"
                                          ))
 our_time <- proc.time() - strt
 ```
 
 After using a common implementation of the Hungarian algorithm to resolve the allocation problem raised by label switching, we compare known and estimated mixed-membership vectors for all 100 nodes in Figure 2 below. Alignment with the 1:1 diagonal indicates almost perfect retrieval of truth.  
 ```{r net1_est, fig.align='center', fig.height=3, fig.width=4.5}
-loss.mat.net1 <- apply((net1.model$MixedMembership), 1,
-                               function(vec){
-                                 colSums(((net1$pi_vecs[[1]]) - vec)^2)
-                               })
-net1_order <- clue::solve_LSAP((loss.mat.net1))
+loss.mat.net1 <- net1.model$MixedMembership %*% net1$pi_vecs[[1]]
+net1_order <- clue::solve_LSAP((loss.mat.net1), TRUE)
 pred_data_static <- data.frame(Network = rep(c("Network I"), each=300),
                                Group = factor(rep(c(1:3), each = 100, times = 1)),
                                Truth = c(c(net1$pi_vecs[[1]])),
                                Pred = c(c(t(net1.model$MixedMembership[net1_order,]))))
-ggplot(pred_data_static, aes(x=Truth, y=Pred, color=Group))+
+ggplot(pred_data_static, aes(x=Truth, y=Pred, color=Group, pch=Group))+
   scale_color_brewer(palette="Set1") + 
-  geom_point(alpha=0.7) + 
+  geom_point(alpha=0.7, size=2.5) + 
   facet_wrap(~Network) + 
   theme_bw() + 
   ylab("Estimate") +
@@ -103,11 +98,8 @@ net1.lda <- lda::mmsb.collapsed.gibbs.sampler(sociomat,
                                               burnin = 8000L,
                                               num.iterations = 9000L)
 lda_time <- proc.time() - strt
-loss.mat.lda <- apply(prop.table(net1.lda$document_expects, 2), 1,
-                      function(vec){
-                        colSums(((net1$pi_vecs[[1]]) - vec)^2)
-                      })
-lda_order <- clue::solve_LSAP((loss.mat.lda))
+loss.mat.lda <- prop.table(net1.lda$document_expects, 2) %*% net1$pi_vecs[[1]]
+lda_order <- clue::solve_LSAP((loss.mat.lda), TRUE)
 bm <- net1.lda$blocks.pos/(net1.lda$blocks.pos+net1.lda$blocks.neg)
 lda_pi_send <- prop.table(net1.lda$document_expects,2)[lda_order,test_net1[,"sender"]]
 lda_pi_rec <- prop.table(net1.lda$document_expects,2)[lda_order,test_net1[,"receiver"]]
@@ -118,15 +110,19 @@ Whereas our implementation takes around `r round(our_time["elapsed"], 2)` second
 
 # Experiment 2: Static network with covariates
 
-Our second set of simulations illustrates our model's ability to define a regression model for the mixed-membership vector. We generate 50 networks of 300 nodes and 3 latent blocs, generating mixed-membership vectors as a function of a hypothetical binary treatment assigment. Specifically, the treatment makes nodes much more likely to be part of bloc 2 and less likely to be part of either of the other two blocs. Figure 3 below shows a typical mixed-membership profile for these 50 networks, showing treated nodes as black circles and control nodes as red triangles.  
+Our second set of simulations illustrates our model's ability to define a regression model for the mixed-membership vector. We generate 50 networks of 150 nodes and 2 latent blocs, generating mixed-membership vectors as a function of three continuous predictors. Specifically, while the first and third predictors make nodes \emph{more} likely to be part bloc 2 relative to bloc 1, the second predictor makes it \emph{less} likely to be part of bloc 2 relative to bloc 1.  
 ```{r,fig.align='center', fig.height=3.5, fig.width=5.5, message=FALSE}
 set.seed(831213)
 true_beta <- array(c( 0, 0, 0, 0,
-                     -1.5, -0.5, 1.95, -0.95),
-                   c(4, 2, 1))
+                      1.1, 1.5, -2.00, 1.25),
+                   c(4,2,1)
+                   )
+N <- 150
+X <- list(cbind(1, runif(N), runif(N), runif(N)))
+Z <- list(cbind(runif(N^2), runif(N^2), runif(N^2)))    
 net2_list <-  replicate(50, 
                         NetSim(BLK = 2
-                               ,NODE = 300
+                               ,NODE = N
                                ,STATE = 1
                                ,TIME = 1 
                                ,DIRECTED = TRUE
@@ -134,20 +130,22 @@ net2_list <-  replicate(50,
                                ,B_t = matrix(c(5, rep(-5, 2), 5), 
                                              ncol=2)
                                ,beta_arr = true_beta
-                               ,gamma_vec = c(1.5, -0.5, 0.5)
-                               ,alpha_conc = 0.5),
+                               ,gamma_vec = c(0.05, -0.05, 0.05)
+                               ,alpha_conc = 100.5
+                               ,X = X
+                               ,Z = Z),
                         simplify = FALSE)
-#vcd::ternaryplot(net2_list[[1]]$pi_vecs[[1]], col=rgb(1,0,0,0.7), dimnames = 1:3, cex=0.7,
- #                main = "Mixed-membership\nNetwork I")
 ```
 
 ## Retrieve effect estimates 
-We first obtain effect estimates for each of the 50 networks, and plot estimates for the treatment effect for each group of using boxplots in the figure below. We also show the known value of the treatment effect. In all cases, the treatment effect is correctly identified, although our ridge penalty, introduced to avoid early divergence of coefficient estimates, results in attenuation bias.    
+We first obtain effect estimates for each of the 50 networks, and plot estimates for the treatment effect for each group of using boxplots in the figure below. We also show the known value of the treatment effect. In all cases, the treatment effect is correctly identified.    
 ```{r, message=FALSE, results='hide'}
 set.seed(831213)
+jittered_beta <- array(c(rep(0,4),jitter(true_beta[,2,1])),c(4,2,1))
 system.time(net2.models <- lapply(1:50,
-                      function(i){res <- mmsbm(formula.dyad = Y ~ V1 + V2 + V3,
-                              formula.monad= ~ V1 + V2 + V3,
+                      function(i){
+                        res <- mmsbm(formula.dyad = Y ~ 1+ V1 + V2 + V3,
+                              formula.monad= ~ 1+V1 + V2 + V3,
                               senderID = "sender",
                               receiverID = "receiver",
                               nodeID = "node",
@@ -157,39 +155,38 @@ system.time(net2.models <- lapply(1:50,
                               directed = net2_list[[i]]$DIRECTED,
                               mmsbm.control = list(mu_b = c(5,-5),
                                                    init = "kmeans",
-                                                   threads = 4))
-                        loss.mat <- apply((res$MixedMembership), 1,
-                               function(vec){
-                                 colSums(((net2_list[[i]]$pi_vecs[[1]]) - vec)^2)
-                               })
-                        ord <- clue::solve_LSAP((loss.mat))
+                                                   var_beta = 5,
+                                                   threads = 15))
+                        loss.mat <- res$MixedMembership %*% net2_list[[i]]$pi_vecs[[1]]
+                        ord <- clue::solve_LSAP(1/loss.mat)
                         print(paste("iter:",i))
                         list(res = res, ord = ord)
                         }
                       ))
-matplot(net2_list[[1]]$pi_vecs[[1]],t(net2.models[[1]]$res$MixedMembership[net2.models[[1]]$ord,]))
 ```
-```{r,fig.align='center', fig.height=3, fig.width=4.5, warning=FALSE, message=FALSE}
+```{r,fig.align='center', fig.height=3, fig.width=6.5, warning=FALSE, message=FALSE}
 est_fx <- lapply(1:50,
                  function(i){
                    x <- net2.models[[i]]
-                   data.frame(var = rep(c("V0","V1", "V2", "V3"), 2),
-                              grp = rep(c("1","2"), each = 4),
-                              val = c(x$res$MonadCoef[,x$ord,1]),
+                   raw_coef <- x$res$MonadCoef[-1,x$ord,1]
+                   raw_coef <- cbind(0, raw_coef[,2] - raw_coef[,1]) #raw_coef[,3] - raw_coef[,1])
+                   data.frame(var = rep(c("V1", "V2", "V3"), 2),
+                              grp = rep(c("1","2"), each = 3),
+                              val = c(raw_coef),
                               iter = i)
                  }) 
 est_fx_df <- do.call(rbind, est_fx)
 ggplot(est_fx_df, aes(x=grp, y=val)) +
-  facet_wrap(~var, scales="free") +
+  facet_wrap(~var) +
   geom_boxplot(outlier.shape = NA) +
   geom_point(data = data.frame(
-    var = rep(c("V0","V1", "V2", "V3"), 2),
-    x=rep(c("1","2"), each = 4),
-    y = c(true_beta[,,1])),
+    var = rep(c("V1", "V2", "V3"), 2),
+    x=rep(c("1","2"), each = 3),
+    y = c(true_beta[-1,,1])),
              aes(x=x, y=y),
+              pch = 4,
              color = "red",
-             cex = 2.5) +
-  scale_y_continuous(limits = c(min(true_beta[,,1]),max(true_beta[,,1])))+
+             cex = 5.5) +
   theme_bw() + 
   ylab("Estimated Posterior Coefficient Median") +
   xlab("Group")
@@ -200,11 +197,12 @@ Next, we consider the predictive accuracy of the model with covariates. We compu
 set.seed(831213)
 system.time(net2.models.ridge <- lapply(1:50,
                       function(i){
+                        set.seed(831213)
                         test_index <- sample(1:nrow(net2_list[[i]]$dyad.data),
                                               1000, FALSE)
                         
-                        res1 <- mmsbm(formula.dyad = Y ~ 1,
-                              formula.monad= ~ V1,
+                        res1 <- mmsbm(formula.dyad = Y ~ V1 + V2 + V3,
+                              formula.monad= ~ V1 + V2 + V3,
                               senderID = "sender",
                               receiverID = "receiver",
                               nodeID = "node",
@@ -214,7 +212,7 @@ system.time(net2.models.ridge <- lapply(1:50,
                               directed = net2_list[[i]]$DIRECTED,
                               mmsbm.control = list(mu_b = c(5,-5),
                                                    init = "kmeans",
-                                                   var_beta = 1,
+                                                   var_beta = 5,
                                                    threads = 22))
                         res2 <- mmsbm(formula.dyad = Y ~ 1,
                               formula.monad= ~ 1,
@@ -227,29 +225,34 @@ system.time(net2.models.ridge <- lapply(1:50,
                               directed = net2_list[[i]]$DIRECTED,
                               mmsbm.control = list(mu_b = c(5,-5),
                                                    init = "kmeans",
-                                                   var_beta = 1,
+                                                   var_beta = 5,
                                                    em_iter = 5000,
                                                    threads = 22))
 
-                        loss.mat1 <- apply((res1$MixedMembership), 1,
-                               function(vec){
-                                 colSums(((net2_list[[i]]$pi_vecs[[1]]) - vec)^2)
-                               })
-                        loss.mat2 <- apply((res2$MixedMembership), 1,
-                               function(vec){
-                                 colSums(((net2_list[[i]]$pi_vecs[[1]]) - vec)^2)
-                               })
+
+                        loss.mat1 <- res1$MixedMembership %*% net2_list[[i]]$pi_vecs[[1]]
+                        loss.mat2 <- res2$MixedMembership %*% net2_list[[i]]$pi_vecs[[1]]
                         
-                        ord1 <- clue::solve_LSAP((loss.mat1))
-                        ord2 <- clue::solve_LSAP((loss.mat2))
-                        test_net <- net2_list[[i]]$dyad.data[test_index,] 
-                        test_pi_send1 <- res1$MixedMembership[ord1,test_net[,"sender"]]
-                        test_pi_rec1 <- res1$MixedMembership[ord1,test_net[,"receiver"]]
-                        test_theta1 <- plogis(diag(t(test_pi_send1)%*%res1$BlockModel[ord1, ord1]%*%test_pi_rec1))
+                        ord1 <- clue::solve_LSAP((loss.mat1), TRUE)
+                        raw_coef1 <- res1$MonadCoef[,ord1,1]
+                        coef1 <- cbind(0, raw_coef1[,2] - raw_coef1[,1])
+                        ord2 <- clue::solve_LSAP((loss.mat2), TRUE)
+                        raw_coef2 <- res2$MonadCoef[,ord2,1]
+                        coef2 <- cbind(0, raw_coef2[2] - raw_coef2[1])
+                        test_net <- net2_list[[i]]$dyad.data[test_index,]
+                        
+                        test_mu_send1 <- prop.table(exp(as.matrix(cbind(1,net2_list[[i]]$monad.data[test_net[,"sender"],1:3])) %*% coef1),1) 
+                        test_pi_send1 <- DirichletReg::rdirichlet(1000,test_mu_send1 * (res1$MMConcentration)) 
+                        test_mu_rec1 <- prop.table(exp(as.matrix(cbind(1,net2_list[[i]]$monad.data[test_net[,"receiver"],1:3])) %*% coef1),1) 
+                        test_pi_rec1 <- DirichletReg::rdirichlet(1000,test_mu_rec1 * (res1$MMConcentration)) 
+                        #test_pi_send1 <- res1$MixedMembership[ord1,test_net[,"sender"]]
+                        #test_pi_rec1 <- res1$MixedMembership[ord1,test_net[,"receiver"]]
+                        test_theta1 <- plogis(diag((test_mu_send1)%*%res1$BlockModel[ord1, ord1]%*%t(test_mu_rec1))
+                                              + as.matrix(test_net[,1:3]) %*% res1$DyadCoef)
                         our_auc1 <- auc((roc(test_theta1, as.factor(test_net$Y))))
-                        test_pi_send2 <- res2$MixedMembership[ord2,test_net[,"sender"]]
-                        test_pi_rec2 <- res2$MixedMembership[ord2,test_net[,"receiver"]]
-                        test_theta2 <- plogis(diag(t(test_pi_send2)%*%res2$BlockModel[ord2, ord2]%*%test_pi_rec2))
+                        test_mu_send2 <- prop.table(cbind(1,rep(exp(coef2[2]), 1000)) ,1) 
+                        test_pi_send2 <- test_pi_rec2 <- DirichletReg::rdirichlet(1000, test_mu_send2 * (res2$MMConcentration))
+                        test_theta2 <- plogis(diag((test_pi_send2)%*%res2$BlockModel[ord2, ord2]%*%t(test_pi_rec2)))
                         our_auc2 <- auc((roc(test_theta2, as.factor(test_net$Y))))
                         print(paste("iter:",i))
                         list(res1 = res1, res2 = res2, ord1 = ord1, ord2 = ord2, auroc1 = our_auc1,auroc2 = our_auc2 )
@@ -260,114 +263,126 @@ system.time(net2.models.ridge <- lapply(1:50,
 library(kableExtra)
 auc1 <- median(sapply(net2.models.ridge, function(x)x$auroc1))
 auc2 <- median(sapply(net2.models.ridge, function(x)x$auroc2))
-knitr::kable(data.frame(Model = c("With covariate", "Without covariate"),
+knitr::kable(data.frame(Model = c("With covariates", "Without covariates"),
                         AUROC = c(auc1,auc2)),
-             format = "latex", booktabs = TRUE, digits = 2,
-             align = c("l","c")) %>%
-  kable_styling(position = "center")
+             format = "latex", booktabs = TRUE, digits = 3,
+             align = c("l","c"),
+             caption = "Comparison of median area under ROC curve for models estimated with and without monadic covariates, across 50 replications of the the same network.") %>%
+  kable_styling(position = "center",latex_options = "hold_position")
 ```
 
 
 # Experiment 3: Dynamic network with covariates
 
-For our third set of simulations, we illustrate the ability of our model to model the network dynamics using a hidden Markov model for the mixed-membership vectors. We generate a network with 200 nodes, and let it evolve over 9 years according to a forward-moving, 2-state hidden Markov model. During the first stage of this 9-year history, a binary treatment is associated with a higher probability of being part of bloc 2. In turn, the relationship is reversed during the second stage of history. Figure 4 shows the distribution of node-level probabilities of belonging to bloc 2 for each time period (a transition occurs from year 5 to year 6).  
+For our third set of simulations, we illustrate the ability of our model to model network dynamics using a hidden Markov model for the mixed-membership vectors. We generate a network with 150 nodes, and let it evolve over 9 years according to a forward-moving, 2-state hidden Markov model. During the first stage of this 9-year history, a continuous predictor is associated with a \emph{lower} probability of being part of bloc 2 relative to bloc 1. In turn, the relationship is reversed during the second stage of history. Figure 4 shows the distribution of node-level probabilities of belonging to bloc 2 for each time period; notice that a transition occurs from year 5 to year 6.  
 ```{r, fig.align='center', fig.width=9, fig.height=6}
 set.seed(831213)
+N <- 150
+true_beta <- array(c(0, 0,
+                    1.5, -1.95,
+                    0, 0, 
+                    -1.5, 1.95),
+                   c(2, 2, 2))
+X_1 <- cbind(1, runif(N))
+X <- replicate(10, X_1, simplify=FALSE)
+Z_1 <- cbind(runif(N^2))
+Z <- replicate(10, Z_1, simplify=FALSE)
 net3 <- NetSim(BLK = 2
-                ,NODE = 300
-                ,STATE = 2
-                ,TIME = 9
-                ,DIRECTED = TRUE
-                ,N_PRED = 3
-                ,B_t = matrix(c(5, rep(-5, 2), 5), 
-                              ncol=2)
-                ,A_orig = matrix(c(0.75, 0, 0.25, 1.0), ncol = 2)
-                ,beta_arr = array(c(0, 0, 0, 0,
-                                   -.05, 1.75, 0.15, 0,
-                                   0, 0, 0, 0,
-                                   0.02, -1.7, 0.35, 0),
-                                 c(4, 2, 2))
-                ,gamma_vec = c(0, 0, 0)
-               ,alpha_conc = 100.5)
+               ,NODE = N
+               ,STATE = 2
+               ,TIME = 10
+               ,DIRECTED = TRUE
+               ,N_PRED = 1
+               ,B_t = matrix(c(1.5, -5, -0.5, 5), 
+                             ncol=2)
+               ,sVec = rep(c(1,2),c(5,5))
+               ,beta_arr = true_beta
+               ,X = X
+               ,Z = Z
+               ,gamma_vec = c(0.05)
+               ,alpha_conc = 50)
 
-ggplot(net3$monad.data, aes(x=V1, y=(pi2))) +
-  geom_point() +
-  facet_wrap(~year) +
-  theme_bw() + 
-  xlab("Predictor") +
-  ylab("Probability of being in bloc 2")
 ```
 
-We compare our model's performance to that of a separate estimation for each time period.
-```{r, results='hide'}
+We compare our model's predictive performance to that of a static model with an interaction between the focal covariate and year on two fronts: effect retrieval and accurate forecasting.
+```{r, fig.align='center', fig.width=9, fig.height=6}
+## Dynamic model 
 set.seed(831213)
-net3.model <- mmsbm(formula.dyad = Y ~ 1,
+system.time(net3.dmodel <- mmsbm(formula.dyad = Y ~ V1,
                     formula.monad= ~ V1,
                     senderID = "sender",
                     receiverID = "receiver",
                     nodeID = "node",
                     timeID = "year",
-                    data.dyad = net3$dyad.data,
-                    data.monad = net3$monad.data,
+                    data.dyad = subset(net3$dyad.data, year < 10),
+                    data.monad = subset(net3$monad.data, year < 10),
                     n.blocks = net3$BLK,
                     n.hmmstates = net3$STATE,
                     directed = net3$DIRECTED,
                     mmsbm.control = list(mu_b = c(5,-5),
-                                         var_b = c(1, 1),
-                                         init = "kmeans",
-                                         threads = 12
-                                         ))
-loss.mat.net3 <- apply((net3.model$MixedMembership), 1,
-                       function(vec){
-                         colSums((do.call(rbind,net3$pi_vecs) - vec)^2)
-                       })
-net3_order <- clue::solve_LSAP((loss.mat.net3))
+                                         init = "lda",
+                                         lda_iter = 2000,
+                                         var_beta = 1,
+                                         threads = 4,
+                                         eta = 10.3,
+                                         verbose = FALSE
+                                         )))
+round(net3.dmodel$Kappa, 3)
 
-```
+loss.mat.net3d <- net3.dmodel$MixedMembership %*% do.call(rbind,net3$pi_vecs[-10])
+net3d_order <- clue::solve_LSAP((loss.mat.net3d), TRUE)
+draw_coef <- net3.dmodel$MonadCoef[,net3d_order,]
+dcoef <- sapply(1:2,
+               function(x)cbind(0, draw_coef[,2,x] - draw_coef[,1,x]), simplify="array")
 
-```{r}
-##Separate models for each year
-sep_dyaddata <- split(net3$dyad.data, net3$dyad.data$year)
-sep_monaddata <- split(net3$monad.data, net3$monad.data$year)
-set.seed(831213)
-static.models <- lapply(1:9, 
-                        function(y){
-                          temp_res <- mmsbm(formula.dyad = Y ~ V1,
-                                formula.monad= ~ V1,
-                                senderID = "sender",
-                                receiverID = "receiver",
-                                nodeID = "node",
-                                data.dyad = sep_dyaddata[[y]],
-                                data.monad = sep_monaddata[[y]],
-                                n.blocks = net3$BLK,
-                                directed = net3$DIRECTED,
-                                mmsbm.control = list(mu_b = c(5,-5),
-                                                     var_b = c(1, 1),
-                                                     init = "kmeans",
-                                                     threads = 12))
-                          loss.mat <- apply((temp_res$MixedMembership), 1,
-                                            function(vec){
-                                              colSums(((net3$pi_vecs[[y]]) - vec)^2)
-                                            })
-                          ord <- clue::solve_LSAP((loss.mat))
-                          t(temp_res$MixedMembership[ord, ])
-                        })
-```
-```{r, fig.align='center', fig.width=11, fig.height=6}
-net3$monad.data$pred_pi2_full <- net3.model$MixedMembership[net3_order[2],]
-net3$monad.data$pred_pi2_sep <- do.call(rbind,static.models)[,2]
-long_net3 <- net3$monad.data %>%
-  select(year, V1, pi2, pred_pi2_full, pred_pi2_sep) %>%
-  gather(Source, val, c(pi2, pred_pi2_full, pred_pi2_sep)) %>%
-  mutate(Source = recode(Source, pi2="Truth", pred_pi2_full="Dynamic Model", pred_pi2_sep="Separate Static Models"))
-ggplot(long_net3, aes(x=as.factor(V1), y=val, color=Source)) +
-  geom_boxplot(outlier.shape = NA) +
+hmm_order <- clue::solve_LSAP(net3.dmodel$Kappa%*%model.matrix(~-1+as.factor(net3$sVec[-10])), TRUE)
+reg_data <- lapply(1:9,
+                   function(t){
+                    res <- data.frame(year = t,
+                                V1 = seq(0,1,length.out = 100),
+                                pred = net3.dmodel$Kappa[hmm_order[1],t]*plogis(cbind(1, seq(0,1,length.out = 100))%*%dcoef[,2,hmm_order[1]]) +
+                                  net3.dmodel$Kappa[hmm_order[2],t]*plogis(cbind(1, seq(0,1,length.out = 100))%*%dcoef[,2,hmm_order[2]]))
+                     return(res)           
+                   })
+reg_data <- do.call(rbind, reg_data)
+
+ggplot(subset(net3$monad.data, year <10), aes(x=V1, y=(pi2))) +
+  geom_point(col="gray60") +
+  geom_line(aes(x=V1, y = pred), data=reg_data, lwd=1.2) + 
   facet_wrap(~year) +
   theme_bw() + 
-  xlab("Treatment status") +
+  xlab("Predictor values") +
   ylab("Probability of being in bloc 2")
 ```
 
+```{r, results='hide', eval = FALSE}
+## Dynamic model w/o covariates 
+net3$dyad.data$sender2 <- paste(net3$dyad.data$sender,net3$dyad.data$year,sep="_")
+net3$dyad.data$receiver2 <- paste(net3$dyad.data$receiver,net3$dyad.data$year,sep="_")
+net3$monad.data$node2 <- paste(net3$monad$node,net3$monad.data$year,sep="_")
+system.time(net3.smodel <- mmsbm(formula.dyad = Y ~ 1,
+                    formula.monad= ~ 1,
+                    senderID = "sender2",
+                    receiverID = "receiver2",
+                    nodeID = "node2",
+                    timeID = "year",
+                    data.dyad = subset(net3$dyad.data, year < 10),
+                    data.monad = subset(net3$monad.data, year < 10),
+                    n.blocks = net3$BLK,
+                    directed = net3$DIRECTED,
+                    n.hmmstates = net3$STATE,
+                    mmsbm.control = list(mu_b = c(5,-5),
+                                         var_b = c(1, 1),
+                                         var_xi = 100,
+                                         init = "kmeans",
+                                         threads = 20
+                                         )))
+
+loss.mat.net3s <- net3.smodel$MixedMembership %*% do.call(rbind,net3$pi_vecs[-10])
+net3s_order <- clue::solve_LSAP((loss.mat.net3s), TRUE)
+
+```
+To show how such forecasting would work, we use the estimated HMM transition matrix and conditional distribution over states for the last observed year to generate predictions one year into the future, and compare those predictions to the held-out membership probabilities.  
 
 
 

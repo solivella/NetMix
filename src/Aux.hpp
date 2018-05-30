@@ -57,8 +57,10 @@ private:
 };
 
 
-
-double DigammaDiff(double alpha, int C);
+double digamma_approx(double x);
+double lgamma_approx(double x);
+double lgammaDiff(double alpha, double C);
+double digammaDiff(double alpha, double C);
 
 double logSumExp(const std::vector<double>& invec);
 

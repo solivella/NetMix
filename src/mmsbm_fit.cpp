@@ -58,22 +58,24 @@ List mmsbm_fit(const NumericMatrix& z_t,
   int iter = 0,
     EM_ITER = as<int>(control["em_iter"]),
     N_BLK = as<int>(control["blocks"]),
-    N_DYAD_PRED = z_t.nrow(),
+    N_DYAD_PRED = Rcpp::sum(z_t(0, Rcpp::_)) == 0 ? 0 : z_t.nrow(),
     N_MONAD_PRED = x_t.nrow(),
     N_STATE = as<int>(control["states"]);
 
   int TOT_BETA = N_MONAD_PRED * N_BLK * N_STATE,
     TOT_B = N_BLK * N_BLK;
   
-  bool conv = false,
+  bool conv = false, gamma_conv = true,
     verbose = as<bool>(control["verbose"]);
 
   double newLL,
     tol = as<double>(control["conv_tol"]);
       
-  NumericVector Old_B(TOT_B),
-    Old_Gamma(N_DYAD_PRED),
+  NumericVector Old_B(TOT_B), Old_Gamma,
     Old_Beta(TOT_BETA);
+  if(N_DYAD_PRED > 0){
+    Old_Gamma = NumericVector(N_DYAD_PRED);
+  }
 
   if(verbose){
     Rprintf("Estimating model...\n");
@@ -82,31 +84,28 @@ List mmsbm_fit(const NumericMatrix& z_t,
     checkUserInterrupt();
 
     // E-STEP
-    Model.updatePhi();
     if(N_STATE > 1){
        Model.updateKappa();
      }
-
+    Model.updatePhi();
+    
     //M-STEP
-     Model.getB(Old_B);
-     Model.getGamma(Old_Gamma);
-     Model.getBeta(Old_Beta);
- // #pragma omp parallel sections
- //     {
- // #pragma omp section
- //       {
-  	Model.optim(true); //optimize alphaLB
- // }
- // #pragma omp section
- // {
-  	Model.optim(false); //optimize thetaLB
-     //   }
-     // }
+    Model.getB(Old_B);
+    if(N_DYAD_PRED > 0){
+      Model.getGamma(Old_Gamma);
+    }
+    Model.getBeta(Old_Beta);
+    Model.optim(true); //optimize alphaLB
+    Model.optim(false); //optimize thetaLB
+    
     
     //Check convergence
     newLL = Model.cLL();
+    gamma_conv = N_DYAD_PRED > 0 ? 
+      Model.checkConvChng(Old_Gamma.begin(), Old_Gamma.end(), 0, tol) :
+      true;
     
-    if(Model.checkConvChng(Old_Gamma.begin(), Old_Gamma.end(), 0, tol) &&
+    if(gamma_conv &&
        Model.checkConvChng(Old_B.begin(), Old_B.end(), 1, tol) &&
        Model.checkConvChng(Old_Beta.begin(), Old_Beta.begin(), 2, tol)){
       conv = true;
@@ -121,7 +120,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
   if(conv == false){
     Rprintf("Warning: model did not converge after %i iterations.\n", iter);
   } else if (verbose) {
-    Rprintf("done!\n");
+    Rprintf("converged after %i iterations.\n", iter - 1);
   }
   
   //Form return objects
@@ -131,7 +130,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
   NumericMatrix A = Model.getWmn();
   NumericMatrix kappa_res = Model.getKappa();
   NumericMatrix B = Model.getB();
-  NumericVector gamma_res = Model.getGamma();
+  NumericVector gamma_res = Model.getGamma(); 
   List beta_res = Model.getBeta();
   double conc = Model.getConcentration();
 

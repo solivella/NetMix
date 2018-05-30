@@ -1,11 +1,10 @@
+.bernKL <- function(x,y){
+  x * log(x/y) + (1-x)*log((1-x)/(1-y))
+}
 .findPerm <- function(block.list, max.iter, target.mat = NULL){
   n <- length(block.list)
   k <- ncol(block.list[[1]])
-  block.norm <- lapply(block.list, 
-                       function(mat){
-                         if(all(mat==0)){mat <- mat + 1e-6}
-                         prop.table(mat, 1)
-                       })
+  block.norm <- block.list
   block.norm.p <- block.norm
   if(!is.null(target.mat)){
     target.mat <- prop.table(target.mat, 1)
@@ -22,44 +21,32 @@
     }
     ## Step 2
     ## Compute loss matrix (KL)
-    # loss.mat <- lapply(block.norm,
-    #                    function(mat){
-    #                      apply(B.prime, 2,
-    #                            function(vec){
-    #                              colSums(abs(mat * (log(mat) - log(vec))))
-    #                            })
-    #                    })
-    # 
-    loss.mat <- lapply(block.norm,
+    cost.mat <- lapply(block.norm,
                        function(mat){
-                         apply(mat, 1,
-                               function(vec){
-                                 colSums((B.prime - vec)^2)
-                               })
+                         res <- matrix(NA, ncol=k, nrow=k)
+                         for(i in 1:k){
+                           for(j in 1:k){
+                             res[i, j] <- sum(.bernKL(mat[i,], B.prime[j,]) +
+                               sum(.bernKL(mat[,i], B.prime[,j])))
+                             }
+                         }
+                         return(res)
                        })
     ##Get optimal perm 
-    perm.vecs <- lapply(loss.mat,
+    perm.vecs <- lapply(cost.mat,
                         function(mat){
                           clue::solve_LSAP(mat)
                         })
-    # perm.mat <- lapply(loss.mat,
-    #                    function(mat){
-    #                      lpSolve::lp.assign(mat)$solution
-    #                    })
-    block.norm.p <- mapply(function(ind, mat){mat[ind,]}, perm.vecs, block.norm, SIMPLIFY = FALSE)
-    # block.norm.p <- mapply("%*%",block.norm,perm.mat, SIMPLIFY = FALSE)
-    
+
+    block.norm.p <- mapply(function(ind, mat){mat[ind,ind]}, perm.vecs, block.norm, SIMPLIFY = FALSE)
+
     ##Compute risk
-    new.risk <- mean(sapply(block.norm.p,
+    new.risk <- sum(sapply(block.norm.p,
                             function(mat,tar){
-                              sum(abs(mat * (log(mat)-log(tar))))
+                              sum(.bernKL(mat, tar))
                             },
                             tar = B.prime))
-    # new.risk <- mean(sapply(block.norm.p,
-    #                         function(mat,tar){
-    #                           sum((mat-tar)^2)
-    #                         },
-    #                         tar = B.prime))
+
     chg <- abs(new.risk - old.risk)
     old.risk <- new.risk
     iter <- iter + 1
