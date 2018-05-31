@@ -299,10 +299,10 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   }
   
   if(is.null(ctrl$gamma_init)){
-    ctrl$gamma_init <- if(ncol(Z) > 0){
-      coef(glm(Y ~ Z - 1, family = binomial()))
+   if(ncol(Z) > 0){
+      ctrl$gamma_init <- coef(glm(Y~Z-1,family=binomial))   
     } else {
-      0
+      ctrl$gamma_init <- 0
     }
   } else {
     ctrl$gamma_init <- ctrl$gamma_init * Z_sd[-which(Z_sd==0)]
@@ -335,6 +335,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   fit[["MixedMembership"]] <- fit[["MixedMembership"]][,order(monadic_order)] 
   fit[["Kappa"]] <- fit[["Kappa"]][,order(time_order)]
   fit[["BlockModel"]] <- t(fit[["BlockModel"]])
+  fit[["TransitionKernel"]] <- t(fit[["TransitionKernel"]])
   
   
   
@@ -344,6 +345,8 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
     fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]]) 
   }
   dimnames(fit[["BlockModel"]]) <- replicate(2,paste("Block",1:n.blocks), simplify = FALSE)
+  dimnames(fit[["TransitionKernel"]]) <- replicate(2,paste("State",1:n.hmmstates), simplify = FALSE)
+  
   if(ncol(Z)>1){
     names(fit[["DyadCoef"]]) <- colnames(Z) 
   }
@@ -358,9 +361,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                                array(0.0, c(ncol(X), n.blocks)),
                                sd_vec = X_sd,
                                mean_vec = X_mean)
-  if(ncol(X) > 1){
-    rownames(fit[["MonadCoef"]]) <- colnames(X)
-  }
+  rownames(fit[["MonadCoef"]]) <- colnames(X)
   colnames(fit[["MonadCoef"]]) <- paste("Block",1:n.blocks)
   ## Include used data in original order
   fit$monadic.data <- mfm[order(monadic_order),]

@@ -1,3 +1,7 @@
+#########################
+## Misc. Helper functions
+#########################
+
 .bernKL <- function(x,y){
   x * log(x/y) + (1-x)*log((1-x)/(1-y))
 }

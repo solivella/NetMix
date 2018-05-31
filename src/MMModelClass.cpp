@@ -120,18 +120,17 @@ MMModel::MMModel(const NumericMatrix& z_t,
   for(int g = 0; g < N_BLK; ++g){
     for(int h = 0; h < N_BLK; ++h){
       if(directed){
-        par_ind(h, g) = ind;
-        ++ind;
+        par_ind(h, g) = ind++;
       } else {
         if(h >= g){
-          par_ind(h, g) = ind;
-          ++ind;
+          par_ind(h, g) = ind++;
         } else {
           par_ind(h, g) = par_ind(g, h);
         }
       }
     }
   }
+
   
   //Assign theta pars (which include B and gamma pars)
   for(int g = 0; g < N_BLK; ++g){
@@ -331,9 +330,10 @@ double MMModel::thetaLB(bool entropy = false)
  */
 void MMModel::thetaGr(int N_PAR, double *gr)
 {
-  double res_local, res = 0.0;
-  for(int i = 0; i < N_PAR; ++i)
+  double res_local, res;
+  for(int i = 0; i < N_PAR; ++i){
     gr[i] = 0.0;
+  }
   
   int npar;
   for(int d = 0; d < N_DYAD; ++d){
@@ -567,7 +567,7 @@ void MMModel::updatePhiInternal(int dyad, int rec,
     for(int h = 0; h < N_BLK; ++h, te+=incr2){
       res += phi_o[h] * (edge * log(*te) + (1 - edge) * log(1.0 - *te));
     }
-    
+
     
     
     phi[g] = exp(res);

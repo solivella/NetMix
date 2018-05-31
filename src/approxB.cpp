@@ -8,7 +8,8 @@ NumericMatrix approxB(IntegerVector y,
 {
   int N_BLK = pi_mat.nrow();
   int N_DYAD = d_id.nrow();
-  NumericMatrix den(N_BLK, N_BLK), num(N_BLK, N_BLK), B_t(N_BLK, N_BLK);
+  NumericMatrix den(N_BLK, N_BLK), num(N_BLK, N_BLK);
+  NumericMatrix B_t(N_BLK, N_BLK);
   int s, r;
   double prob_temp;
   for(int d = 0; d < N_DYAD; ++d){
@@ -17,7 +18,7 @@ NumericMatrix approxB(IntegerVector y,
     //probsum = 0.0;
     for(int g = 0; g < N_BLK; ++g){
       for(int h = 0; h < N_BLK; ++h){
-        prob_temp = pi_mat(g, s) * pi_mat(h, r);
+        prob_temp =  pi_mat(g, s) * pi_mat(h, r);
         num(h, g) += y[d] * prob_temp;
         den(h, g) += prob_temp;
       }

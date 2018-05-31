@@ -68,7 +68,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
   bool conv = false, gamma_conv = true,
     verbose = as<bool>(control["verbose"]);
 
-  double newLL,
+  double oldLL, newLL,
     tol = as<double>(control["conv_tol"]);
       
   NumericVector Old_B(TOT_B), Old_Gamma,
@@ -80,15 +80,16 @@ List mmsbm_fit(const NumericMatrix& z_t,
   if(verbose){
     Rprintf("Estimating model...\n");
   }
+  oldLL = Model.cLL();
   while(iter < EM_ITER && conv == false){
     checkUserInterrupt();
 
     // E-STEP
-    if(N_STATE > 1){
-       Model.updateKappa();
-     }
-    Model.updatePhi();
-    
+     if(N_STATE > 1){
+        Model.updateKappa();
+      }
+     Model.updatePhi();
+
     //M-STEP
     Model.getB(Old_B);
     if(N_DYAD_PRED > 0){
@@ -105,22 +106,23 @@ List mmsbm_fit(const NumericMatrix& z_t,
       Model.checkConvChng(Old_Gamma.begin(), Old_Gamma.end(), 0, tol) :
       true;
     
-    if(gamma_conv &&
+    if(fabs(newLL - oldLL) < 1e-3 ||
+       (gamma_conv &&
        Model.checkConvChng(Old_B.begin(), Old_B.end(), 1, tol) &&
-       Model.checkConvChng(Old_Beta.begin(), Old_Beta.begin(), 2, tol)){
+       Model.checkConvChng(Old_Beta.begin(), Old_Beta.begin(), 2, tol))){
       conv = true;
     }
     
     if(verbose){
       Rprintf("LB %i: %f\n", iter, newLL);
     }
-    
+    oldLL = newLL;
     ++iter;
   }
   if(conv == false){
     Rprintf("Warning: model did not converge after %i iterations.\n", iter);
   } else if (verbose) {
-    Rprintf("converged after %i iterations.\n", iter - 1);
+    Rprintf("\t...converged after %i iterations.\n", iter - 1);
   }
   
   //Form return objects

@@ -40,7 +40,7 @@ vcd::ternaryplot(net1$pi_vecs[[1]], col=rgb(1,0,0,0.7),dimnames = NULL, cex=0.7,
                  main = "Mixed-membership\nNetwork I")
 ```
 
-We estimate our model using a a k-means initialization streategy, and set special priors for the the blockmodel means that reflect the known DGP. All other hyper-parameters are left at their default values. 
+We estimate our model using a a k-means initialization strategy, and set special priors for the the blocmodel means that reflect the known DGP. All other hyper-parameters are left at their default values. 
 
 ```{r, echo = TRUE}
 set.seed(831213)
@@ -76,7 +76,7 @@ ggplot(pred_data_static, aes(x=Truth, y=Pred, color=Group, pch=Group))+
   xlab("True mixed-membership")
 ```
 
-We can also compare our results to those of a fully Bayesian implementation of the MMSBM (viz. the one in package `lda`, which uses a fast collapsed Gibbs sampler to obtain posterior samples of both mixed-membership vectors and the blockmodel). Since our implementation allows for parallelization, we expect its performance to be better than that of a `lda`'s single-chain Gibbs sampler, which cannot be parallelized.  
+We can also compare our results to those of a fully Bayesian implementation of the MMSBM (viz. the one in package `lda`, which uses a fast collapsed Gibbs sampler to obtain posterior samples of both mixed-membership vectors and the blocmodel). Since our implementation allows for parallelization, we expect its performance to be better than that of a `lda`'s single-chain Gibbs sampler, which cannot be parallelized.  
 ```{r auc-comp, results='hide'}
 ##US
 test_net1 <- net1$dyad.data[-train_index,] 
@@ -259,6 +259,7 @@ system.time(net2.models.ridge <- lapply(1:50,
                         }
                       ))
 ```
+Table 
 ```{r, results='asis'}
 library(kableExtra)
 auc1 <- median(sapply(net2.models.ridge, function(x)x$auroc1))
@@ -274,10 +275,9 @@ knitr::kable(data.frame(Model = c("With covariates", "Without covariates"),
 
 # Experiment 3: Dynamic network with covariates
 
-For our third set of simulations, we illustrate the ability of our model to model network dynamics using a hidden Markov model for the mixed-membership vectors. We generate a network with 150 nodes, and let it evolve over 9 years according to a forward-moving, 2-state hidden Markov model. During the first stage of this 9-year history, a continuous predictor is associated with a \emph{lower} probability of being part of bloc 2 relative to bloc 1. In turn, the relationship is reversed during the second stage of history. Figure 4 shows the distribution of node-level probabilities of belonging to bloc 2 for each time period; notice that a transition occurs from year 5 to year 6.  
-```{r, fig.align='center', fig.width=9, fig.height=6}
+```{r}
 set.seed(831213)
-N <- 150
+N <- 100
 true_beta <- array(c(0, 0,
                     1.5, -1.95,
                     0, 0, 
@@ -293,7 +293,7 @@ net3 <- NetSim(BLK = 2
                ,TIME = 10
                ,DIRECTED = TRUE
                ,N_PRED = 1
-               ,B_t = matrix(c(1.5, -5, -0.5, 5), 
+               ,B_t = matrix(c(-10, -15, 15, 5), 
                              ncol=2)
                ,sVec = rep(c(1,2),c(5,5))
                ,beta_arr = true_beta
@@ -304,11 +304,13 @@ net3 <- NetSim(BLK = 2
 
 ```
 
-We compare our model's predictive performance to that of a static model with an interaction between the focal covariate and year on two fronts: effect retrieval and accurate forecasting.
+With our third and final set of simulations, we illustrate the ability of our model to capture network dynamics using a hidden Markov model for the mixed-membership vectors. We generate a network with 100 nodes, and let it evolve over 9 years according to a forward-moving, 2-state hidden Markov model. During the first 5 years of this 9-year history, higher value of a continuous predictor are associated with a \emph{lower} probability of being part of bloc 2 relative to bloc 1. This relationship is reversed during the final four years of the network's history. The scatterplots in Figure 4's panels show the true probabilities of belonging to bloc 2 for every node in each time period plotted against observed values of the continuous predictor.
+
+The panels in Figure 4 also contain the median posterior predicted probabilities of being in bloc 2 derived from our dynamic model, depicted using solid black lines. The model does a good job of identifying the correct relationship between the predictor and the quantity of interest, although the estimated intercept appears to be somewhat attenuated. More importantly, the model correctly identifies the transition occurring between years 5 and 6, reversing the relationship between the predictor and the probability of being in bloc 2.     
 ```{r, fig.align='center', fig.width=9, fig.height=6}
 ## Dynamic model 
 set.seed(831213)
-system.time(net3.dmodel <- mmsbm(formula.dyad = Y ~ V1,
+net3.dmodel <- mmsbm(formula.dyad = Y ~ V1,
                     formula.monad= ~ V1,
                     senderID = "sender",
                     receiverID = "receiver",
@@ -319,16 +321,18 @@ system.time(net3.dmodel <- mmsbm(formula.dyad = Y ~ V1,
                     n.blocks = net3$BLK,
                     n.hmmstates = net3$STATE,
                     directed = net3$DIRECTED,
-                    mmsbm.control = list(mu_b = c(5,-5),
+                    mmsbm.control = list(mu_b = c(1,-2.5),
                                          init = "lda",
                                          lda_iter = 2000,
-                                         var_beta = 1,
+                                         var_b = c(100,100),
+                                         var_beta = 100,
+                                         var_gamma = 100,
+                                         var_xi = 100,
                                          threads = 4,
                                          eta = 10.3,
-                                         verbose = FALSE
-                                         )))
-round(net3.dmodel$Kappa, 3)
-
+                                         #em_iter = 0,
+                                         verbose = TRUE
+                                         ))
 loss.mat.net3d <- net3.dmodel$MixedMembership %*% do.call(rbind,net3$pi_vecs[-10])
 net3d_order <- clue::solve_LSAP((loss.mat.net3d), TRUE)
 draw_coef <- net3.dmodel$MonadCoef[,net3d_order,]
@@ -348,42 +352,79 @@ reg_data <- do.call(rbind, reg_data)
 
 ggplot(subset(net3$monad.data, year <10), aes(x=V1, y=(pi2))) +
   geom_point(col="gray60") +
-  geom_line(aes(x=V1, y = pred), data=reg_data, lwd=1.2) + 
+  geom_line(aes(x=V1, y = pred), data=reg_data, lwd=1.5) + 
   facet_wrap(~year) +
   theme_bw() + 
   xlab("Predictor values") +
   ylab("Probability of being in bloc 2")
 ```
 
-```{r, results='hide', eval = FALSE}
+Our model's ability to incorporate covariate information plays a particularly important role in dynamic settings, where forecasting future network topologies based on historic connection patterns may be of interest. Our model's implementation returns the variational MAP of both the transition kernel of the assumed HMM and of the marginal distribution over hidden states at each time-point. Together with the estimated state-specific coefficients, these posterior maxima can be used to obtain the predictive distribution of network edges over any forecasting horizon. 
+
+
+```{r, results='hide'}
 ## Dynamic model w/o covariates 
-net3$dyad.data$sender2 <- paste(net3$dyad.data$sender,net3$dyad.data$year,sep="_")
-net3$dyad.data$receiver2 <- paste(net3$dyad.data$receiver,net3$dyad.data$year,sep="_")
-net3$monad.data$node2 <- paste(net3$monad$node,net3$monad.data$year,sep="_")
-system.time(net3.smodel <- mmsbm(formula.dyad = Y ~ 1,
+net3.smodel <- mmsbm(formula.dyad = Y ~ 1,
                     formula.monad= ~ 1,
-                    senderID = "sender2",
-                    receiverID = "receiver2",
-                    nodeID = "node2",
+                    senderID = "sender",
+                    receiverID = "receiver",
+                    nodeID = "node",
                     timeID = "year",
                     data.dyad = subset(net3$dyad.data, year < 10),
                     data.monad = subset(net3$monad.data, year < 10),
                     n.blocks = net3$BLK,
-                    directed = net3$DIRECTED,
                     n.hmmstates = net3$STATE,
+                    directed = net3$DIRECTED,
                     mmsbm.control = list(mu_b = c(5,-5),
-                                         var_b = c(1, 1),
+                                         init = "lda",
+                                         lda_iter = 2000,
+                                          var_b = c(100,100),
+                                         var_beta = 100,
+                                         var_gamma = 100,
                                          var_xi = 100,
-                                         init = "kmeans",
-                                         threads = 20
-                                         )))
-
+                                         threads = 4,
+                                         eta = 10.3,
+                                         verbose = FALSE
+                                         ))
 loss.mat.net3s <- net3.smodel$MixedMembership %*% do.call(rbind,net3$pi_vecs[-10])
 net3s_order <- clue::solve_LSAP((loss.mat.net3s), TRUE)
-
 ```
-To show how such forecasting would work, we use the estimated HMM transition matrix and conditional distribution over states for the last observed year to generate predictions one year into the future, and compare those predictions to the held-out membership probabilities.  
 
+To evaluate the potential gains of incorporating covariates in this context, we estimate a new, intercept-only model on the same 9-year network data used above, and compare the edges predicted by both models to those of a known (but held-out) network situated one year into the future. The results are depicted in Figure 5, which shows the ROC curves of both models (with a black solid curve corresponding to the ROC of the covariate model, and the red dashed curve corresponding to the ROC of the intercept-only model). As the ROC curve of the model with covariates strictly dominates that of the model without them, the figure provides strong evidence that using covariates noticeably improves forecasting quality.
+```{r, fig.align='center', fig.width=5, fig.height=4.5}
+forecast <- function(formula1, formula2, model, bloc_ord, orig_net, yr, h, N){
+  test_monad <- model.matrix(formula1, subset(orig_net$monad.data, year==yr))
+  test_dyad <- model.matrix(formula2, subset(orig_net$dyad.data, year==yr))
+  send <- orig_net$dyad.data[orig_net$dyad.data$year==yr, "sender"]
+  rec <- orig_net$dyad.data[orig_net$dyad.data$year==yr, "receiver"]
+  raw_coef <- model$MonadCoef[,bloc_ord,, drop=FALSE]
+  coef <- sapply(1:2,
+               function(x)cbind(0, raw_coef[,2,x] - raw_coef[,1,x]), simplify="array")
+  mean_mm <- apply(coef, 3,
+                   function(b){
+                     prop.table(exp(test_monad %*% b), 1)
+                   })
+  mean_mm_1 <- mean_mm[1:N, ]
+  mean_mm_2 <- mean_mm[(N+1):(2*N), ]
+  common_dyad <- test_dyad %*% model$DyadCoef
+  common_dyad[length(common_dyad)==0] <- 0
+  pred_prob_m <- cbind(plogis(diag(mean_mm_1[(send),] %*% model$BlockModel[bloc_ord, bloc_ord] %*% t(mean_mm_1[(rec),])) + 
+                         common_dyad),
+                       plogis(diag(mean_mm_2[(send),] %*% model$BlockModel[bloc_ord, bloc_ord] %*% t(mean_mm_2[(rec),])) + 
+                         common_dyad))
+                         
+  pred_prob_y <- model$Kappa[,ncol(model$Kappa)] %*% expm::"%^%"(model$TransitionKernel,h) %*% t(pred_prob_m)
+  return(t(pred_prob_y))
+}
+
+pred_d <- forecast(~V1, ~V1-1, net3.dmodel, net3d_order, net3, 10, 1, N)
+pred_s <- forecast(~1, ~1, net3.smodel, net3s_order, net3, 10, 1, N)
+
+test_y <- as.factor(subset(net3$dyad.data, year==10)$Y)
+plot(roc(pred_d, test_y), lwd=2)
+plot(roc(pred_s, test_y), col="red", add=TRUE, lwd=2, lty=2)
+legend("bottomright", legend=c("With Covariates","Without Covariates"), lty=c(1,2),col=c("black","red"))
+```
 
 
 
