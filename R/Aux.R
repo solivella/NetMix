@@ -28,6 +28,7 @@
     cost.mat <- lapply(block.norm,
                        function(mat){
                          res <- matrix(NA, ncol=k, nrow=k)
+                         if(all(mat==0)){mat <- mat + 1e-10}
                          for(i in 1:k){
                            for(j in 1:k){
                              res[i, j] <- sum(.bernKL(mat[i,], B.prime[j,]) +
@@ -47,6 +48,7 @@
     ##Compute risk
     new.risk <- sum(sapply(block.norm.p,
                             function(mat,tar){
+                              if(all(mat==0)){mat <- mat + 1e-10}
                               sum(.bernKL(mat, tar))
                             },
                             tar = B.prime))

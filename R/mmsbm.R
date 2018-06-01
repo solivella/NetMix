@@ -220,7 +220,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                                                        jitter(target[sample(nrow(target),n.blocks),]),
                                                        algorithm = "Lloyd",
                                                        nstart = 15))$cluster
-                              phi_internal <- model.matrix(~ as.factor(clust_internal) - 1)
+                              phi_internal <- model.matrix(~ factor(clust_internal, levels=1:n.blocks) - 1)
                               phi_internal <- prop.table(phi_internal + runif(length(phi_internal),0,0.1),1)
                               rownames(phi_internal) <- rownames(mat)
                               return(t(phi_internal))
@@ -233,7 +233,11 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                                 return(phi_init_temp[[x]])
                               } else {
                                 target <- max(start_change[start_change < x])
-                                ord <- clue::solve_LSAP(phi_init_temp[[target]] %*% t(phi_init_temp[[x]]), TRUE)
+                                holds1 <- which(lapply(strsplit(colnames(phi_init_temp[[target]]), "@"), '[[', 1) %in%
+                                               lapply(strsplit(colnames(phi_init_temp[[x]]), "@"), '[[', 1))
+                                holds2 <- which(lapply(strsplit(colnames(phi_init_temp[[x]]), "@"), '[[', 1) %in%
+                                                  lapply(strsplit(colnames(phi_init_temp[[target]]), "@"), '[[', 1))
+                                ord <- clue::solve_LSAP(phi_init_temp[[target]][,holds1] %*% t(phi_init_temp[[x]][,holds2]), TRUE)
                                 return(phi_init_temp[[x]][ord,])
                               }
                             })
