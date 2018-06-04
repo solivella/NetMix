@@ -64,39 +64,40 @@ options(width = 60)
 \noindent We apply the model to a dynamic network of countries linked by interstate conflict.  Nodes are the 164 countries that are present in the 1816-2010 period.  Nodes enter and exit the network as countries move in and out of the international system.  Edges represent the presence of a militarized dispute between countries in a given year.  We measure edges using version 4.1 of the undirected Militarized Interstate Dispute (MID) dataset.  The dependent variable comprises 625,134 country dyad-years or 195 sociomatrices of size 164 $\times$ 164.
 \\
 
-\noindent We include two monadic covariates: a measure of countries' regime type (polity scores from the Polity IV dataset), and their military capability (logged CINC scores from the Correlates of War National Material Capabilities dataset).  Dyadic covariates include an indicator for the presence of an alliance between countries, a separate indicator for the presence of a defense pact, the logged geographic distance between countries, and an indicator for contiguity.  
+\noindent We include two monadic covariates: a measure of countries' regime type (polity scores from the Polity IV dataset), and their military capability (logged CINC scores from the Correlates of War National Material Capabilities dataset).  Dyadic covariates include an indicator for the presence of an alliance between countries, a separate indicator for the presence of a defense pact, the logged geographic distance between countries, an indicator for contiguity, and a cubic spline for peace years.  
 
 \bigskip
 
 <<1, eval=FALSE, echo=TRUE, comment=NA, message=FALSE, warning=FALSE, tidy=TRUE>>=
 library(NetMix)
-load("tests/MID_data.Rdata")  
-set.seed(999)
+load("MID_data.Rdata")  
 
-fit_onset <- mmsbm(formula.dyad = mid_onset ~ hially + lowally + 
-                                     dist + contig_COW + peaceyrs + 
-                                     spline1 + spline2 + spline3,
+set.seed(999)
+fit_onset <- mmsbm(formula.dyad = mid_onset ~ hially + lowally + dist + contig_COW + 
+                               peaceyrs + spline1 + spline2 + spline3,
                                formula.monad =  ~ polity + logcinc,
-                               data.dyad = MID, 
-                               data.monad = MID.monad,
+                               data.dyad = MID, data.monad = MID.monad,
                                senderID = "country1", receiverID = "country2", 
                                nodeID = "country", 
                                timeID = "year",
                                n.blocks = 4, 
-                               n.hmmstates = 3,
+                               n.hmmstates = 2,
                                directed=FALSE,
-                               mmsbm.control = list(verbose = TRUE,
-                                                    em_iter = 1000,
-                                                    lda_iter = 5000,
-                                                    threads = 22,
-                                                    mu_b = c(5, -5)
+                               mmsbm.control = list(var_b = c(9, 9),
+                                                    var_gamma = 9,
+                                                    verbose = TRUE,
+                                                    em_iter = 3000,
+                                                    threads = parallel::detectCores()
                                                     ))
-@ 
+
+@
+
 
 <<1b, eval=TRUE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, tidy=TRUE>>=
 library(NetMix)
+#load("~/Dropbox/socnet/DynSocNet_Package/tests/fit_onset_4blocks2states.Rdata")  
 load("~/Documents/NetMix/tests/fit_onset_4blocks2states.Rdata")  
-load("MID_data.Rdata") 
+load("~/Documents/NetMix/tests/MID_data.Rdata") 
 fit_onset$monadic.data$`(nid)`[fit_onset$monadic.data$`(nid)` == "Côte D'Ivoire"] <- "Cote d'Ivoire"
 fit_onset$dyadic.data$`(sid)`[fit_onset$dyadic.data$`(sid)` == "Côte D'Ivoire"] <- "Cote d'Ivoire"
 fit_onset$dyadic.data$`(rid)`[fit_onset$dyadic.data$`(rid)` == "Côte D'Ivoire"] <- "Cote d'Ivoire"
@@ -109,19 +110,36 @@ fit_onset$dyadic.data$`(rid)`[fit_onset$dyadic.data$`(rid)` == "Côte D'Ivoire"]
 \bigskip
 <<2, eval=TRUE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
 summary(fit_onset) 
-cluster.top(fit_onset, 8)
 @ 
 
 \noindent We can graphically summarize results by plotting the blockmodel as a network of clusters linked by edge formation probabilities.  The size of each cluster is proportional to the sum of nodes' membership in that cluster (Cluster size = $\sum\limits_p \sum\limits_t \sum\limits_m \pi_{p,t,m})$, and edge thickness is proportional to the edge formation probabilities from the blockmodel.
 
-<<3, eval=FALSE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, fig=TRUE, tidy=FALSE>>=
+<<3, eval=TRUE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, fig=TRUE, tidy=FALSE>>=
 par(mfrow=c(1,1))
 pdf("plot_onset.pdf")
-plot(fit_onset)
+plot(fit_onset, directed=FALSE)
+dev.off()
+@ 
+
+<<4a, eval=TRUE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, fig=TRUE, tidy=FALSE>>=
+## Group 4 is "conflict prone" observations -- closely tracks conflict rates
+pdf("G2.pdf", height=6, width=8)
+plot(unique(fit_onset$dyadic.data$`(tid)`), 
+     tapply(fit_onset$MixedMembership[2,], fit_onset$monadic.data$`(tid)`, mean),
+     type="l", lwd=2, xlab="",
+     ylab="Group 2 Avg. Membership", ylim=c(0.12, 0.48))
+lines(unique(MID$year), 0.16+tapply(MID$MID_onset, MID$year, mean)*2, lwd=2, col="red")
+axis(side=4, at=c(0.15, 0.25, 0.35, 0.45),
+     labels=(c(0.15, 0.25, 0.35, 0.45)-0.16)/2,
+     ylab="test")
+text(x=1865, y=0.32, "Group 2 Avg. Membership")
+text(x=1865, y=0.14, "MID Onset Rate", col="red")
 dev.off()
 @ 
 
 \includegraphics[scale=1]{plot_onset}
+
+\includegraphics[scale=1]{G2}
 
 %\vspace{-20mm}
 \noindent We can depict average cluster membership by time period ($Avg.Cluster_{t} =   \sum_{p} \sum_{m} \pi_{p,t,m}$) or node ($Avg.Cluster_{p} =   \sum_{t} \sum_{m} \pi_{p,t,m}$)
@@ -129,41 +147,11 @@ dev.off()
 <<4, eval=TRUE, comment=NA, message=FALSE, warning=FALSE, fig=TRUE, tidy=FALSE>>=
 cluster.time(fit_onset) 
 
-## Manually check coalitions at different time points
-Mem.WWI <- fit_onset$MixedMembership[,fit_onset$monadic.data[,"(tid)"] %in% 1913:1914]
-WWI.states <- fit_onset$monadic.data[,"(nid)"][fit_onset$monadic.data[,"(tid)"] %in% 1913:1914]
-node.mems <- t(do.call(cbind, lapply(unique(WWI.states), function(x){
-                       rowMeans(as.matrix(Mem.WWI[,WWI.states==x]))})))
-rownames(node.mems) <- as.character(unique(WWI.states))
-node.mems[order(node.mems[,2], decreasing=T)[1:10],2] # group 2 states
+## Manually check coalitions during the Cold War
+cluster.mems(fit_onset, 1955:1990, 25)
 
-
-Mem.WW2 <- fit_onset$MixedMembership[,fit_onset$monadic.data[,"(tid)"] %in% 1938:1939]
-WW2.states <- fit_onset$monadic.data[,"(nid)"][fit_onset$monadic.data[,"(tid)"] %in% 1938:1939]
-node.mems <- t(do.call(cbind, lapply(unique(WW2.states), function(x){
-                       rowMeans(as.matrix(Mem.WW2[,WW2.states==x]))})))
-rownames(node.mems) <- as.character(unique(WW2.states))
-node.mems[order(node.mems[,2], decreasing=T)[1:10],2] # group 2 states
-
-
-Mem.CW <- fit_onset$MixedMembership[,fit_onset$monadic.data[,"(tid)"] %in% 1950:1990]
-CW.states <- fit_onset$monadic.data[,"(nid)"][fit_onset$monadic.data[,"(tid)"] %in% 1950:1990]
-node.mems <- t(do.call(cbind, lapply(unique(CW.states), function(x){
-                       rowMeans(as.matrix(Mem.CW[,CW.states==x]))})))
-rownames(node.mems) <- as.character(unique(CW.states))
-node.mems[order(node.mems[,2], decreasing=T)[1:10],2] # group 2 states
-
-
-## A much better way to look at this:
-node.mems2 <- apply(node.mems, 2, function(x){x - mean(x)}) # subtract mean of cluster membership for each cluster
-# 1: US, UK, France, Denmark (NATO allies)
-# 4: Russia, Hungary, Poland (Warsaw Pact)
-# 2: Vietnam, Korea, Cambodia, Afghanistan (proxy conflicts)
-# 3: Small countries and Africa
-sort(apply(node.mems2, 1, which.max)) # look at dominant membership
-
-
-
+## A different way to look at this: subtract mean from each cluster, look at dominant membership
+#cluster.mems(fit_onset, 1955:1990, demean=TRUE)
 @ 
 
  
@@ -173,7 +161,7 @@ sort(apply(node.mems2, 1, which.max)) # look at dominant membership
 cluster.time.node(fit_onset) 
 @ 
 
-<<6, eval=FALSE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
+<<6, eval=TRUE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
 require(ggplot2)
 states <- c("United States of America", "Russian Federation", "Japan",
             "China", "Switzerland", "Costa Rica")
@@ -240,10 +228,10 @@ dev.off()
 \noindent Examine distribution of latent markov states over time
 <<6b, eval=TRUE, echo=TRUE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
 pdf("markov.pdf", height=5, width=8)
-plot(x=as.numeric(paste(unique(MID.monad$year))), 
-     y=fit_onset$Kappa[1,], 
+plot(x=as.numeric(paste(unique(fit_onset$monadic.data$`(tid)`))), 
+     y=fit_onset$Kappa[1,], ylim=c(-0.01,1),
      type="l", xlab="", ylab="Markov State 1")
-lines(as.numeric(paste(unique(MID.monad$year))),
+lines(as.numeric(paste(unique(fit_onset$monadic.data$`(tid)`))),
       fit_onset$Kappa[2,], col="red")
 dev.off()
 @ 
@@ -271,7 +259,7 @@ The plotFX() function creates a series of plots to summarize estimated effects.
 plot.FX(FX, fit_onset)
 @ 
 
-<<9, eval=FALSE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
+<<9, eval=TRUE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
 ymax <- max(hist(FX[[5]], freq=F)[["counts"]])
 pdf("FXhist_onset.pdf", height=7, width=6)
   hist(FX[[5]], main="Distribution of Marginal Effects", 
@@ -281,7 +269,8 @@ pdf("FXhist_onset.pdf", height=7, width=6)
 dev.off()
 
 pdf("FXtime_onset.pdf", height=6, width=7)
-  plot(unique(fit_onset$dyadic.data[,"(tid)"]), tapply(FX[[5]], fit_onset$dyadic.data[,"(tid)"], mean), type="o",
+  plot(unique(fit_onset$dyadic.data[,"(tid)"]), tapply(FX[[5]], fit_onset$dyadic.data[,"(tid)"], mean), 
+       type="o", 
        xlab="Time", ylab="Effect on Pr(Edge Formation)", main="Marginal Effect over Time")
   abline(h=0, lty=2)
 dev.off()
@@ -306,6 +295,62 @@ dev.off()
 \\
 \includegraphics[keepaspectratio=true, scale=0.1]{FXnode_onset.pdf}
 
+\noindent We can also examine heterogeneity in covariate effects over time within specific countries.
+<<9b, eval=TRUE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
+pdf("CountryHet.pdf", height=6, width=9)
+par(mfrow=c(2,3))
+
+US <- fit_onset$dyadic.data$`(sid)`=="United States of America" | fit_onset$dyadic.data$`(rid)`=="United States of America"
+US.dem <- tapply(FX[[5]][,US], fit_onset$dyadic.data$`(tid)`[US], mean)
+plot(names(US.dem), US.dem, type="l", ylim=c(-1.5e-3, 7e-3), xlim=c(1816, 2010),
+     xlab="", ylab="Effect of Polity", main="United States")
+par(xpd = F) 
+abline(h=0, lty=2)
+
+Rus <- fit_onset$dyadic.data$`(sid)`=="Russian Federation" | fit_onset$dyadic.data$`(rid)`=="Russian Federation"
+Rus.dem <- tapply(FX[[5]][,Rus], fit_onset$dyadic.data$`(tid)`[Rus], mean)
+plot(names(Rus.dem), Rus.dem, type="l", ylim=c(-1.5e-3, 7e-3), xlim=c(1816, 2010),
+     xlab="", ylab="Effect of Polity", main="Russia")
+par(xpd = F) 
+abline(h=0, lty=2)
+
+Col <- fit_onset$dyadic.data$`(sid)`=="Colombia" | fit_onset$dyadic.data$`(rid)`=="Colombia"
+Col.dem <- tapply(FX[[5]][,Col], fit_onset$dyadic.data$`(tid)`[Col], mean)
+plot(names(Col.dem), Col.dem, type="l",  ylim=c(-1.5e-3, 7e-3),xlim=c(1816, 2010),
+     xlab="", ylab="Effect of Polity", main="Colombia")
+par(xpd = F) 
+abline(h=0, lty=2)
+
+
+Swi <- fit_onset$dyadic.data$`(sid)`=="Switzerland" | fit_onset$dyadic.data$`(rid)`=="Switzerland"
+Swi.dem <- tapply(FX[[5]][,Swi], fit_onset$dyadic.data$`(tid)`[Swi], mean)
+plot(names(Swi.dem), Swi.dem, type="l", ylim=c(-1.5e-3, 7e-3), xlim=c(1816, 2010),
+     xlab="", ylab="Effect of Polity", main="Switzerland")
+par(xpd = F) 
+abline(h=0, lty=2)
+
+
+Chn <- fit_onset$dyadic.data$`(sid)`=="China" | fit_onset$dyadic.data$`(rid)`=="China"
+Chn.dem <- tapply(FX[[5]][,Chn], fit_onset$dyadic.data$`(tid)`[Chn], mean)
+plot(names(Chn.dem), Chn.dem, type="l", ylim=c(-1.5e-3, 7e-3), xlim=c(1816, 2010),
+     xlab="", ylab="Effect of Polity", main="China")
+par(xpd = F) 
+abline(h=0, lty=2)
+
+
+NZ <- fit_onset$dyadic.data$`(sid)`=="New Zealand" | fit_onset$dyadic.data$`(rid)`=="New Zealand"
+NZ.dem <- tapply(FX[[5]][,NZ], fit_onset$dyadic.data$`(tid)`[NZ], mean)
+plot(names(NZ.dem), NZ.dem, type="l",  ylim=c(-1.5e-3, 7e-3), xlim=c(1816, 2010),
+     xlab="", ylab="Effect of Polity", main="New Zealand")
+par(xpd = F) 
+abline(h=0, lty=2)
+
+dev.off()
+
+@
+
+\includegraphics[scale=1.9]{CountryHet}
+
 
 \noindent We also include a predict() function to calculate expected probability of edge formation given any set of user-supplied covariates.
 
@@ -314,11 +359,9 @@ monad.data2 <- as.data.frame(fit_onset$monadic.data, stringsAsFactors=FALSE)
 monad.data2[,"logcinc"] <- as.numeric(monad.data2[,"logcinc"]) + sd( as.numeric(monad.data2[,"logcinc"]))
 predicted <- predict(fit_onset, dyad=fit_onset$dyadic.data, monad=fit_onset$monadic.data)
 predicted2 <- predict(fit_onset, dyad=fit_onset$dyadic.data, monad=monad.data2)
-mean(predicted2 - predicted) # military capacity increases conflict
+mean(predicted2 - predicted) # military capacity decreases conflict, on average
 @ 
 
-
-%\noindent We can look at in-sample prediction to gauge model fit and compare to a standard logit model.
 
 <<11, eval=FALSE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
 predicted <- predict(fit_onset, dyad=fit_onset$dyadic.data, monad=fit_onset$monadic.data)
@@ -332,15 +375,6 @@ hist(predicted[true==0], freq=FALSE, ylim=c(0, 20), xlim=c(0,1))
 hist(predicted[true==1], freq=FALSE, ylim=c(0, 20), xlim=c(0,1))
 @ 
 
-<<12, eval=FALSE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
-pdf("pred_hist_onset.pdf", height=6, width=10)
-par(mfrow=c(1,2))
-hist(predicted[true==0], freq=FALSE, ylim=c(0, 20), xlim=c(0,1))
-hist(predicted[true==1], freq=FALSE, ylim=c(0, 20), xlim=c(0,1))
-dev.off()
-@ 
-
-%%\includegraphics{pred_hist_onset.pdf}
 
 \noindent Finally, we can compare our results with a standard logit model.  To do so, we need to transform the monadic covariates to match the dyadic structure required in logit.
 
@@ -356,59 +390,71 @@ logit.MID <- glm(mid_onset ~ hially + lowally + dist + contig_COW +
 @ 
 
 <<13a, eval=FALSE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
-MMSB.dyad <- mmsbm(formula.dyad = mid_onset ~ hially + lowally + 
-                                     dist + contig_cow,# + dem + cinc_ratio,
-                               formula.monad =  ~ polity + logcinc,
-                               data.dyad = MID, 
-                               data.monad = MID.monad,
-                               senderID = "country1", receiverID = "country2", 
-                               nodeID = "country", 
-                               timeID = "year",
-                               n.blocks = 3, 
-                               n.hmmstates = 2,
-                               directed=TRUE,
-                               mmsbm.control = list(verbose = TRUE,
-                                                    em_iter = 1000,
+set.seed(9999)
+MMSB.dyad <- mmsbm(formula.dyad = mid_onset ~ hially + lowally + dist + 
+                     contig_COW + dem + mixed + cinc_ratio + 
+                     peaceyrs + spline1 + spline2 + spline3,
+                   data.dyad = MID, 
+                   data.monad = MID.monad,
+                   senderID = "country1", receiverID = "country2", 
+                   nodeID = "country", 
+                   timeID = "year",
+                   n.blocks = 4, 
+                   n.hmmstates = 2,
+                   directed=FALSE,
+                   mmsbm.control = list(var_b = c(9, 9),
+                                                    var_gamma = 9,
+                                                    verbose = TRUE,
+                                                    em_iter = 3000,
                                                     threads = parallel::detectCores()
                                                     ))
-## Try fitting with both monadic and dyadic version of those covariates
 @ 
 
-<<13b, eval=FALSE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
-load("fit_onset_dyadic.Rdata")
+<<13b, eval=TRUE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
+load("fit_onset_dyad_4blocks2states.Rdata")
 @
 
-\noindent Compare coefficients and in-sample fit.
+\noindent Compare coefficients and in-sample fit.  We compare the logit model to the NetMix model estimated above, as well as a model with only dyadic covariates.
 
-<<13c, eval=TRUE, echo=TRUE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
-coef(logit.MID)
+<<13c, eval=T, echo=T, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
+coef(logit.MID)[-1]
 fit_onset$DyadCoef 
+MMSB.dyad$DyadCoef
+@
 
-pred.logit <- predict(logit.MID, newdata = MID, type = "response")
-pred.MMSB <- predict(fit_onset)
+<<13d, eval=TRUE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
+pred.logit <- predict(logit.MID, newdata = MID)
+pred.MMSB <- predict(fit_onset, posterior.pi=F)
+pred.MMSBd <- predict(MMSB.dyad, posterior.pi=F)
+
 
 library(ROCR)
-MID.roc <- prediction(predictions=c(pred.MMSB), labels=MID$mid_onset)
+MID.roc <- prediction(predictions=c(pred.MMSB), labels=fit_onset$dyadic.data$mid_onset)
 MID.roc2 <- performance(MID.roc, measure="tpr", x.measure="fpr")
+
+MID.rocD <- prediction(predictions=c(pred.MMSBd), labels=fit_onset$dyadic.data$mid_onset)
+MID.roc2D <- performance(MID.rocD, measure="tpr", x.measure="fpr")
 
 logit.roc <- prediction(predictions=c(pred.logit), labels=MID$mid_onset)
 logit.roc2 <- performance(logit.roc, measure="tpr", x.measure="fpr")
 
 
-pdf("ROC_onset.pdf")
+pdf("ROC_onset.pdf", width=7, height=7)
 par(mfrow=c(1,1))
 plot(unlist(attributes(MID.roc2)["x.values"]), 
      unlist(attributes(MID.roc2)["y.values"]),
      type="l",
      xlab="False Positive Rate",
-     ylab="True Positive Rate")
+     ylab="True Positive Rate", lwd=2)
 lines(unlist(attributes(logit.roc2)["x.values"]),
       unlist(attributes(logit.roc2)["y.values"]),
-      type="l",
-      col="red")
+      col="red", lwd=2)
+lines(unlist(attributes(MID.roc2D)["x.values"]),
+      unlist(attributes(MID.roc2D)["y.values"]),
+      col="dark green", lwd=2)
 lines(c(0, 1), c(0,1), lty=2)
-legend(x=0.7, y=0.2, legend=c("hmmsb", "logit"),
-       col=c("black", "red"), lty=1, lwd=2)
+legend(x=0.7, y=0.2, legend=c("hmmsb", "hmmsb w/ dyadic covs", "logit"),
+       col=c("black", "dark green", "red"), lty=1, lwd=2)
 dev.off()
 @ 
 
@@ -417,13 +463,14 @@ dev.off()
 \noindent Compare out-of-sample prediction.
 
 <<14, eval=TRUE, echo=TRUE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
-## Fit model up to 2000
-MID.sub <- MID[MID$year <= 2000,]
-MID.monad.sub <- MID.monad[as.numeric(paste(MID.monad$year)) <= 2000,]
+## Fit model up to 2008
+MID.sub <- MID[MID$year <= 2008,]
+MID.monad.sub <- MID.monad[as.numeric(paste(MID.monad$year)) <= 2008,]
 @ 
 
 <<14b, eval=FALSE, echo=TRUE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
 ## Refit hmmsb and logit models
+set.seed(9999)
 fit_onset2008 <- mmsbm(formula.dyad = mid_onset ~ hially + lowally + 
                                      dist + contig_COW + peaceyrs + 
                                      spline1 + spline2 + spline3,
@@ -434,12 +481,33 @@ fit_onset2008 <- mmsbm(formula.dyad = mid_onset ~ hially + lowally +
                                nodeID = "country", 
                                timeID = "year",
                                n.blocks = 4, 
-                               n.hmmstates = 3,
+                               n.hmmstates = 2,
                                directed=FALSE,
-                               mmsbm.control = list(verbose = TRUE,
-                                                    em_iter = 1000,
+                               mmsbm.control = list(var_b = c(9, 9),
+                                                    var_gamma = 9,
+                                                    verbose = TRUE,
+                                                    em_iter = 3000,
                                                     threads = parallel::detectCores()
                                                     ))
+
+fit_onset2008D <- mmsbm(formula.dyad = mid_onset ~ hially + lowally + dist + contig_COW +
+                          dem + mixed + cinc_ratio + 
+                          peaceyrs + spline1 + spline2 + spline3,
+                               data.dyad = MID.sub, 
+                               data.monad = MID.monad.sub,
+                               senderID = "country1", receiverID = "country2", 
+                               nodeID = "country", 
+                               timeID = "year",
+                               n.blocks = 4, 
+                               n.hmmstates = 2,
+                               directed=FALSE,
+                               mmsbm.control = list(var_b = c(9, 9),
+                                                    var_gamma = 9,
+                                                    verbose = TRUE,
+                                                    em_iter = 3000,
+                                                    threads = parallel::detectCores()
+                                                    ))
+
 logit2008 <- glm(mid_onset ~ hially + lowally + dist + contig_COW +
                    dem + mixed + cinc_ratio + 
                    peaceyrs + spline1 + spline2 + spline3,
@@ -448,7 +516,8 @@ logit2008 <- glm(mid_onset ~ hially + lowally + dist + contig_COW +
 
 
 <<14c, eval=TRUE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
-load("fit_onset2008_4blocks3states.Rdata")
+load("fit_onset2008_4blocks2states.Rdata")
+load("fit_onset_2008D_4blocks2states.Rdata")
 logit2008 <- glm(mid_onset ~ hially + lowally + dist + contig_COW +
                    dem + mixed + cinc_ratio + 
                    peaceyrs + spline1 + spline2 + spline3,
@@ -456,45 +525,80 @@ logit2008 <- glm(mid_onset ~ hially + lowally + dist + contig_COW +
 @ 
 
 <<14c, eval=TRUE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
-MID.new <- MID[MID$year > 2008,]
-MID.monad.new <- MID.monad[as.numeric(paste(MID.monad$year)) > 2008,]
+MID.new <- MID[MID$year %in% 2009:2010,]
+MID.monad.new <- MID.monad[as.numeric(paste(MID.monad$year)) %in% 2009:2010,]
 
 ## Predict years 2009-10 
 MMSB.predictOOS <- predict(fit_onset2008, dyad=MID.new, monad=MID.monad.new,
                      out.sample=TRUE)
+MMSB.predictOOSD <- predict(fit_onset2008D, dyad=MID.new, monad=MID.monad.new,
+                     out.sample=TRUE)
 logit.predictOOS <- predict(logit2008, newdata=MID.new)
 
-## Compare predictions
-cor(c(MMSB.predictOOS), MID.new$mid_onset)
-cor(logit.predictOOS, MID.new$mid_onset)
+## Calculate ROC curve
 
 library(ROCR)
 MMSB.roc <- prediction(predictions=c(MMSB.predictOOS), labels=MID.new$mid_onset)
-MMSB.roc <- performance(MMSB.roc, measure="tpr", x.measure="fpr")
+MMSB.roc2 <- performance(MMSB.roc, measure="tpr", x.measure="fpr")
+
+MMSB.rocD <- prediction(predictions=c(MMSB.predictOOSD), labels=MID.new$mid_onset)
+MMSB.roc2D <- performance(MMSB.rocD, measure="tpr", x.measure="fpr")
 
 logit.roc <- prediction(predictions=c(logit.predictOOS), labels=MID.new$mid_onset)
-logit.roc <- performance(logit.roc, measure="tpr", x.measure="fpr")
+logit.roc2 <- performance(logit.roc, measure="tpr", x.measure="fpr")
 
-pdf("ROC_onsetOOS.pdf")
+pdf("ROC_onsetOOS.pdf", height=8, width=8)
 par(mfrow=c(1,1))
-plot(unlist(attributes(MMSB.roc)["x.values"]), 
-     unlist(attributes(MMSB.roc)["y.values"]),
+plot(unlist(attributes(MMSB.roc2)["x.values"]), 
+     unlist(attributes(MMSB.roc2)["y.values"]),
      type="l",
      xlab="False Positive Rate",
-     ylab="True Positive Rate")
-lines(unlist(attributes(logit.roc)["x.values"]),
-      unlist(attributes(logit.roc)["y.values"]),
+     ylab="True Positive Rate", lwd=2)
+lines(unlist(attributes(logit.roc2)["x.values"]),
+      unlist(attributes(logit.roc2)["y.values"]),
       type="l",
-      col="red")
+      col="red", lwd=2)
+lines(unlist(attributes(MMSB.roc2D)["x.values"]),
+      unlist(attributes(MMSB.roc2D)["y.values"]),
+      type="l",
+      col="dark green", lwd=2)
 lines(c(0, 1), c(0,1), lty=2)
-legend(x=0.7, y=0.2, legend=c("hmmsb", "logit"),
-       col=c("black", "red"), lty=1, lwd=2)
+legend(x=0.7, y=0.2, legend=c("hmmsb", "hmmsb w/ dyadic covariates", "logit"),
+       col=c("black", "dark green", "red"), lty=1, lwd=2)
 dev.off()
+
+## Area under the ROC curve
+performance(MMSB.roc, measure = "auc")@y.values
+performance(MMSB.rocD, measure = "auc")@y.values
+performance(logit.roc, measure = "auc")@y.values
 @ 
 
+
+<<143, eval=TRUE, echo=TRUE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
+MID.new <- MID[MID$year %in% 2009:2010,]
+MID.monad.new <- MID.monad[as.numeric(paste(MID.monad$year)) %in% 2009:2010,]
+
+## Predict years 2009-10 
+MMSB.predictOOS <- predict(fit_onset2008, dyad=MID.new, monad=MID.monad.new,
+                     out.sample=TRUE)
+MMSB.predictOOSD <- predict(fit_onset2008D, dyad=MID.new, monad=MID.monad.new,
+                     out.sample=TRUE)
+logit.predictOOS <- predict(logit2008, newdata=MID.new)
+
+## Calculate ROC curve
+library(ROCR)
+MMSB.roc <- prediction(predictions=c(MMSB.predictOOS), labels=MID.new$mid_onset)
+MMSB.rocD <- prediction(predictions=c(MMSB.predictOOSD), labels=MID.new$mid_onset)
+logit.roc <- prediction(predictions=c(logit.predictOOS), labels=MID.new$mid_onset)
+
+## Area under the ROC curve
+performance(logit.roc, measure = "auc")@y.values
+performance(MMSB.rocD, measure = "auc")@y.values
+performance(MMSB.roc, measure = "auc")@y.values
+@ 
+
+
 \includegraphics{ROC_onsetOOS.pdf}
-
-
 
 
 \noindent Can also compare netmix models with different numbers of blocks.
@@ -502,23 +606,21 @@ dev.off()
 files <- c("~/Documents/NetMix/tests/fit_onset_2blocks2states.Rdata",
            "~/Documents/NetMix/tests/fit_onset_3blocks2states.Rdata",
            "~/Documents/NetMix/tests/fit_onset_4blocks2states.Rdata",
-           "~/Documents/NetMix/tests/fit_onset_5blocks2states.Rdata",
-           "~/Documents/NetMix/tests/fit_onset_6blocks2states.Rdata",
-           "~/Documents/NetMix/tests/fit_onset_7blocks2states.Rdata")
+           "~/Documents/NetMix/tests/fit_onset_5blocks2states.Rdata")
 dyadic <- matrix(nrow=length(files), ncol=length(fit_onset$DyadCoef))
 for(i in files){
   eval(parse(text = paste("load('", i, "')", sep="")))
   dyadic[which(files==i),] <- fit_onset$DyadCoef
 }
 pdf("hially.pdf", height=5, width=8)
-plot(1:6, dyadic[1:6,1], main="hially coefficient",
+plot(1:4, dyadic[1:4,1], main="hially coefficient",
      ylim=c(0, 1),
      ylab="estimate",
      xlab="Number of Blocks")
 dev.off()
 
 pdf("contig.pdf", height=5, width=8)
-plot(1:6, dyadic[1:6,4], main="contiguity coefficient",
+plot(1:4, dyadic[1:4,4], main="contiguity coefficient",
      ylim=c(0, 1),
      ylab="estimate",
      xlab="Number of Blocks")
@@ -529,6 +631,36 @@ dev.off()
 \includegraphics{hially}
 
 \includegraphics{contig}
+
+
+<<15, eval=FALSE, echo=FALSE, comment=NA, message=FALSE, warning=FALSE, tidy=FALSE>>=
+## parametric bootstrapping for standard errors
+# leads to forced quit of R
+
+## Figure out why? -- upload this to Git
+mean(predict(fit_onset, type="response"))
+mean(predict(fit_onset, posterior.pi=T, type="response"))
+
+MID$MID_onset.sim <- predict(fit_onset, type="response")
+fit_onset.sim <- mmsbm(formula.dyad = MID_onset.sim ~ hially + lowally + dist + contig_COW + 
+                               peaceyrs + spline1 + spline2 + spline3,
+                               formula.monad =  ~ polity + logcinc,
+                               data.dyad = MID, data.monad = MID.monad,
+                               senderID = "country1", receiverID = "country2", 
+                               nodeID = "country", 
+                               timeID = "year",
+                               n.blocks = 4, 
+                               n.hmmstates = 2,
+                               directed=FALSE,
+                               mmsbm.control = list(var_b = c(9, 9),
+                                                    var_gamma = 9,
+                                                    verbose = TRUE,
+                                                    em_iter = 3000,
+                                                    threads = parallel::detectCores()
+                                                    ))
+summary(fit_onset.sim)
+
+@ 
 
 
 

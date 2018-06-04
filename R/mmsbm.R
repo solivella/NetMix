@@ -233,10 +233,10 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                                 return(phi_init_temp[[x]])
                               } else {
                                 target <- max(start_change[start_change < x])
-                                holds1 <- which(lapply(strsplit(colnames(phi_init_temp[[target]]), "@"), '[[', 1) %in%
-                                               lapply(strsplit(colnames(phi_init_temp[[x]]), "@"), '[[', 1))
-                                holds2 <- which(lapply(strsplit(colnames(phi_init_temp[[x]]), "@"), '[[', 1) %in%
-                                                  lapply(strsplit(colnames(phi_init_temp[[target]]), "@"), '[[', 1))
+                                holds1 <- lapply(strsplit(colnames(phi_init_temp[[target]]), "@"), '[[', 1) %in%
+                                               lapply(strsplit(colnames(phi_init_temp[[x]]), "@"), '[[', 1)
+                                holds2 <- lapply(strsplit(colnames(phi_init_temp[[x]]), "@"), '[[', 1) %in%
+                                                  lapply(strsplit(colnames(phi_init_temp[[target]]), "@"), '[[', 1)
                                 ord <- clue::solve_LSAP(phi_init_temp[[target]][,holds1] %*% t(phi_init_temp[[x]][,holds2]), TRUE)
                                 return(phi_init_temp[[x]][ord,])
                               }

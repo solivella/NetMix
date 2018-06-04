@@ -5,6 +5,7 @@
 .bernKL <- function(x,y){
   x * log(x/y) + (1-x)*log((1-x)/(1-y))
 }
+
 .findPerm <- function(block.list, max.iter, target.mat = NULL){
   n <- length(block.list)
   k <- ncol(block.list[[1]])
@@ -109,6 +110,24 @@ plot.mmsbm <- function(fm, directed=FALSE){ # network graph showing B-matrix
   plot(block.G, main = "Edge Formation across Clusters",
        edge.width=e.weight, vertex.size=v.size)
 }
+
+
+
+cluster.mems <- function(fm, t, n=10, demean=FALSE){
+  Mem <- fm$MixedMembership[,fm$monadic.data[,"(tid)"] %in% t]
+  Nodes <- fm$monadic.data[,"(nid)"][fm$monadic.data[,"(tid)"] %in% t]
+  node.mems <- t(do.call(cbind, lapply(unique(Nodes), function(x){
+    rowMeans(as.matrix(Mem[,Nodes==x]))})))
+  rownames(node.mems) <- as.character(unique(Nodes))
+  if(demean){
+    node.mems2 <- apply(node.mems, 2, function(x){x - mean(x)}) 
+    sort(apply(node.mems2, 1, which.max))
+  } else {
+    lapply(1:fm$n_blocks, function(x){
+      node.mems[order(node.mems[,x], decreasing=T)[1:n],x]})
+  }
+}
+
 
 
 
@@ -252,16 +271,21 @@ degree.dist <- function(fm, Y){
 
 est.pi <- function(fm, monad=fm$monadic.data){
   pi.states <- lapply(1:nrow(fm$Kappa), function(m){
-    (t(fm$MonadCoef[,,m]) %*% t(cbind(rep(1,nrow(monad)), monad[,1:(ncol(monad)-2)]))) *
-      fm$Kappa[m, as.numeric(factor(monad[,"(tid)"]))]
+    ifelse(nrow(fm$MonadCoef) > 1, 
+           return((t(fm$MonadCoef[,,m]) %*% t(cbind(rep(1,nrow(monad)), monad[,1:(ncol(monad)-2)]))) *
+                    fm$Kappa[m, as.numeric(factor(monad[,"(tid)"]))]),
+           return((as.matrix(fm$MonadCoef[,,m]) %*% t(rep(1,nrow(monad)))) * 
+                    fm$Kappa[m, as.numeric(factor(monad[,"(tid)"]))])
+    )
   })
   return(Reduce("+", pi.states))
 }
 
 predict.mmsbm <- function(fm, dyad=fm$dyadic.data, monad=fm$monadic.data, 
-                          out.sample=FALSE){ 
+                          out.sample=FALSE, posterior.pi=FALSE,
+                          type="probability"){ 
   if(!out.sample){
-    pis <- est.pi(fm, monad)
+    ifelse(posterior.pi, pis <- fm$MixedMembership, pis <- est.pi(fm, monad))
     sid <- ifelse(identical(fm$dyadic.data, dyad), "(sid)", fm$call$senderID)
     rid <- ifelse(identical(fm$dyadic.data, dyad), "(rid)", fm$call$receiverID)
     nid <- ifelse(identical(fm$dyadic.data, dyad), "(nid)", fm$call$nodeID)
@@ -311,7 +335,11 @@ predict.mmsbm <- function(fm, dyad=fm$dyadic.data, monad=fm$monadic.data,
     }
   }
   est.ties <- est.ties  + t(fm$DyadCoef)%*%t(get_all_vars(fm$call$formula.dyad, dyad)[,-1])
-  return(exp(est.ties) / (1 + exp(est.ties)))
+  if(type=="probability"){
+    return(exp(est.ties) / (1 + exp(est.ties)))}
+  if(type=="response"){
+    return(rbinom(length(est.ties), 1, prob=exp(est.ties) / (1 + exp(est.ties))))
+  }
 }
 
 
@@ -342,21 +370,16 @@ plot.FX <- function(FX, fm){
   lines(x=c(FX[[1]], FX[[1]]), y=c(0,ymax*1.05), col="red", lwd=2)
   text(x=FX[[1]], y=ymax, paste("Avg. Effect =", round(FX[[1]],4)), col="red", pos=4)
   
-  plot(unique(fm$dyadic.data[,3]), tapply(FX[[5]], fm$dyadic.data[,3], mean), type="o",
+  plot(unique(fm$dyadic.data[,"(tid)"]), tapply(FX[[5]], fm$dyadic.data[,"(tid)"], mean), type="o",
        xlab="Time", ylab=paste("Effect of", cov, "on Pr(Edge Formation)"), main="Marginal Effect over Time")
   
   dyads <- names(FX[[4]])
-  totals <- cbind(as.numeric(unlist(lapply(strsplit(dyads, "_"), '[[', 1))),
-                  as.numeric(unlist(lapply(strsplit(dyads, "_"), '[[', 2))),
+  totals <- cbind(as.character(unlist(lapply(strsplit(dyads, "_"), '[[', 1))),
+                  as.character(unlist(lapply(strsplit(dyads, "_"), '[[', 2))),
                   as.vector(tapply(FX[[5]], names(FX[[5]]), mean)))
-  #total.net <- matrix(0, length(FX[[3]]), length(FX[[3]]))
-  #total.net[totals[,1:2]] <- totals[,3]
-  #rownames(total.net) <- colnames(total.net) <- 1:nrow(total.net)
-  #total.net.adj <- total.net[order(sapply(unique(fm$monadic.data[,"(nid)"]), function(x){which.max(rowMeans(fm$MixedMembership[,fm$monadic.data[,"(nid)"]==x]))})),
-  #                           order(sapply(unique(fm$monadic.data[,"(nid)"]), function(x){which.max(rowMeans(fm$MixedMembership[,fm$monadic.data[,"(nid)"]==x]))}))]
-  #image(1:length(FX[[3]]), 1:length(FX[[3]]), total.net, xlab="", ylab="",
-  #      main=paste("Marginal Effect of", cov, "on Pr(Edge Formation) by Dyad"))
 }
+
+
 
 
 
