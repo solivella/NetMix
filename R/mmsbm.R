@@ -1,6 +1,80 @@
-################################################################
-## Wrapper function to process data and initialize parameters ##
-################################################################
+#' Dynamic mixed-membership stochastic blockmodel with covariates
+#'
+#' The function estimates a dynamic mixed-membership stochastic
+#' blockmodel that incorporates covariates. 
+#'
+#' @param formula.dyad A \code{formula} object. The variable in \code{data.dyad} that contains 
+#'     binary edges should be used as a LHS, and any dyadic predictors 
+#'     can be included on the RHS (when no dyadic covariates are available, use \code{y ~ 1}).
+#'     Same syntax as a \code{glm} formula. 
+#' @param formula.monad An optional \code{formula} object. LHS is ignored. RHS contains 
+#'     names of nodal atrributes found in \code{data.monad}.  
+#' @param senderID Charater string. Quoted name of the variable in \code{data.dyad} identifying 
+#'     the sender node. For undirected networks, the variable simply contains name of first node 
+#'     in dyad.
+#' @param receiverID Charater string. Quoted name of the variable in \code{data.dyad} identifying 
+#'     the receiver node. For undirected networks, the variable simply contains name of second node 
+#'     in dyad.
+#' @param nodeID Charater string. Quoted name of the variable in \code{data.monad} identifying 
+#'     a node in either \code{data.dyad[,senderID]} or \code{data.dyad[,senderID]}. If not \code{NULL},
+#'     every node \code{data.dyad[,senderID]} or \code{data.dyad[,senderID]} must be present in 
+#'     \code{data.monad[,nodeID]}.
+#' @param timeID Charater string. Quoted name of the variable in both \code{data.dyad} and
+#'     \code{data.monad} indicating the time in which network (and correspding nodal atrributes)
+#'     were pbserved. 
+#' @param data.dyad Data frame. Sociomatrix in ``long'' (i.e. dyadic) format. Must contain at
+#'    least three variables: the sender identifier (or identifier of the first node in an undirected networks dyad),
+#'    the receiver identifier (or identifier of the second node in an undirected network dyad), and the value
+#'    of the edge between them. Currently, only edges between zero and one (inclusive) are supported.
+#' @param data.monad Data frame. Nodal atributes. Must contain a node identifier matching the names of nodes
+#'    used in the \code{data.dyad} data frame. 
+#' @param n.blocks Integer value. How many latent blocks should be used to estimate the model?
+#' @param n.hmmstates Integer value. How many hidden Markov state should be used in the HMM? Defaults 
+#'    to 1 (i.e. no HMM).  
+#' @param directed Boolean. Is the network directed? Defaults to \code{TRUE}.
+#' @param mmsbm.control A named list of optional algorithm control parameters.
+#'     \describe{
+#'        \item{init}{Type of initialization algorithm for mixed-membership vectors. One of
+#'                    \code{kmeans} (default), \code{spectral}, or (\code{\link[lda:mmsb.collapsed.gibbs.sampler]{lda}})}
+#'        \item{lda_iter}{If \code{init="lda"}, number of MCMC iterations to obtain initial values}
+#'        \item{lda_alpha}{If \code{init="lda"}, value of \code{alpha} hyperparameter. Defaults to 1}
+#'        \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3}
+#'        \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3}
+#'        \item{mu_b}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
+#'                    and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0}}
+#'        \item{var_b}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
+#'                    and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(1.0, 1.0}}
+#'        \item{var_beta}{Numeric positive value. (Gaussian) Prior variance of monadic coefficients. Defaults to 5.0.}
+#'        \item{var_gamma}{Numeric positive value. (Gaussian) Prior variance of dyadic coefficients. Defaults to 5.0.}}
+#'        \item{var_xi}{Numeric positive value. (Gaussian) Prior variance of log-concentration paramemeter for mixed-
+#'                      membership vector. Defaults to 1}
+#'        \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 10.3}
+#'        \item{threads}{Numeric integer. Number of available cores for paralellization. Defaults to 4}
+#'        \item{conv_tol}{Numeric value. Absolute tolerance for VI convergence. Defaults to 1e-4}
+#'        \item{verbose}{Boolean. Should extra information be printed as model iterates? Defaults to FALSE})
+#'     }  
+#'     
+#' @return Object of class \code{mmsbm}. List with named components:
+#'     \describe{
+#'       \item{MixedMembership}{Matrix of variational posterior of mean of mixed-membership vectors. \code{nodes} by \
+#'                              \code{n.blocks}}
+#'       \item{PhiSend,PhiRec}{Matrices of estimated variational parameters for the group indicators. \code{n.blocks}
+#'                             by total number of observed dyads.}
+#'       \item{MMConcentration}{Estimated concentration parameter of mixed-membership vectors}
+#'       \item{BlockModel}{\code{n.blocks} by \code{n.blocks} matrix of estimated tie log-odds between members
+#'                         of corresponding latent groups. The blockmodel.}
+#'       \item{MonadCoef}{Array of estimated coefficient values for monadic covariates. Has \code{n.blocks} columns,
+#'                        and \code{n.hmmstates} slices.}
+#'       \item{DyadCoef}{Vector estimated coefficient values for dyadic covariates}
+#'       \item{TransitionKernel}{Matrix of estimated HMM transition probabilities}
+#'       \item{Kappa}{Matrix of marginal probabilities of being in an HMM state at any given point in time. 
+#'                    \code{n.hmmstates} by years (or whatever time interval networks are observed at)}
+#'       \item{LowerBound}{Value of the lower bound at final iteration}
+#'       \item{niter}{Final number of VI iterations}
+#'       \item{monadic.data,dyadic.data,n_states,n_blocks}{Original values of parameters used during estimation}
+#'     }
+#'
+#' @example tests/Examples/mmsbm_example.R
 
 mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                   nodeID = NULL, timeID = NULL, data.dyad, data.monad = NULL,
@@ -65,7 +139,9 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   ntid <- do.call(paste, c(mfm[c("(nid)","(tid)")], sep="@"))
   mfm <- mfm[ntid %in% unique(c(dntid)), ]
   if(!all(udntid %in% ntid))
-    stop("Nodes in dyadic dataset missing from monadic dataset. Are node and time identifiers identical in data.dyad and data.monad?")
+    stop("Nodes in dyadic dataset missing from monadic dataset. 
+         Are node and time identifiers identical in data.dyad 
+         and data.monad?")
   
   
   Y <- model.response(mfd)
@@ -88,7 +164,8 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   }
   n_dyad_pred <- ncol(Z)
   
-  nt_id <- cbind(.mapID(udntid, dntid[, 1]) - 1, .mapID(udntid, dntid[, 2]) - 1)
+  nt_id <- cbind(.mapID(udntid, dntid[, 1]) - 1, 
+                 .mapID(udntid, dntid[, 2]) - 1)
   t_id_d <- .mapID(ut, mfd[["(tid)"]]) - 1
   t_id_n <- .mapID(ut, mfm[["(tid)"]]) - 1
   nodes_pp <- c(by(mfm, mfm[["(tid)"]], nrow))
