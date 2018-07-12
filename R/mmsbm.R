@@ -35,24 +35,26 @@
 #' @param mmsbm.control A named list of optional algorithm control parameters.
 #'     \describe{
 #'        \item{init}{Type of initialization algorithm for mixed-membership vectors. One of
-#'                    \code{kmeans} (default), \code{spectral}, or (\code{\link[lda:mmsb.collapsed.gibbs.sampler]{lda}})}
+#'                    \code{kmeans} (default), \code{spectral}, or \code{lda} (see
+#'                     \code{\link[lda:mmsb.collapsed.gibbs.sampler]{lda}} for details about this function.)}
 #'        \item{lda_iter}{If \code{init="lda"}, number of MCMC iterations to obtain initial values}
 #'        \item{lda_alpha}{If \code{init="lda"}, value of \code{alpha} hyperparameter. Defaults to 1}
 #'        \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3}
 #'        \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3}
 #'        \item{mu_b}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
-#'                    and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0}}
+#'                    and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)}}
 #'        \item{var_b}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
-#'                    and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(1.0, 1.0}}
+#'                    and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(1.0, 1.0)}}
 #'        \item{var_beta}{Numeric positive value. (Gaussian) Prior variance of monadic coefficients. Defaults to 5.0.}
-#'        \item{var_gamma}{Numeric positive value. (Gaussian) Prior variance of dyadic coefficients. Defaults to 5.0.}}
+#'        \item{var_gamma}{Numeric positive value. (Gaussian) Prior variance of dyadic coefficients. Defaults to 5.0.}
 #'        \item{var_xi}{Numeric positive value. (Gaussian) Prior variance of log-concentration paramemeter for mixed-
 #'                      membership vector. Defaults to 1}
 #'        \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 10.3}
 #'        \item{threads}{Numeric integer. Number of available cores for paralellization. Defaults to 4}
 #'        \item{conv_tol}{Numeric value. Absolute tolerance for VI convergence. Defaults to 1e-4}
-#'        \item{verbose}{Boolean. Should extra information be printed as model iterates? Defaults to FALSE})
-#'     }  
+#'        \item{verbose}{Boolean. Should extra information be printed as model iterates? Defaults to FALSE}
+#'        }
+#'       
 #'     
 #' @return Object of class \code{mmsbm}. List with named components:
 #'     \describe{
@@ -73,9 +75,8 @@
 #'       \item{niter}{Final number of VI iterations}
 #'       \item{monadic.data,dyadic.data,n_states,n_blocks}{Original values of parameters used during estimation}
 #'     }
-#'
-#' @example tests/Examples/mmsbm_example.R
-
+#'@author Kosuke Imai (imai@@harvard.edu), Tyler Pratt, Santiago Olivella (olivella@@unc.edu)
+#' 
 mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                   nodeID = NULL, timeID = NULL, data.dyad, data.monad = NULL,
                   n.blocks, n.hmmstates = 1, directed = TRUE,
