@@ -6,6 +6,8 @@
 #include <functional>
 #include <numeric>
 #include <Rcpp.h>
+#include <R_ext/Utils.h>
+
 
 template<typename T>
 class Array
@@ -55,6 +57,15 @@ private:
   std::vector<int> dims;
   std::vector<T> data;
 };
+
+Rcpp::NumericMatrix approxBdyad(Rcpp::NumericVector y,
+                                Rcpp::IntegerMatrix node_id,
+                                Rcpp::NumericMatrix pi_mat,
+                                bool directed);
+  
+Rcpp::NumericMatrix approxB(Rcpp::NumericMatrix y,
+                            Rcpp::NumericMatrix pi_mat,
+                            bool directed);
 
 
 double digamma_approx(double x);

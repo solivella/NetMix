@@ -2,6 +2,10 @@
 ## Misc. Helper functions
 #########################
 
+.modSum <- function(x, y){
+  replace(x, is.na(x), 0) + replace(y, is.na(y), 0)
+}
+
 .bernKL <- function(x,y){
   x * log(x/y) + (1-x)*log((1-x)/(1-y))
 }
@@ -29,7 +33,7 @@
     cost.mat <- lapply(block.norm,
                        function(mat){
                          res <- matrix(NA, ncol=k, nrow=k)
-                         if(all(mat==0)){mat <- mat + 1e-10}
+                         if(any(mat<1e-12)){mat[mat < 1e-12] <- 1e-12}
                          for(i in 1:k){
                            for(j in 1:k){
                              res[i, j] <- sum(.bernKL(mat[i,], B.prime[j,]) +
@@ -49,7 +53,7 @@
     ##Compute risk
     new.risk <- sum(sapply(block.norm.p,
                             function(mat,tar){
-                              if(all(mat==0)){mat <- mat + 1e-10}
+                              if(any(mat<1e-12)){mat[mat < 1e-12] <- 1e-12}
                               sum(.bernKL(mat, tar))
                             },
                             tar = B.prime))
@@ -108,7 +112,8 @@ plot.mmsbm <- function(fm, directed=FALSE){ # network graph showing B-matrix
   #if(any(rowSums(fm$MixedMembership) < 10 | rowSums(fm$MixedMembership) > 100)){
   #  v.size <- linMap(rowSums(fm$MixedMembership), 10, 120)}
   plot(block.G, main = "Edge Formation across Clusters",
-       edge.width=e.weight, vertex.size=v.size)
+       edge.width=e.weight, vertex.size=v.size,
+       layout = layout_in_circle)
 }
 
 
