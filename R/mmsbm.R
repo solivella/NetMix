@@ -435,7 +435,6 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   
   ##Reorder to match original order
   colnames(fit[["MixedMembership"]]) <- colnames(ctrl$phi_init_t)
-  fit[["MixedMembership"]] <- fit[["MixedMembership"]][,order(monadic_order)]
   colnames(fit[["Kappa"]]) <- unique(monadic[,"(tid)"])
   fit[["Kappa"]] <- fit[["Kappa"]][,order(time_order)]
   fit[["BlockModel"]] <- t(fit[["BlockModel"]])
