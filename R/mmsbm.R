@@ -316,8 +316,10 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                               MoreArgs = list(directed = directed),
                               SIMPLIFY = FALSE)
     if(is.null(ctrl$b_init_t)){
-      ctrl$b_init_t <- qlogis(t(Reduce("+", blockmodel_temp)/n.hmmstates))
       right_perm <- .findPerm(blockmodel_temp, 100)
+      blockmodel_temp <- mapply(function(mat, ind){mat[ind, ind]},
+                                blockmodel_temp, right_perm, SIMPLIFY=FALSE)
+      ctrl$b_init_t <- qlogis(t(Reduce("+", blockmodel_temp)/n.hmmstates))
     } else {
       right_perm <- .findPerm(blockmodel_temp, 100, plogis(t(ctrl$b_init_t)))
     }
@@ -330,7 +332,8 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                     dimnames = list(rep(NA, n.blocks),
                                     paste(colnames(phi)[ind], 
                                           dyad[1,"(tid)"],sep="@"))))
-    }, dyad = dyads, phi = phi_init_m[state_init])
+    }, dyad = dyads, phi = phi_init_m[state_init], SIMPLIFY = FALSE
+    )
     
     ctrl$phi_init_t <- do.call(cbind,
                                mapply(function(ind, mat){(mat[ind,])},
