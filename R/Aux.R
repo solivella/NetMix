@@ -79,9 +79,6 @@
 summary.mmsbm <- function(fm){
   monad <- fm$MonadCoef
   states <- rowMeans(fm$Kappa)
-  names(states) <- paste("Markov State", as.character(1:nrow(fm$Kappa)))
-  rownames(monad) <- c("Intercept", 
-                       colnames(fit_onset$monadic.data)[1:(ncol(fit_onset$monadic.data)-2)])
   summ <- list(nrow(fm$dyadic.data), ncol(fm$BlockModel), 
                rowMeans(fm$MixedMembership),
                exp(fm$BlockModel) / (1 + exp(fm$BlockModel)), 
@@ -105,12 +102,7 @@ plot.mmsbm <- function(fm, directed=FALSE){ # network graph showing B-matrix
   }
   if(any(e.weight > 20)){
     e.weight[e.weight > 20] <- 20}
-  #if(all(E(block.G)$weight!=1)){
-  #  e.weight <- linMap(e.weight, min(e.weight), 10)
-  #}
   v.size <- rowMeans(fm$MixedMembership)*150
-  #if(any(rowSums(fm$MixedMembership) < 10 | rowSums(fm$MixedMembership) > 100)){
-  #  v.size <- linMap(rowSums(fm$MixedMembership), 10, 120)}
   plot(block.G, main = "Edge Formation across Clusters",
        edge.width=e.weight, vertex.size=v.size,
        layout = layout_in_circle)

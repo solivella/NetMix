@@ -75,7 +75,9 @@
 #'       \item{niter}{Final number of VI iterations}
 #'       \item{monadic.data,dyadic.data,n_states,n_blocks}{Original values of parameters used during estimation}
 #'     }
-#'@author Kosuke Imai (imai@@harvard.edu), Tyler Pratt, Santiago Olivella (olivella@@unc.edu)
+#' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
+#' 
+#' @example tests/Examples/MIDColdWar.R
 #' 
 
 mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
