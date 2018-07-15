@@ -1,15 +1,15 @@
 Package: NetMix
 Type: Package
-Title: Mixed-membership network regression models
-Version: 0.2.3
-Date: 2018-05-30
+Title: Dynamic mixed-membership network regression model
+Version: 0.2.4
+Date: 2018-07-15
 Author: Kosuke Imai [aut, cre],
 	Tyler Pratt [aut, cre],
 	Adeline Lo [aut, cre],
 	Santiago Olivella [aut, cre]
 Maintainer: Santiago Olivella <olivella@unc.edu>
-Description: Fast, hierarchical, dynamic version of the mixed-membership
-	     stochastic block model.
+Description: Dynamic mixed-membership
+	     stochastic blockmodel regression for networks.
 NeedsCompilation: yes
 License: GPL (>= 2)
 Depends: R (>= 3.1.0)

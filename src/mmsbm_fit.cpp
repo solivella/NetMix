@@ -56,7 +56,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
 
   // VARIATIONAL EM
   int iter = 0,
-    EM_ITER = as<int>(control["em_iter"]),
+    EM_ITER = as<int>(control["max_em_iter"]),
     N_BLK = as<int>(control["blocks"]),
     N_DYAD_PRED = Rcpp::sum(z_t(0, Rcpp::_)) == 0 ? 0 : z_t.nrow(),
     N_MONAD_PRED = x_t.nrow(),

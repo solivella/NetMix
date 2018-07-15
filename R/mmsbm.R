@@ -28,7 +28,7 @@
 #'    of the edge between them. Currently, only edges between zero and one (inclusive) are supported.
 #' @param data.monad Data frame. Nodal atributes. Must contain a node identifier matching the names of nodes
 #'    used in the \code{data.dyad} data frame. 
-#' @param n.blocks Integer value. How many latent blocks should be used to estimate the model?
+#' @param n.groups Integer value. How many latent groups should be used to estimate the model?
 #' @param n.hmmstates Integer value. How many hidden Markov state should be used in the HMM? Defaults 
 #'    to 1 (i.e. no HMM).  
 #' @param directed Boolean. Is the network directed? Defaults to \code{TRUE}.
@@ -39,8 +39,8 @@
 #'                     \code{\link[lda:mmsb.collapsed.gibbs.sampler]{lda}} for details about this function.)}
 #'        \item{lda_iter}{If \code{init="lda"}, number of MCMC iterations to obtain initial values}
 #'        \item{lda_alpha}{If \code{init="lda"}, value of \code{alpha} hyperparameter. Defaults to 1}
-#'        \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3}
-#'        \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3}
+#'        \item{max_em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3}
+#'        \item{max_opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3}
 #'        \item{mu_b}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
 #'                    and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)}}
 #'        \item{var_b}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
@@ -59,13 +59,13 @@
 #' @return Object of class \code{mmsbm}. List with named components:
 #'     \describe{
 #'       \item{MixedMembership}{Matrix of variational posterior of mean of mixed-membership vectors. \code{nodes} by \
-#'                              \code{n.blocks}}
-#'       \item{PhiSend,PhiRec}{Matrices of estimated variational parameters for the group indicators. \code{n.blocks}
+#'                              \code{n.groups}}
+#'       \item{PhiSend,PhiRec}{Matrices of estimated variational parameters for the group indicators. \code{n.groups}
 #'                             by total number of observed dyads.}
 #'       \item{MMConcentration}{Estimated concentration parameter of mixed-membership vectors}
-#'       \item{BlockModel}{\code{n.blocks} by \code{n.blocks} matrix of estimated tie log-odds between members
+#'       \item{BlockModel}{\code{n.groups} by \code{n.groups} matrix of estimated tie log-odds between members
 #'                         of corresponding latent groups. The blockmodel.}
-#'       \item{MonadCoef}{Array of estimated coefficient values for monadic covariates. Has \code{n.blocks} columns,
+#'       \item{MonadCoef}{Array of estimated coefficient values for monadic covariates. Has \code{n.groups} columns,
 #'                        and \code{n.hmmstates} slices.}
 #'       \item{DyadCoef}{Vector estimated coefficient values for dyadic covariates}
 #'       \item{TransitionKernel}{Matrix of estimated HMM transition probabilities}
@@ -82,7 +82,7 @@
 
 mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                   nodeID = NULL, timeID = NULL, data.dyad, data.monad = NULL,
-                  n.blocks, n.hmmstates = 1, directed = TRUE,
+                  n.groups, n.hmmstates = 1, directed = TRUE,
                   mmsbm.control = list()){
 
   stopifnot(class(formula.dyad) == "formula",
@@ -169,7 +169,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   }
   
   ## Form default control list
-  ctrl <- list(blocks = n.blocks,
+  ctrl <- list(blocks = n.groups,
                states = n.hmmstates,
                times = length(unique(dyadic[["(tid)"]])),
                directed = directed,
@@ -182,8 +182,8 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                init = "kmeans",
                lda_iter = 2000,
                lda_alpha = 1,
-               em_iter = 5000,
-               opt_iter = 10e3,
+               max_em_iter = 5000,
+               max_opt_iter = 10e3,
                mu_b = c(5.0, -5.0),
                var_b = c(1.0, 1.0),
                var_beta = 5.0,
@@ -198,7 +198,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
     stop("Initial values of phi_init_t must provide node names in columns, 
          in format 'node@time'.")
   }
-  mu_b <- var_b <- array(NA, c(n.blocks, n.blocks))
+  mu_b <- var_b <- array(NA, c(n.groups, n.groups))
   diag(mu_b) <- ctrl[["mu_b"]][1]
   mu_b[upper.tri(mu_b)|lower.tri(mu_b)] <- ctrl[["mu_b"]][2]
   diag(var_b) <- ctrl[["var_b"]][1]
@@ -284,7 +284,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                                                                   num.iterations = as.integer(ctrl$lda_iter),
                                                                   burnin = as.integer(ctrl$lda_iter/2),
                                                                   alpha = ctrl$lda_alpha,
-                                                                  K = n.blocks,
+                                                                  K = n.groups,
                                                                   beta.prior=list(a_mat,
                                                                                   b_mat)
                                                                   )$document_expects
@@ -300,8 +300,8 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                               } else {
                                 target <- mat
                               }
-                              clust_internal <- kmeans(target,n.blocks,nstart = 5)$cluster
-                              phi_internal <- model.matrix(~ factor(clust_internal, levels=1:n.blocks) - 1)
+                              clust_internal <- kmeans(target,n.groups,nstart = 5)$cluster
+                              phi_internal <- model.matrix(~ factor(clust_internal, levels=1:n.groups) - 1)
                               phi_internal <- prop.table(phi_internal + runif(length(phi_internal),0,0.1),1)
                               rownames(phi_internal) <- rownames(mat)
                               return(t(phi_internal))
@@ -331,7 +331,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
       
       return(matrix(phi[,ind],
                     ncol=length(ind),
-                    dimnames = list(rep(NA, n.blocks),
+                    dimnames = list(rep(NA, n.groups),
                                     paste(colnames(phi)[ind], 
                                           dyad[1,"(tid)"],sep="@"))))
     }, dyad = dyads, phi = phi_init_m[state_init], SIMPLIFY = FALSE
@@ -364,12 +364,12 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
     monadic$time_id_int <- match(monadic[,"(tid)"], unique(monadic[,"(tid)"])) 
     phi_df <- t(ctrl$phi_init_t)[match(colnames(ctrl$phi_init_t),
                                        monadic$node_time_id),]
-    colnames(phi_df) <- paste("G",1:n.blocks,sep="_")
+    colnames(phi_df) <- paste("G",1:n.groups,sep="_")
     monadic <- cbind(monadic, phi_df)
     monadic_m <- split(monadic, state_init[monadic$time_id_int])
     alpha_par_init <- lapply(monadic_m,
                              function(dat){
-                               dat$Y_inner <- suppressWarnings(DirichletReg::DR_data(dat[,tail(names(dat), n.blocks)]))
+                               dat$Y_inner <- suppressWarnings(DirichletReg::DR_data(dat[,tail(names(dat), n.groups)]))
                                formula.monad <- update(formula.monad, Y_inner ~ .)
                                mtemp <- suppressWarnings(do.call(DirichletReg::DirichReg,
                                                                  list(formula = formula.monad,
@@ -387,7 +387,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   } 
   ctrl$beta_init <- vapply(lapply(seq(dim(ctrl$beta_init)[3]), function(x) ctrl$beta_init[ , , x]), 
                            function(mat, sd_vec, mean_vec){
-                             mat <- matrix(mat, ncol=n.blocks, nrow=ncol(X))
+                             mat <- matrix(mat, ncol=n.groups, nrow=ncol(X))
                              constx <- which(sd_vec==0)
                              if(length(constx)!=0){
                                mat[constx, ] <- mat[constx, ] + mean_vec[-constx] %*% mat[-constx, ]
@@ -395,7 +395,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                              mat[-constx, ] <- mat[-constx, ] * sd_vec[-constx]
                              return(mat)
                            },
-                           array(0.0, c(ncol(X), n.blocks)),
+                           array(0.0, c(ncol(X), n.groups)),
                            sd_vec = X_sd,
                            mean_vec = X_mean)
   
@@ -452,7 +452,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   if(length(fit[["DyadCoef"]])){
     fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]]) 
   }
-  dimnames(fit[["BlockModel"]]) <- replicate(2,paste("Group",1:n.blocks), simplify = FALSE)
+  dimnames(fit[["BlockModel"]]) <- replicate(2,paste("Group",1:n.groups), simplify = FALSE)
   dimnames(fit[["TransitionKernel"]]) <- replicate(2,paste("State",1:n.hmmstates), simplify = FALSE)
   
   if(ncol(Z)>1){
@@ -466,11 +466,11 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                                    mat[constx, ] <- mat[constx, ] - mean_vec[-constx] %*% mat[-constx, ]
                                  return(mat)
                                },
-                               array(0.0, c(ncol(X), n.blocks)),
+                               array(0.0, c(ncol(X), n.groups)),
                                sd_vec = X_sd,
                                mean_vec = X_mean)
   rownames(fit[["MonadCoef"]]) <- colnames(X)
-  colnames(fit[["MonadCoef"]]) <- paste("Group",1:n.blocks)
+  colnames(fit[["MonadCoef"]]) <- paste("Group",1:n.groups)
   ## Include used data in original order
   fit$monadic.data <- monadic[order(monadic_order),]
   fit$dyadic.data <- dyadic[order(dyadic_order),]
