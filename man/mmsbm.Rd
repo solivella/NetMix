@@ -5,7 +5,7 @@
 \title{Dynamic mixed-membership stochastic blockmodel with covariates}
 \usage{
 mmsbm(formula.dyad, formula.monad = ~1, senderID, receiverID, nodeID = NULL,
-  timeID = NULL, data.dyad, data.monad = NULL, n.blocks, n.hmmstates = 1,
+  timeID = NULL, data.dyad, data.monad = NULL, n.groups, n.hmmstates = 1,
   directed = TRUE, mmsbm.control = list())
 }
 \arguments{
@@ -42,7 +42,7 @@ of the edge between them. Currently, only edges between zero and one (inclusive)
 \item{data.monad}{Data frame. Nodal atributes. Must contain a node identifier matching the names of nodes
 used in the \code{data.dyad} data frame.}
 
-\item{n.blocks}{Integer value. How many latent blocks should be used to estimate the model?}
+\item{n.groups}{Integer value. How many latent blocks should be used to estimate the model?}
 
 \item{n.hmmstates}{Integer value. How many hidden Markov state should be used in the HMM? Defaults 
 to 1 (i.e. no HMM).}

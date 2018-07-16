@@ -91,18 +91,17 @@ summary.mmsbm <- function(fm){
 
 
 
-plot.mmsbm <- function(fm, directed=FALSE){ # network graph showing B-matrix
-  mode <- ifelse(directed, "directed", "undirected")
+plot.mmsbm <- function(fm){ # network graph showing B-matrix
+  mode <- ifelse(fm$call$directed, "directed", "undirected")
   require("igraph", quietly=TRUE)
   block.G <- graph.adjacency(exp(fm$BlockModel) / (1 + exp(fm$BlockModel)), mode=mode, weighted=TRUE)
-  linMap <- function(x, from, to){(x - min(x)) / max(x - min(x)) * (to - from) + from}
   e.weight <- E(block.G)$weight*100
   if(any(e.weight < 0.1)){
     e.weight <- e.weight*200
   }
-  if(any(e.weight > 20)){
-    e.weight[e.weight > 20] <- 20}
-  v.size <- rowMeans(fm$MixedMembership)*150
+  if(any(e.weight > 18)){
+    e.weight[e.weight > 18] <- 18}
+  v.size <- rowMeans(fm$MixedMembership)*100
   plot(block.G, main = "Edge Formation across Clusters",
        edge.width=e.weight, vertex.size=v.size,
        layout = layout_in_circle)
@@ -147,20 +146,6 @@ cluster.time.node <- function(fm){
 }
 
 
-cluster.time.node2 <- function(fm){
-  for(i in 1:nrow(fm$MixedMembership)){
-    plot(unique(fm$monadic.data[,"(tid)"]), 1:nrow(fm$Kappa), cex=0,
-         ylim=c(0,1), xlim=c(min(fm$monadic.data[,"(tid)"]), max(fm$monadic.data[,"(tid)"])+1),
-         xlab="Time", ylab="Group Membership", main=paste("Membership in Group", i))
-    for(j in unique(fm$monadic.data[,"(nid)"])){
-      lines(unique(fm$monadic.data[,"(tid)"]), sapply(unique(fm$monadic.data[,"(tid)"]), function(x){
-        fm$MixedMembership[i,fm$monadic.data[,"(tid)"]==x & fm$monadic.data[,"(nid)"]==j]}), col=j)
-      text(as.character(j), x=max(unique(fm$monadic.data[,"(tid)"]))+1, col=j,
-           y=fm$MixedMembership[i,fm$monadic.data[,"(tid)"]==max(unique(fm$monadic.data[,"(tid)"])) & fm$monadic.data[,"(nid)"]==j])
-      
-    }
-  }
-}
 
 
 cluster.time <- function(fm){
@@ -180,19 +165,6 @@ cluster.time <- function(fm){
 
 
 
-radar.plot <- function(fm){
-  if(nrow(fm$MixedMembership)>2){
-    require(fmsb, quietly=TRUE)
-    for(i in unique(fm$monadic.data[,"(nid)"])){
-      radarchart(rbind(rep(1, 3), rep(0, 3), as.data.frame(t(fm$MixedMembership[,fm$monadic.data[,"(nid)"]==i]))),
-                 plty=1, pcol=rgb(0,0,0, alpha=0.1), pfcol=rgb(0,0,0, alpha=0.1),
-                 vlabels=paste("Group", 1:nrow(fm$MixedMembership)), title=as.character(i))
-    }
-  }
-  if(nrow(fm$MixedMembership)<=2){print("Number of Groups must be 3 or more")}
-}
-
-
 
 cluster.node <- function(fm){
   node.mems <- t(do.call(cbind, lapply(unique(fm$monadic.data[,"(nid)"]), function(x){
@@ -205,29 +177,11 @@ cluster.node <- function(fm){
 }
 
 
-cluster.top <- function(fm, num){
-  top <- sapply(1:fm$n_blocks, function(x){
-    ref <- order(fm$MixedMembership[x,], decreasing=TRUE)[1:num]
-    paste(fm$monadic.data$`(nid)`[ref], fm$monadic.data$`(tid)`[ref])
-  })
-  print(paste("Top", num, "node-years by group membership"))
-  print(top)
-}
-
 
 est.edgeplot <- function(fm){
-  pi1 <- fm$MixedMembership[,match(fm$dyadic.data[,"(sid)"],fm$monadic.data[,"(nid)"])]
-  pi2 <- fm$MixedMembership[,match(fm$dyadic.data[,"(rid)"],fm$monadic.data[,"(nid)"])]
-  est.ties <- rep(0, ncol(pi1))
-  for(a in 1:nrow(pi1)){ # vectorize this
-    for(b in 1:nrow(pi2)){
-      est.ties <- est.ties + (pi1[a,]*pi2[b,]*fm$BlockModel[a,b]) # NAs in pi?
-    }
-  }
-  est.ties <- est.ties  + t(fm$DyadCoef)%*%t(fm$dyadic.data[,5:ncol(fm$dyadic.data)])
-  estimated <- exp(est.ties) / (1 + exp(est.ties))
+  estimated <- predict(fm)
   obs.node <- sapply(unique(fm$dyadic.data[,"(sid)"]), function(x){
-    sum(fm$dyadic.data[fm$dyadic.data[,"(sid)"]==x | fm$dyadic.data[,"(rid)"]==x,4])})
+    sum(fm$dyadic.data[fm$dyadic.data[,"(sid)"]==x | fm$dyadic.data[,"(rid)"]==x,1])})
   est.node <- sapply(unique(fm$dyadic.data[,"(sid)"]), function(x){
     sum(estimated[fm$dyadic.data[,"(sid)"]==x | fm$dyadic.data[,"(rid)"]==x])})
   
@@ -240,18 +194,11 @@ est.edgeplot <- function(fm){
 }
 
 
+
 degree.dist <- function(fm, Y){
-  pi1 <- fm$MixedMembership[,match(fm$dyadic.data[,"(sid)"],fm$monadic.data[,"(nid)"])]
-  pi2 <- fm$MixedMembership[,match(fm$dyadic.data[,"(rid)"],fm$monadic.data[,"(nid)"])]
-  est.ties <- rep(0, ncol(pi1))
-  for(a in 1:nrow(pi1)){
-    for(b in 1:nrow(pi2)){
-      est.ties <- est.ties + (pi1[a,]*pi2[b,]*fm$BlockModel[a,b]) + t(fm$DyadCoef)%*%t(fm$dyadic.data[,5:ncol(fm$dyadic.data)])
-    }
-  }
-  estimated <- exp(est.ties) / (1 + exp(est.ties))
+  estimated <- predict(fm)
   obs.node <- sapply(unique(fm$dyadic.data[,"(sid)"]), function(x){
-    sum(fm$dyadic.data[fm$dyadic.data[,"(sid)"]==x | fm$dyadic.data[,"(rid)"]==x,4])})
+    sum(fm$dyadic.data[fm$dyadic.data[,"(sid)"]==x | fm$dyadic.data[,"(rid)"]==x,1])})
   est.node <- sapply(unique(fm$dyadic.data[,"(sid)"]), function(x){
     sum(estimated[fm$dyadic.data[,"(sid)"]==x | fm$dyadic.data[,"(rid)"]==x])})
   dens.o <- density(obs.node)
@@ -268,26 +215,31 @@ degree.dist <- function(fm, Y){
 
 est.pi <- function(fm, monad=fm$monadic.data){
   pi.states <- lapply(1:nrow(fm$Kappa), function(m){
-    ifelse(nrow(fm$MonadCoef) > 1, 
-           return((t(fm$MonadCoef[,,m]) %*% t(cbind(rep(1,nrow(monad)), monad[,1:(ncol(monad)-2)]))) *
-                    fm$Kappa[m, as.numeric(factor(monad[,"(tid)"]))]),
-           return((as.matrix(fm$MonadCoef[,,m]) %*% t(rep(1,nrow(monad)))) * 
-                    fm$Kappa[m, as.numeric(factor(monad[,"(tid)"]))])
-    )
+    ifelse(nrow(fm$MonadCoef) > 1,
+           z <- (t(fm$MonadCoef[,,m]) %*% t(cbind(rep(1,nrow(monad)), monad[,1:(which(colnames(monad)=="(tid)")-1)]))),
+           z <- (as.matrix(fm$MonadCoef[,,m]) %*% t(rep(1,nrow(monad)))))
+    normal <- apply(z, 2, function(p){exp(p) / sum(exp(p))})
+    return(normal * fm$Kappa[m, as.numeric(factor(monad[,"(tid)"]))])
   })
   return(Reduce("+", pi.states))
 }
 
+
 predict.mmsbm <- function(fm, dyad=fm$dyadic.data, monad=fm$monadic.data, 
                           out.sample=FALSE, posterior.pi=FALSE,
                           type="probability"){ 
+  require(gtools)
   if(!out.sample){
     ifelse(posterior.pi, pis <- fm$MixedMembership, pis <- est.pi(fm, monad))
     sid <- ifelse(identical(fm$dyadic.data, dyad), "(sid)", fm$call$senderID)
     rid <- ifelse(identical(fm$dyadic.data, dyad), "(rid)", fm$call$receiverID)
     nid <- ifelse(identical(fm$dyadic.data, dyad), "(nid)", fm$call$nodeID)
-    pi1 <- pis[,match(dyad[,sid],monad[,nid])]
-    pi2 <- pis[,match(dyad[,rid],monad[,nid])]
+    #pi1 <- pis[,match(dyad[,sid],monad[,nid])]
+    #pi2 <- pis[,match(dyad[,rid],monad[,nid])]
+    pi1 <- apply(pis[,match(dyad[,sid],monad[,nid])], 2, 
+                 function(x){rdirichlet(1, x)})
+    pi2 <- apply(pis[,match(dyad[,rid],monad[,nid])], 2, 
+                 function(x){rdirichlet(1, x)})
   }
   
   if(out.sample){
@@ -325,13 +277,16 @@ predict.mmsbm <- function(fm, dyad=fm$dyadic.data, monad=fm$monadic.data,
     pi2 <- t(mean.pis[match(dyad[,fm$call$receiverID], monad[,fm$call$nodeID]),])
   }
   
-  est.ties <- rep(0, ncol(pi1))
+  z1 <- apply(pi1, 2, function(w){rmultinom(1, 1, w)})
+  z2 <- apply(pi1, 2, function(w){rmultinom(1, 1, w)})
+  
+  est.ties <- t(fm$DyadCoef)%*%t(get_all_vars(fm$call$formula.dyad, dyad)[,-1])
   for(a in 1:nrow(pi1)){ 
     for(b in 1:nrow(pi2)){
       est.ties <- est.ties + (pi1[a,]*pi2[b,]*fm$BlockModel[a,b])
+      #est.ties <- est.ties + (z1[a,]*z2[b,]*fm$BlockModel[a,b])
     }
   }
-  est.ties <- est.ties  + t(fm$DyadCoef)%*%t(get_all_vars(fm$call$formula.dyad, dyad)[,-1])
   if(type=="probability"){
     return(exp(est.ties) / (1 + exp(est.ties)))}
   if(type=="response"){
@@ -340,13 +295,17 @@ predict.mmsbm <- function(fm, dyad=fm$dyadic.data, monad=fm$monadic.data,
 }
 
 
-covFX <- function(fm, cov, shift){
+
+covFX <- function(fm, cov, shift, max.val=FALSE){
   predict.ties <- predict(fm)
   monadic.data2 <- fm$monadic.data
-  monadic.data2[,cov] <- fm$monadic.data[,cov] + 1
+  monadic.data2[,cov] <- fm$monadic.data[,cov] + shift
+  if(!isFALSE(max.val)){
+    monadic.data2[which(fm$monadic.data[,cov] == max(fm$monadic.data[,cov])),cov] <- max.val
+  }
   predict.ties2 <- predict(fm, monad=monadic.data2)
   FX <- list(mean(predict.ties2 - predict.ties), #avg
-             tapply(predict.ties2-predict.ties, fm$dyadic.data[,3], mean), #time
+             tapply(predict.ties2-predict.ties, fm$dyadic.data[,"(tid)"], mean), #time
              sapply(unique(fm$monadic.data[,"(nid)"]), function(x){ #node
                mean((predict.ties2-predict.ties)[fm$dyadic.data[,"(sid)"]==x | fm$dyadic.data[,"(rid)"]==x])}),
              tapply(predict.ties2-predict.ties, paste(fm$dyadic.data[,"(sid)"], fm$dyadic.data[,"(rid)"], sep="_"), mean),#dyad
@@ -357,6 +316,7 @@ covFX <- function(fm, cov, shift){
                  paste("Effect of", cov, "by Dyad-Time"))
   return(FX)
 }
+
 
 
 plot.FX <- function(FX, fm){
@@ -370,10 +330,18 @@ plot.FX <- function(FX, fm){
   plot(unique(fm$dyadic.data[,"(tid)"]), tapply(FX[[5]], fm$dyadic.data[,"(tid)"], mean), type="o",
        xlab="Time", ylab=paste("Effect of", cov, "on Pr(Edge Formation)"), main="Marginal Effect over Time")
   
-  dyads <- names(FX[[4]])
-  totals <- cbind(as.character(unlist(lapply(strsplit(dyads, "_"), '[[', 1))),
-                  as.character(unlist(lapply(strsplit(dyads, "_"), '[[', 2))),
-                  as.vector(tapply(FX[[5]], names(FX[[5]]), mean)))
+  nodenames <- names(sort(table(fm$monadic.data[,"(nid)"]), decreasing=T))
+  nodes <- sort(FX[[3]])[names(sort(FX[[3]])) %in% nodenames]
+  plot(1, type="n", xlab="Node-Level Estimated Effect", ylab="", 
+       xlim=c(min(nodes), max(nodes) + sd(nodes)),
+       #xlim=c(min(FX[[3]]) - (sd(FX[[3]])*.4), max(FX[[3]]) + 4*sd(FX[[3]])),
+       ylim = c(0, length(nodes)), yaxt="n")
+  for(i in 1:length(nodes)){
+    points(nodes[i],i, pch=19)
+    text(nodes[i],i, names(nodes)[i], pos=4, cex=0.7)
+  }
+  #par(xpd=FALSE)
+  #abline(v=0, lty=2, lwd=2, col="red")
 }
 
 
