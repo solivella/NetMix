@@ -42,7 +42,7 @@ of the edge between them. Currently, only edges between zero and one (inclusive)
 \item{data.monad}{Data frame. Nodal atributes. Must contain a node identifier matching the names of nodes
 used in the \code{data.dyad} data frame.}
 
-\item{n.groups}{Integer value. How many latent blocks should be used to estimate the model?}
+\item{n.groups}{Integer value. How many latent groups should be used to estimate the model?}
 
 \item{n.hmmstates}{Integer value. How many hidden Markov state should be used in the HMM? Defaults 
 to 1 (i.e. no HMM).}
@@ -56,8 +56,8 @@ to 1 (i.e. no HMM).}
                 \code{\link[lda:mmsb.collapsed.gibbs.sampler]{lda}} for details about this function.)}
    \item{lda_iter}{If \code{init="lda"}, number of MCMC iterations to obtain initial values}
    \item{lda_alpha}{If \code{init="lda"}, value of \code{alpha} hyperparameter. Defaults to 1}
-   \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3}
-   \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3}
+   \item{max_em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3}
+   \item{max_opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3}
    \item{mu_b}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
                and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)}}
    \item{var_b}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
@@ -76,13 +76,13 @@ to 1 (i.e. no HMM).}
 Object of class \code{mmsbm}. List with named components:
     \describe{
       \item{MixedMembership}{Matrix of variational posterior of mean of mixed-membership vectors. \code{nodes} by \
-                             \code{n.blocks}}
-      \item{PhiSend,PhiRec}{Matrices of estimated variational parameters for the group indicators. \code{n.blocks}
+                             \code{n.groups}}
+      \item{PhiSend,PhiRec}{Matrices of estimated variational parameters for the group indicators. \code{n.groups}
                             by total number of observed dyads.}
       \item{MMConcentration}{Estimated concentration parameter of mixed-membership vectors}
-      \item{BlockModel}{\code{n.blocks} by \code{n.blocks} matrix of estimated tie log-odds between members
+      \item{BlockModel}{\code{n.groups} by \code{n.groups} matrix of estimated tie log-odds between members
                         of corresponding latent groups. The blockmodel.}
-      \item{MonadCoef}{Array of estimated coefficient values for monadic covariates. Has \code{n.blocks} columns,
+      \item{MonadCoef}{Array of estimated coefficient values for monadic covariates. Has \code{n.groups} columns,
                        and \code{n.hmmstates} slices.}
       \item{DyadCoef}{Vector estimated coefficient values for dyadic covariates}
       \item{TransitionKernel}{Matrix of estimated HMM transition probabilities}
@@ -97,6 +97,42 @@ Object of class \code{mmsbm}. List with named components:
 The function estimates a dynamic mixed-membership stochastic
 blockmodel that incorporates covariates.
 }
+\examples{
+#########################
+## Example: MID network
+## during the Cold War
+#########################
+
+library(NetMix)
+
+data(MID_monad_CW)
+data(MID_dyad_CW)
+
+
+## Estimate model (takes about 5 minutes)
+system.time(fit_onset <- mmsbm(formula.dyad = mid_onset ~ hially + dist + 
+                                 peaceyrs + spline1 + spline2 + spline3,
+                               formula.monad =  ~ polity + logcinc,
+                               data.dyad = MID_dyad_CW, data.monad = MID_monad_CW,
+                               senderID = "country1", receiverID = "country2", 
+                               nodeID = "country", 
+                               timeID = "year",
+                               n.groups = 3, 
+                               n.hmmstates = 2,
+                               directed = FALSE,
+                               mmsbm.control = list(em_iter = 3000)))
+
+## Summarize model
+summary(fit_onset) 
+
+## Plot blockmodel
+plot(fit_onset, directed = FALSE)
+
+
+
+
+
+}
 \author{
-Kosuke Imai (imai@harvard.edu), Tyler Pratt, Santiago Olivella (olivella@unc.edu)
+Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)
 }
