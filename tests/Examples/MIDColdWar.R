@@ -5,8 +5,8 @@
 
 library(NetMix)
 
-load(MID_monad_CW)
-load(MID_dyad_CW)
+data(MID_monad_CW)
+data(MID_dyad_CW)
 
 
 ## Estimate model (takes about 5 minutes)
