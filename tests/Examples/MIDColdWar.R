@@ -26,15 +26,7 @@ system.time(fit_onset <- mmsbm(formula.dyad = mid_onset ~ hially + dist +
 summary(fit_onset) 
 
 ## Plot blockmodel
-plot(fit_onset, type = "blockmodel", directed = FALSE)
-
-## Plot group membership over time
-plot(fit_onset, type ="group") 
-
-## Show top 10 nodes by group and HMM state
-## (positions by frex)
-head(fit_onset, n = 10,  HMM = 2)
-
+plot(fit_onset, directed = FALSE)
 
 
 
