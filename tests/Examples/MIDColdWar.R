@@ -17,7 +17,7 @@ system.time(fit_onset <- mmsbm(formula.dyad = mid_onset ~ hially + dist +
                                senderID = "country1", receiverID = "country2", 
                                nodeID = "country", 
                                timeID = "year",
-                               n.blocks = 3, 
+                               n.groups = 3, 
                                n.hmmstates = 2,
                                directed = FALSE,
                                mmsbm.control = list(em_iter = 3000)))
