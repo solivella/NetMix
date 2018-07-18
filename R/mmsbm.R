@@ -122,7 +122,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   dyadic$dyad_time_id <- do.call(paste, c(dyadic[c("send_time_id",
                                                    "rec_time_id")],
                                           sep = "->"))
-  Z <- scale(model.matrix(terms(dyadic), dyadic))
+  Z <- scale(model.matrix(formula.dyad, dyadic))
   Z_mean <- attr(Z, "scaled:center")
   Z_sd <- attr(Z, "scaled:scale")
   if(any(Z_sd==0)){
@@ -137,36 +137,34 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                                      drop.unused.levels = TRUE,
                                      tid = as.name(timeID),
                                      nid = as.name(nodeID)))
-    monadic_order <- with(monadic, order(`(tid)`, `(nid)`)) 
-    monadic <- monadic[monadic_order, ]
-    monadic$node_time_id <- do.call(paste, c(monadic[c("(nid)","(tid)")], sep="@"))
-    monadic <- monadic[monadic$node_time_id %in% dyadic$send_time_id |
-                         monadic$node_time_id %in% dyadic$rec_time_id,]
-    
-    X <- scale(model.matrix(terms(monadic), monadic))
-    X_mean <- attr(X, "scaled:center")
-    X_sd <- attr(X, "scaled:scale")
-    if(any(X_sd==0)){
-      constx <- which(X_sd==0)
-      if(length(constx)>1)
-        stop("Singularities in matrix of monadic predictors.")
-      X[,constx] <- 1
-    }
-
-    ## Check that all nodes in dyadic data 
-    ## are also in monadic data
-    stopifnot(all(dyadic$send_time_id %in% monadic$node_time_id),
-              all(dyadic$rec_time_id %in% monadic$node_time_id))
   } else {
     monadic_s <- unique(dyadic[,c("(sid)","(tid)")])
     monadic_r <- unique(dyadic[,c("(rid)","(tid)")])
     names(monadic_s)[1] <- names(monadic_r)[1] <- "(nid)"
     monadic <- unique(rbind(monadic_s, monadic_r))
-    all_nodes_t$`(nid)` <-  
-    monadic <- data.frame(node_time_id = all_nodes_t)
-    X <- matrix(1, nrow = length(unique(unlist(dyadic[,c("send_time_id",
-                                                         "rec_time_id")]))))
   }
+  monadic_order <- with(monadic, order(`(tid)`, `(nid)`)) 
+  monadic <- monadic[monadic_order, ]
+  monadic$node_time_id <- do.call(paste, c(monadic[c("(nid)","(tid)")], sep="@"))
+  monadic <- monadic[monadic$node_time_id %in% dyadic$send_time_id |
+                       monadic$node_time_id %in% dyadic$rec_time_id,]
+  
+  ## Check that all nodes in dyadic data 
+  ## are also in monadic data
+  stopifnot(all(dyadic$send_time_id %in% monadic$node_time_id),
+            all(dyadic$rec_time_id %in% monadic$node_time_id))
+  
+  X <- scale(model.matrix(formula.monad, monadic))
+  X_mean <- attr(X, "scaled:center")
+  X_sd <- attr(X, "scaled:scale")
+  if(any(X_sd==0)){
+    constx <- which(X_sd==0)
+    if(length(constx)>1)
+      stop("Singularities in matrix of monadic predictors.")
+    X[,constx] <- 1
+  }
+  
+  
   
   ## Form default control list
   ctrl <- list(blocks = n.groups,
@@ -268,10 +266,11 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   soc_mats_m <- tapply(soc_mats,
      list(state_init),
      function(x){
-      Reduce(.modSum,x)
+      mat <- Reduce(.modSum,x)
+      mat[is.na(mat)] <- sample(0:1, sum(is.na(mat)), replace = TRUE)
+      return(mat)
   }, simplify = FALSE)
   
-  soc_mats_m[is.na(soc_mats_m)] <- sample(0:1, sum(is.na(soc_mats_m)), replace = TRUE)
   if(is.null(ctrl$phi_init)) {
     phi_init_m <- lapply(soc_mats_m,
                             function(mat){
