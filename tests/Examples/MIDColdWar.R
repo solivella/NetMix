@@ -26,7 +26,7 @@ system.time(fit_onset <- mmsbm(formula.dyad = mid_onset ~ hially + dist +
 summary(fit_onset) 
 
 ## Plot blockmodel
-plot(fit_onset, directed = FALSE)
+plot(fit_onset)
 
 
 
