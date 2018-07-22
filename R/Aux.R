@@ -2,6 +2,12 @@
 ## Misc. Helper functions
 #########################
 
+
+.reRange <- function(x) {
+  nmax <- 1.0 - 1e-12
+  nmin <- 1e-12
+  (nmax - nmin) * (x - 1.0) + nmax
+}
 .modSum <- function(x, y){
   replace(x, is.na(x), 0) + replace(y, is.na(y), 0)
 }
@@ -31,17 +37,18 @@
     ## Step 2
     ## Compute loss matrix (KL)
     cost.mat <- lapply(block.norm,
-                       function(mat){
+                       function(mat, mat2){
                          res <- matrix(NA, ncol=k, nrow=k)
-                         if(any(mat<1e-12)){mat[mat < 1e-12] <- 1e-12}
+                         mat <- .reRange(mat)
+                         mat2 <- .reRange(mat2)
                          for(i in 1:k){
                            for(j in 1:k){
-                             res[i, j] <- sum(.bernKL(mat[i,], B.prime[j,]) +
-                               sum(.bernKL(mat[,i], B.prime[,j])))
+                             res[i, j] <- sum(.bernKL(mat[i,], mat2[j,]) +
+                               sum(.bernKL(mat[,i], mat2[,j])))
                              }
                          }
                          return(res)
-                       })
+                       }, mat2 = B.prime)
     ##Get optimal perm 
     perm.vecs <- lapply(cost.mat,
                         function(mat){
@@ -53,7 +60,8 @@
     ##Compute risk
     new.risk <- sum(sapply(block.norm.p,
                             function(mat,tar){
-                              if(any(mat<1e-12)){mat[mat < 1e-12] <- 1e-12}
+                              mat <- .reRange(mat)
+                              tar <- .reRange(tar)
                               sum(.bernKL(mat, tar))
                             },
                             tar = B.prime))
@@ -73,40 +81,6 @@
   names(temp_map) <- as.character(uvec)
   temp_map[as.character(vec)]
 }
-
-## Define functions for displaying model results
-
-summary.mmsbm <- function(fm){
-  monad <- fm$MonadCoef
-  states <- rowMeans(fm$Kappa)
-  summ <- list(nrow(fm$dyadic.data), ncol(fm$BlockModel), 
-               rowMeans(fm$MixedMembership),
-               exp(fm$BlockModel) / (1 + exp(fm$BlockModel)), 
-               fm$DyadCoef, monad, states)
-  names(summ) <- c("N", "Number of Clusters", "Percent of Observations in Each Cluster",
-                   "Edge Formation Probabilities", "Dyadic Coefficients", "Monadic Coefficients",
-                   "Markov State Probabilities")
-  print(summ)
-}
-
-
-
-plot.mmsbm <- function(fm){ # network graph showing B-matrix
-  mode <- ifelse(fm$call$directed, "directed", "undirected")
-  require("igraph", quietly=TRUE)
-  block.G <- graph.adjacency(exp(fm$BlockModel) / (1 + exp(fm$BlockModel)), mode=mode, weighted=TRUE)
-  e.weight <- E(block.G)$weight*100
-  if(any(e.weight < 0.1)){
-    e.weight <- e.weight*200
-  }
-  if(any(e.weight > 18)){
-    e.weight[e.weight > 18] <- 18}
-  v.size <- rowMeans(fm$MixedMembership)*100
-  plot(block.G, main = "Edge Formation across Clusters",
-       edge.width=e.weight, vertex.size=v.size,
-       layout = layout_in_circle)
-}
-
 
 
 cluster.mems <- function(fm, t, n=10, demean=FALSE){
@@ -319,30 +293,6 @@ covFX <- function(fm, cov, shift, max.val=FALSE){
 
 
 
-plot.FX <- function(FX, fm){
-  cov <- strsplit(names(FX)[1], " ")[[1]][5]
-  ymax <- max(hist(FX[[5]])[["counts"]])
-  hist(FX[[5]], main=paste("Distribution of Marginal Effects:", strsplit(names(FX)[1], " ")[[1]][5]),
-       xlab=paste("Effect of", cov, "on Pr(Edge Formation)"))
-  lines(x=c(FX[[1]], FX[[1]]), y=c(0,ymax*1.05), col="red", lwd=2)
-  text(x=FX[[1]], y=ymax, paste("Avg. Effect =", round(FX[[1]],4)), col="red", pos=4)
-  
-  plot(unique(fm$dyadic.data[,"(tid)"]), tapply(FX[[5]], fm$dyadic.data[,"(tid)"], mean), type="o",
-       xlab="Time", ylab=paste("Effect of", cov, "on Pr(Edge Formation)"), main="Marginal Effect over Time")
-  
-  nodenames <- names(sort(table(fm$monadic.data[,"(nid)"]), decreasing=T))
-  nodes <- sort(FX[[3]])[names(sort(FX[[3]])) %in% nodenames]
-  plot(1, type="n", xlab="Node-Level Estimated Effect", ylab="", 
-       xlim=c(min(nodes), max(nodes) + sd(nodes)),
-       #xlim=c(min(FX[[3]]) - (sd(FX[[3]])*.4), max(FX[[3]]) + 4*sd(FX[[3]])),
-       ylim = c(0, length(nodes)), yaxt="n")
-  for(i in 1:length(nodes)){
-    points(nodes[i],i, pch=19)
-    text(nodes[i],i, names(nodes)[i], pos=4, cex=0.7)
-  }
-  #par(xpd=FALSE)
-  #abline(v=0, lty=2, lwd=2, col="red")
-}
 
 
 
