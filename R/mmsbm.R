@@ -232,7 +232,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                                   dimnames = list(1, rep(1, ctrl$times)))
     }
   } else {
-    ctrl$kappa_init_t <- matrix(ctrl$kappa_init_t[,time_order], ncol = periods)
+    ctrl$kappa_init_t <- matrix(ctrl$kappa_init_t[,time_order], ncol = ctrl$times)
   } 
   state_init <- apply(ctrl$kappa_init_t, 2, which.max)
   
