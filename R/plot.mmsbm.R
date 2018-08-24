@@ -18,7 +18,7 @@ plot.mmsbm <- function(fm, type="blockmodel", FX=NULL){ # network graph showing 
     block.G <- graph.adjacency(exp(fm$BlockModel) / (1 + exp(fm$BlockModel)), mode=mode, weighted=TRUE)
     e.weight <- E(block.G)$weight*100
     if(any(e.weight < 0.1)){
-      e.weight <- e.weight*200
+      e.weight <- e.weight*2
     }
     if(any(e.weight > 18)){
       e.weight[e.weight > 18] <- 18}
