@@ -318,9 +318,6 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                               SIMPLIFY = FALSE)
     if(is.null(ctrl$b_init_t)){
       right_perm <- .findPerm(blockmodel_temp, 100)
-      blockmodel_temp <- mapply(function(mat, ind){mat[ind, ind]},
-                                blockmodel_temp, right_perm, SIMPLIFY=FALSE)
-      ctrl$b_init_t <- qlogis(t(Reduce("+", blockmodel_temp)/n.hmmstates))
     } else {
       right_perm <- .findPerm(blockmodel_temp, 100, plogis(t(ctrl$b_init_t)))
     }
@@ -355,6 +352,10 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                                             nodes_in_dyads,
                                             ctrl$phi_init_t,
                                             directed)))
+      if(any(!is.finite(ctrl$b_init_t))){
+        inf_ind <- which(!is.finite(ctrl$b_init_t))
+        ctrl$b_init_t[inf_ind] <- sign(ctrl$b_init_t[inf_ind]) * 100
+      }
   }
   
   ## Initial value of monadic coefficients

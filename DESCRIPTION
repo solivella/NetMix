@@ -1,7 +1,7 @@
 Package: NetMix
 Type: Package
 Title: Dynamic mixed-membership network regression model
-Version: 0.2.4
+Version: 0.2.5
 Date: 2018-07-15
 Author: Kosuke Imai [aut, cre],
 	Tyler Pratt [aut, cre],
@@ -16,4 +16,4 @@ Depends: R (>= 3.1.0)
 SystemRequirements: C++11
 Imports: Rcpp (>= 0.12.13), DirichletReg (>= 0.6-3), clue (>= 0.3-54), lda (>= 1.4.2)
 LinkingTo: Rcpp
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.0

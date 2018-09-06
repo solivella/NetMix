@@ -97,7 +97,7 @@ Rcpp::NumericMatrix approxB(Rcpp::NumericMatrix y,
     }
   }
   std::transform(den.begin(), den.end(), den.begin(),
-                 [](double& x){return x < 1e-12 ? 1e-12 : x;});
+                 [](double& x){return fabs(x) < 1e-12 ? sgn(x) * 1e-12 : x;});
   
   std::transform(num.begin(), num.end(),
                  den.begin(),
@@ -147,6 +147,11 @@ double logSumExp(const std::vector<double>& invec)
                                  return a + exp(b - offset);
                                });
   return offset + log(res);
+}
+
+
+template <typename T> int sgn(T val) {
+  return (T(0) < val) - (val < T(0));
 }
 
 /*

@@ -81,6 +81,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
     Rprintf("Estimating model...\n");
   }
   oldLL = Model.cLL();
+  Rprintf("Initial LB: %f\n",oldLL);
   while(iter < EM_ITER && conv == false){
     checkUserInterrupt();
 

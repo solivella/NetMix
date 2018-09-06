@@ -84,7 +84,8 @@ private:
     grcountAlpha,
     grcountTheta,
     m_failAlpha,
-    m_failTheta;
+    m_failTheta,
+    err;
 
 
   bool verbose,
@@ -145,7 +146,8 @@ private:
 			 int,
 			 double*,
 			 double*,
-			 double*);
+			 double*,
+			 int&);
 friend
   void vmmin_ours(int n0, double *b, double *Fmin, optimfn fminfn, optimgr fmingr,
              int maxit, int trace, int *mask,

@@ -147,9 +147,8 @@ MMModel::MMModel(const NumericMatrix& z_t,
   std::vector<double>::iterator it = alpha_par.begin() + 1;
   for(int m = 0; m < N_STATE; ++m){
     for(int g = 1; g < N_BLK; ++g){
-      for(int r1 = 0; r1 < N_MONAD_PRED; ++r1){
+      for(int r1 = 0; r1 < N_MONAD_PRED; ++r1, ++it){
         *it = beta(r1, g, m);
-        ++it;
       }
     }
   }
@@ -183,14 +182,21 @@ double MMModel::alphaLB()
     }
     
     //Prior for beta
+    //Rprintf("Res before reg is %f\n",res);
     for(int g = 1; g < N_BLK; ++g){
       for(int x = 0; x < N_MONAD_PRED; ++x){
+       // Rprintf("Value is %f, beta is %f, var is%f\n",
+      //          0.5 * pow(beta(x, g, m), 2.0) / var_beta,
+      //          beta(x, g, m),
+      //          var_beta
+      //  );
         res -= 0.5 * pow(beta(x, g, m), 2.0) / var_beta;
       }
     }
+    //Rprintf("Res aftre reg is %f\n",res);
   }
   //Prior for xi
-  res -= 0.5 * pow(log(xi_param), 2.0) / var_xi;
+  res -= 0.5 * pow(log(xi_param), 2.0) / var_xi - 1./xi_param;
   
   
   res *= -1; //VMMIN minimizes.
@@ -229,11 +235,14 @@ void MMModel::alphaGr(int N_PAR, double *gr)
             }
           }
         }
+        //Rprintf("res is %f, beta is %f, penalty is %f\n", res, beta(x, g, m), beta(x, g, m) / var_beta);
         gr[1 + x + N_MONAD_PRED * ((g - 1) + (N_BLK - 1) * m)] = -(res - beta(x, g, m) / var_beta);
       }
     }
   }
-  gr[0] = -(res_xi - alpha_par[0] / var_xi);
+  //gr[0] = -(res_xi - alpha_par[0] / var_xi - 1./pow(xi_param, 2.0));
+  gr[0] = 0.0;
+  
 }
 
 
@@ -247,12 +256,13 @@ void MMModel::computeAlpha()
   std::fill(alpha_term2.begin(), alpha_term2.end(), 0.0);
   
   xi_param = exp(alpha_par[0]);
+  //Rprintf("xi_param %f here!\n", xi_param);
   std::vector<double>::iterator it = alpha_par.begin() + 1;
   for(int m = 0; m < N_STATE; ++m){
     for(int g = 1; g < N_BLK; ++g){
-      for(int r1 = 0; r1 < N_MONAD_PRED; ++r1){
+      for(int r1 = 0; r1 < N_MONAD_PRED; ++r1, ++it){
         beta(r1, g, m) = *it;
-        ++it;
+        //Rprintf("beta(%i, %i, %i)= %f\n",r1, g, m,beta(r1, g, m) );
       }
     }
   }
@@ -267,15 +277,22 @@ void MMModel::computeAlpha()
         for(int x = 0; x < N_MONAD_PRED; ++x){
           linpred += x_t(x, p) * beta(x, g, m);
         }
+        //Rprintf("linpred 0: %f\n", linpred);
+        
         linpred = exp(linpred);
+        //Rprintf("linpred 1: %f HERE!\n", linpred);
         e_xb(g, p, m) = linpred;
         alpha(g, p, m) = linpred;
         linpred_sum += linpred;
       }
       sum_e_xb(p, m) = linpred_sum;
-      linpred_sum /= xi_param;
       for(int g = 0; g < N_BLK; ++g) {
         alpha(g, p, m) /= linpred_sum;
+        if(!isfinite(alpha(g, p, m))){
+          //Rprintf("Value of linpred_sum %f, value of xi %f\n", linpred_sum, xi_param);
+          //stop("Alpha became nan");
+        }
+        alpha(g, p, m) *= xi_param;
         alpha_term2(m, time_id_node[p]) += lgammaDiff(alpha(g, p, m), e_c_t(g, p));
       }
       n_node_term = directed ? 2 * static_cast<double>(n_nodes_time[time_id_node[p]])
@@ -306,6 +323,8 @@ double MMModel::thetaLB(bool entropy = false)
       }
     }
   }
+  //Rprintf("res now 2: %f\n", res);
+  
   
   
   //Prior for gamma
@@ -313,12 +332,17 @@ double MMModel::thetaLB(bool entropy = false)
     res -= 0.5 * pow(gamma[z], 2.0) / var_gamma;
   }
   
+  //Rprintf("res now 3: %f\n", res);
+  
+  
   //Prior for B
   for(int g = 0; g < N_BLK; ++g){
     for(int h = 0; h < N_BLK; ++h){
+      //Rprintf("Values are b_t %f, mu_bt %f, var %f\n", b_t(h, g), mu_b_t(h, g), var_b_t(h, g));
       res -= 0.5 * (pow(b_t(h, g) - mu_b_t(h, g), 2.0) / var_b_t(h, g));
     }
   }
+  //Rprintf("res now 4: %f\n", res);
   
   res *= -1; //VMMIN minimizes.
   return res;
@@ -381,11 +405,15 @@ void MMModel::computeTheta()
       b_t(h, g) = theta_par[par_ind(h, g)];
     }
   }
-  double linpred;
+  for(int z = 0; z < N_DYAD_PRED; ++z){
+    gamma[z] = theta_par[N_B_PAR + z];
+  }
+  
+  //double linpred;
+#pragma omp parallel for
   for(int d = 0; d < N_DYAD; ++d){
-    linpred = 0.0;
+    double linpred = 0.0;
     for(int z = 0; z < N_DYAD_PRED; ++z){
-      gamma[z] = theta_par[N_B_PAR + z];
       linpred -= z_t(z, d) * gamma[z];
     }
     for(int g = 0; g < N_BLK; ++g){
@@ -399,17 +427,22 @@ void MMModel::computeTheta()
 double MMModel::cLL()
 {
   double res = -1 * (thetaLB(true));
+  //Rprintf("Res 1: %f\n", res);
   res -= alphaLB();
+  //Rprintf("Res 2: %f\n", res);
   for(int t = 0; t < N_TIME; ++t){
     for(int m = 0; m < N_STATE; ++m){
       if(t == 0){
         res -= lgamma(static_cast<double>(N_STATE) * eta + e_wm[m]);
+       // Rprintf("Res 3: %f\n", res);
         for(int n = 0; n < N_STATE; ++n){
           res += lgamma(eta + e_wmn_t(n, m));
         }
+        //Rprintf("Res 4: %f\n", res);
       }
       //Entropy for kappa
       res -= kappa_t(m, t) * log(kappa_t(m,t) + 1e-16);
+      //Rprintf("Res 5: %f\n", res);
     }
   }
   return res;
@@ -543,7 +576,8 @@ void MMModel::updateKappa()
 void MMModel::updatePhiInternal(int dyad, int rec,
                                 double *phi,
                                 double *phi_o,
-                                double *new_c
+                                double *new_c,
+                                int& err
 )
 {
   
@@ -571,8 +605,8 @@ void MMModel::updatePhiInternal(int dyad, int rec,
     
     
     phi[g] = exp(res);
-    if(ISNAN(phi[g])){
-      stop("Phi value became NAN.");
+    if(!isfinite(phi[g])){
+      err = 1;
     }
     total += phi[g];
   }
@@ -591,25 +625,27 @@ void MMModel::updatePhi()
   for(int thread = 0; thread < N_THREAD; ++thread){
     std::fill(new_e_c_t[thread].begin(), new_e_c_t[thread].end(), 0.0);
   }
-#pragma omp parallel
+#pragma omp parallel 
 {
   int thread = 0;
 #ifdef _OPENMP
   thread = omp_get_thread_num();
 #endif
-  
+err = 0;  
 #pragma omp for
   for(int d = 0; d < N_DYAD; ++d){
     updatePhiInternal(d,
                       0,
                       &send_phi(0, d),
                       &rec_phi(0, d),
-                      &new_e_c_t[thread](0, node_id_dyad(d, 0)));
+                      &new_e_c_t[thread](0, node_id_dyad(d, 0)),
+                      err);
     updatePhiInternal(d,
                       1,
                       &rec_phi(0, d),
                       &send_phi(0, d),
-                      &new_e_c_t[thread](0, node_id_dyad(d, 1)));
+                      &new_e_c_t[thread](0, node_id_dyad(d, 1)),
+                      err);
   }
   
   
@@ -627,6 +663,9 @@ for(int p = 0; p < N_NODE; ++p){
   }
 }
 }
+  if(err==1){
+    stop("Phi became NaN.");
+  }
 }
 
 /** 

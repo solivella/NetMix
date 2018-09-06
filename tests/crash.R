@@ -1,6 +1,9 @@
-load("MIDdata.Rdata") 
+load("tests/MIDdata.Rdata") 
 library(NetMix)
 set.seed(999)
+MID_monad$ccode <- as.factor(as.numeric(paste(MID_monad$ccode)))
+MID_dyad$ccode1 <- as.factor(as.numeric(paste(MID_dyad$ccode1)))
+MID_dyad$ccode2 <- as.factor(as.numeric(paste(MID_dyad$ccode2)))
 fit_onset_f <- mmsbm(formula.dyad = MID_onset ~ trade_dep_low + IGOmems_joint +
                        ally + contiguity + dist +
                        peaceyrs + spline1 + spline2 + spline3,
@@ -14,11 +17,12 @@ fit_onset_f <- mmsbm(formula.dyad = MID_onset ~ trade_dep_low + IGOmems_joint +
                      n.groups = 4, 
                      n.hmmstates = 2,
                      directed=FALSE,
-                     mmsbm.control = list(var_b = c(9,9),
-                                          #var_xi = 10,
-                                          var_gamma = 9,
+                     mmsbm.control = list(var_b = c(1,1),
+                                          #var_beta = 1,
+                                          var_xi = 1,
+                                          var_gamma = 1,
                                           #mu_b = c(-5, 5),
                                           verbose = TRUE,
                                           em_iter = 3000,
-                                          threads = parallel::detectCores()
+                                          threads = 4
                      ))
