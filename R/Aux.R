@@ -186,89 +186,32 @@ degree.dist <- function(fm, Y){
 }
 
 
-
-est.pi <- function(fm, monad=fm$monadic.data){
-  pi.states <- lapply(1:nrow(fm$Kappa), function(m){
-    ifelse(nrow(fm$MonadCoef) > 1,
-           z <- (t(fm$MonadCoef[,,m]) %*% t(cbind(rep(1,nrow(monad)), monad[,1:(which(colnames(monad)=="(tid)")-1)]))),
-           z <- (as.matrix(fm$MonadCoef[,,m]) %*% t(rep(1,nrow(monad)))))
-    normal <- apply(z, 2, function(p){exp(p) / sum(exp(p))})
-    return(normal * fm$Kappa[m, as.numeric(factor(monad[,"(tid)"]))])
-  })
-  return(Reduce("+", pi.states))
+.pi.hat <- function(X, beta){
+  if(dim(beta)[3]==1){
+    mu <- exp(X %*% t(beta[,,1]))
+    mu_n <- mu/rowSums(mu)
+    pi.states <- list(t(mu_n))
+  } else {
+    pi.states <- lapply(1:dim(beta)[3], function(m){
+      mu <- exp(X %*% beta[,,m])
+      mu_n <- mu/rowSums(mu)
+      return(t(mu_n))
+    })
+  }
+  return(pi.states)
 }
 
-
-predict.mmsbm <- function(fm, dyad=fm$dyadic.data, monad=fm$monadic.data, 
-                          out.sample=FALSE, posterior.pi=FALSE,
-                          type="probability"){ 
-  require(gtools)
-  if(!out.sample){
-    ifelse(posterior.pi, pis <- fm$MixedMembership, pis <- est.pi(fm, monad))
-    sid <- ifelse(identical(fm$dyadic.data, dyad), "(sid)", fm$call$senderID)
-    rid <- ifelse(identical(fm$dyadic.data, dyad), "(rid)", fm$call$receiverID)
-    nid <- ifelse(identical(fm$dyadic.data, dyad), "(nid)", fm$call$nodeID)
-    #pi1 <- pis[,match(dyad[,sid],monad[,nid])]
-    #pi2 <- pis[,match(dyad[,rid],monad[,nid])]
-    pi1 <- apply(pis[,match(dyad[,sid],monad[,nid])], 2, 
-                 function(x){rdirichlet(1, x)})
-    pi2 <- apply(pis[,match(dyad[,rid],monad[,nid])], 2, 
-                 function(x){rdirichlet(1, x)})
-  }
-  
-  if(out.sample){
-    tid <- ifelse(all(colnames(fm$monadic.data) %in% colnames(monad)), "(tid)", fm$call$timeID)
-    kappa.last <- fm$Kappa[,ncol(fm$Kappa)]
-    kappa.new <- list()
-    kappa.new[[1]] <- fm$TransitionKernel %*% kappa.last
-    if(length(unique(dyad$year))>1){
-      for(i in 2:length(unique(dyad$year))){
-        kappa.new[[i]] <- fm$TransitionKernel %*% kappa.new[[i-1]]
-      }
-    }
-    #kappa.new[[1]] <- kappa.new[[2]] <- c(1, 0, 0)
-    new.pis <- list()
-    for(i in 1:fm$n_states){
-      ifelse(!is.null(fm$call$formula.monad),
-             monad.vars <- cbind(rep(1, nrow(monad)), get_all_vars(fm$call$formula.monad, monad)),
-             monad.vars <- rep(1, nrow(fm$monadic.data)))
-      new.pis[[i]] <- as.matrix(monad.vars) %*% fm$MonadCoef[,,i]
-    }
-    mean.pis <- new.pis[[1]]
-    for(j in 1:length(unique(monad[,tid]))){
-      kappa.rel <- kappa.new[[j]]
-      mean.pi.sub <- mean.pis[monad[,tid]==unique(monad[,tid])[j],]
-      for(q in 1:nrow(mean.pi.sub)){
-        pi.mean <- rep(0, ncol(mean.pi.sub))
-        for(v in 1:fm$n_states){
-          pi.mean <- pi.mean + new.pis[[v]][q,] * kappa.new[[j]][v]
-        }
-        mean.pi.sub[q,] <- pi.mean
-      }
-      mean.pis[monad[,tid]==unique(monad[,tid])[j],] <- mean.pi.sub
-    }
-    pi1 <- t(mean.pis[match(dyad[,fm$call$senderID], monad[,fm$call$nodeID]),])
-    pi2 <- t(mean.pis[match(dyad[,fm$call$receiverID], monad[,fm$call$nodeID]),])
-  }
-  
-  z1 <- apply(pi1, 2, function(w){rmultinom(1, 1, w)})
-  z2 <- apply(pi1, 2, function(w){rmultinom(1, 1, w)})
-  
-  est.ties <- t(fm$DyadCoef)%*%t(get_all_vars(fm$call$formula.dyad, dyad)[,-1])
-  for(a in 1:nrow(pi1)){ 
-    for(b in 1:nrow(pi2)){
-      est.ties <- est.ties + (pi1[a,]*pi2[b,]*fm$BlockModel[a,b])
-      #est.ties <- est.ties + (z1[a,]*z2[b,]*fm$BlockModel[a,b])
-    }
-  }
-  if(type=="probability"){
-    return(exp(est.ties) / (1 + exp(est.ties)))}
-  if(type=="response"){
-    return(rbinom(length(est.ties), 1, prob=exp(est.ties) / (1 + exp(est.ties))))
+.e.pi <- function(pi_l, kappa){
+  if(is.null(dim(kappa))){
+    return(pi_l[[1]])
+  } else {
+    n_states <- nrow(kappa)
+    pi.states <- lapply(1:nrow(kappa), function(m){
+      pi_l[[m]] * kappa[m,]
+    })
+    return(Reduce("+", pi_l))
   }
 }
-
-
 
 covFX <- function(fm, cov, shift, max.val=FALSE){
   predict.ties <- predict(fm)

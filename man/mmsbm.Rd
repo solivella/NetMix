@@ -4,9 +4,9 @@
 \alias{mmsbm}
 \title{Dynamic mixed-membership stochastic blockmodel with covariates}
 \usage{
-mmsbm(formula.dyad, formula.monad = ~1, senderID, receiverID, nodeID = NULL,
-  timeID = NULL, data.dyad, data.monad = NULL, n.groups, n.hmmstates = 1,
-  directed = TRUE, mmsbm.control = list())
+mmsbm(formula.dyad, formula.monad = ~1, senderID, receiverID,
+  nodeID = NULL, timeID = NULL, data.dyad, data.monad = NULL,
+  n.groups, n.hmmstates = 1, directed = TRUE, mmsbm.control = list())
 }
 \arguments{
 \item{formula.dyad}{A \code{formula} object. The variable in \code{data.dyad} that contains 

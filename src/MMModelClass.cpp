@@ -280,18 +280,18 @@ void MMModel::computeAlpha()
         //Rprintf("linpred 0: %f\n", linpred);
         
         linpred = exp(linpred);
-        //Rprintf("linpred 1: %f HERE!\n", linpred);
+        
         e_xb(g, p, m) = linpred;
         alpha(g, p, m) = linpred;
         linpred_sum += linpred;
       }
       sum_e_xb(p, m) = linpred_sum;
       for(int g = 0; g < N_BLK; ++g) {
+        if(ISNAN(alpha(g, p, m))){
+          Rprintf("Linpredsum is %f, xi_param is %f\n",linpred_sum, xi_param);
+          stop("alpha 1 is nan\n");
+        } 
         alpha(g, p, m) /= linpred_sum;
-        if(!isfinite(alpha(g, p, m))){
-          //Rprintf("Value of linpred_sum %f, value of xi %f\n", linpred_sum, xi_param);
-          //stop("Alpha became nan");
-        }
         alpha(g, p, m) *= xi_param;
         alpha_term2(m, time_id_node[p]) += lgammaDiff(alpha(g, p, m), e_c_t(g, p));
       }
@@ -544,7 +544,7 @@ void MMModel::updateKappa()
     for(int m = 0; m < N_STATE; ++m){
       kappa_t(m, t) = exp(kappa_vec[m] - log_denom);
       if(ISNAN(kappa_t(m, t))){
-        stop("Kappa value became NAN.");
+        Rprintf("Kappa value became NAN.");
       }
       e_wm[m] += kappa_t(m, t);
       if(t > 0 & t < (N_TIME - 1)){

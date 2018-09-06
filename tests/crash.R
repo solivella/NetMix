@@ -18,7 +18,7 @@ fit_onset_f <- mmsbm(formula.dyad = MID_onset ~ trade_dep_low + IGOmems_joint +
                      n.hmmstates = 2,
                      directed=FALSE,
                      mmsbm.control = list(var_b = c(1,1),
-                                          #var_beta = 1,
+                                          var_beta = 1,
                                           var_xi = 1,
                                           var_gamma = 1,
                                           #mu_b = c(-5, 5),

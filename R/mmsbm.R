@@ -299,7 +299,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                               } else {
                                 target <- mat
                               }
-                              clust_internal <- kmeans(target,n.groups,nstart = 5)$cluster
+                              clust_internal <- kmeans(target,n.groups,nstart = 5, iter.max = 50)$cluster
                               phi_internal <- model.matrix(~ factor(clust_internal, levels=1:n.groups) - 1)
                               phi_internal <- prop.table(phi_internal + runif(length(phi_internal),0,0.1),1)
                               rownames(phi_internal) <- rownames(mat)
@@ -369,21 +369,18 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
     monadic_m <- split(monadic, state_init[monadic$time_id_int])
     alpha_par_init <- lapply(monadic_m,
                              function(dat){
-                               dat$Y_inner <- suppressWarnings(DirichletReg::DR_data(dat[,tail(names(dat), n.groups)]))
-                               formula.monad <- update(formula.monad, Y_inner ~ .)
-                               mtemp <- suppressWarnings(do.call(DirichletReg::DirichReg,
-                                                                 list(formula = formula.monad,
-                                                                      model = "alternative",
-                                                                      data = dat)))
-                               beta <- do.call(cbind,coef(mtemp)$beta)
-                               xi <- coef(mtemp)$gamma
+                               X_internal <-  model.matrix(formula.monad, data=dat)
+                               Y_transf <- as.matrix(log(dat[,tail(names(dat), n.groups - 1)]/dat[,"G_1"]))
+                               beta <- lm.fit(X_internal, Y_transf)$coefficients
+                               xi <- (mean(dat[,"G_1"])-mean(dat[,"G_1"]^2))/(mean(dat[,"G_1"]^2) - mean(dat[,"G_1"])^2)
                                return(list(beta=beta, xi=xi))
                              }) 
       
     ctrl$beta_init <- sapply(alpha_par_init,
                              function(x)cbind(0,x$beta),
                              simplify = "array")
-    ctrl$xi_init <- mean(sapply(alpha_par_init, function(x)exp(x$xi$gamma)))
+    ctrl$xi_init <- mean(sapply(alpha_par_init, function(x)x$xi))
+    print(ctrl$xi_init)
   } 
   ctrl$beta_init <- vapply(lapply(seq(dim(ctrl$beta_init)[3]), function(x) ctrl$beta_init[ , , x]), 
                            function(mat, sd_vec, mean_vec){
@@ -402,7 +399,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   ## Initial value of dyadic coefficients
   if(is.null(ctrl$gamma_init)){
    if(ncol(Z) > 0){
-      ctrl$gamma_init <- coef(glm(model.response(dyadic)~Z-1,family=binomial))   
+      ctrl$gamma_init <- glm.fit(Z, model.response(dyadic),family=binomial())$coefficients  
     } else {
       ctrl$gamma_init <- 0
     }
@@ -438,10 +435,11 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
 
   
   
-  ##Reorder to match original order
+  ##Reorder and rename to match original inputs
   colnames(fit[["MixedMembership"]]) <- colnames(ctrl$phi_init_t)
+  fit[["MixedMembership"]] <- fit[["MixedMembership"]][,order(monadic_order)]
   colnames(fit[["Kappa"]]) <- unique(monadic[,"(tid)"])
-  fit[["Kappa"]] <- fit[["Kappa"]][,order(time_order)]
+  fit[["Kappa"]] <- as.matrix(fit[["Kappa"]][,order(time_order)])
   fit[["BlockModel"]] <- t(fit[["BlockModel"]])
   fit[["TransitionKernel"]] <- t(fit[["TransitionKernel"]])
   
