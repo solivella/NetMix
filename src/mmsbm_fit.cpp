@@ -57,6 +57,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
   // VARIATIONAL EM
   int iter = 0,
     EM_ITER = as<int>(control["max_em_iter"]),
+    N_NODE = sum(nodes_per_period),
     N_BLK = as<int>(control["blocks"]),
     N_DYAD_PRED = Rcpp::sum(z_t(0, Rcpp::_)) == 0 ? 0 : z_t.nrow(),
     N_MONAD_PRED = x_t.nrow(),
@@ -68,11 +69,13 @@ List mmsbm_fit(const NumericMatrix& z_t,
   bool conv = false, gamma_conv = true,
     verbose = as<bool>(control["verbose"]);
 
-  double oldLL, newLL,
-    tol = as<double>(control["conv_tol"]);
+  double tol = as<double>(control["conv_tol"]);
+  double oldLL, newLL;
+    
       
   NumericVector Old_B(TOT_B), Old_Gamma,
     Old_Beta(TOT_BETA);
+  NumericMatrix Old_C(N_BLK, N_NODE); 
   if(N_DYAD_PRED > 0){
     Old_Gamma = NumericVector(N_DYAD_PRED);
   }
@@ -81,11 +84,12 @@ List mmsbm_fit(const NumericMatrix& z_t,
     Rprintf("Estimating model...\n");
   }
   oldLL = Model.cLL();
-  Rprintf("Initial LB: %f\n",oldLL);
+  //Rprintf("\tInitial LB: %f\n",oldLL);
   while(iter < EM_ITER && conv == false){
     checkUserInterrupt();
 
     // E-STEP
+    Model.getC(Old_C);
      Model.updatePhi();
      if(N_STATE > 1){
         Model.updateKappa();
@@ -97,30 +101,27 @@ List mmsbm_fit(const NumericMatrix& z_t,
       Model.getGamma(Old_Gamma);
     }
     Model.getBeta(Old_Beta);
-    //Model.optim(true); //optimize alphaLB
-    Rprintf("Done with alpha\n");
-    //Model.optim(false); //optimize thetaLB
+    Model.optim(true); //optimize alphaLB
+    Model.optim(false); //optimize thetaLB
     
     
     //Check convergence
     newLL = Model.cLL();
-    // gamma_conv = N_DYAD_PRED > 0 ? 
-    //   Model.checkConvChng(Old_Gamma.begin(), Old_Gamma.end(), 0, tol) :
-    //   true;
-    if(verbose){
-      Rprintf("%i: Old LB %f, New LB %f, PerChange %f\n", iter, oldLL, newLL,fabs((oldLL - newLL)/oldLL));
-    }
-    if(fabs((oldLL - newLL)/oldLL) < tol
-       //   ||
-       // (gamma_conv &&
-       // Model.checkConvChng(Old_B.begin(), Old_B.end(), 1, tol) &&
-       // Model.checkConvChng(Old_Beta.begin(), Old_Beta.begin(), 2, tol))
+    gamma_conv = N_DYAD_PRED > 0 ?
+      Model.checkConvChng(Old_Gamma.begin(), Old_Gamma.end(), 0, tol) :
+      true;
+    if(//fabs((oldLL - newLL)/oldLL) < tol
+        //  &&
+        (gamma_conv &&
+        Model.checkConvChng(Old_B.begin(), Old_B.end(), 1, tol) &&
+        Model.checkConvChng(Old_Beta.begin(), Old_Beta.end(), 2, tol)) &&
+        Model.checkConvChng(Old_C.begin(), Old_C.end(), 3, tol)
          ){
       conv = true;
     }
     
     if(verbose){
-      Rprintf("LB %i: %f\n", iter, newLL);
+      Rprintf("\tLB %i: %f\n", iter + 1, newLL);
     }
     oldLL = newLL;
     ++iter;
@@ -128,7 +129,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
   if(conv == false){
     Rprintf("Warning: model did not converge after %i iterations.\n", iter);
   } else if (verbose) {
-    Rprintf("\t...converged after %i iterations.\n", iter - 1);
+    Rprintf("...converged after %i iterations.\n", iter - 1);
   }
   
   //Form return objects

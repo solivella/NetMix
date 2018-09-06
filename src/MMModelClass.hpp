@@ -40,11 +40,12 @@ public:
 
 
   Rcpp::NumericMatrix getC();
+  void getC(Rcpp::NumericMatrix&);
   Rcpp::NumericMatrix getPhi(bool);
   Rcpp::NumericMatrix getWmn();
   Rcpp::NumericMatrix getKappa();
-  Rcpp::NumericMatrix getB();
   double getConcentration();
+  Rcpp::NumericMatrix getB();
   void getB(Rcpp::NumericVector&);
   Rcpp::NumericVector getGamma();
   void getGamma(Rcpp::NumericVector&);

@@ -268,9 +268,10 @@ void MMModel::computeAlpha()
   }
   
   
-  double linpred, linpred_sum, n_node_term;
   for(int m = 0; m < N_STATE; ++m){
+#pragma omp parallel for
     for(int p = 0; p < N_NODE; ++p){
+    double linpred, linpred_sum, n_node_term;
       linpred_sum = 0.0;
       for(int g = 0; g < N_BLK; ++g){
         linpred = 0.0;
@@ -316,7 +317,8 @@ double MMModel::thetaLB(bool entropy = false)
   for(int d = 0; d < N_DYAD; ++d){
     for(int g = 0; g < N_BLK; ++g){
       if(entropy){
-          res -= send_phi(g, d) * log(send_phi(g, d)) + rec_phi(g, d) * log(rec_phi(g, d));
+          res -= send_phi(g, d) * log(send_phi(g, d));
+          res -= rec_phi(g, d) * log(rec_phi(g, d));
       }
       for(int h = 0; h < N_BLK; ++h){
         res += send_phi(g, d) * rec_phi(h, d) * (y[d] * log(theta(h, g, d)) + (1.0 - y[d]) * log(1.0 - theta(h, g, d)));
@@ -426,7 +428,7 @@ void MMModel::computeTheta()
 
 double MMModel::cLL()
 {
-  double res = -1 * (thetaLB(true));
+  double res = -(thetaLB(true));
   //Rprintf("Res 1: %f\n", res);
   res -= alphaLB();
   //Rprintf("Res 2: %f\n", res);
@@ -445,6 +447,7 @@ double MMModel::cLL()
       //Rprintf("Res 5: %f\n", res);
     }
   }
+  res += lgamma(static_cast<double>(N_STATE) * eta) - lgamma(eta);
   return res;
 }
 
@@ -687,11 +690,14 @@ int MMModel::checkConvChng(NumericVector::iterator first,
   case 2:
     target = &*(beta.begin());
     break;
+  case 3:
+    target = &*(e_c_t.begin());
+    break;
   }
   double diff;
   int res = 1;
   for(NumericVector::iterator it = first; it != last; ++it, ++target){
-    diff = fabs(*it - *target);
+    diff = fabs((*it - *target) / *it);
     if(diff > tol) {
       res = 0;
       break;
@@ -757,6 +763,11 @@ NumericMatrix MMModel::getC()
     }
   }
   return res;
+}
+
+void MMModel::getC(NumericMatrix& res)
+{
+  std::copy(e_c_t.begin(), e_c_t.end(), res.begin());
 }
 
 NumericMatrix MMModel::getPhi(bool send)

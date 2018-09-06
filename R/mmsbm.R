@@ -189,7 +189,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                var_xi = 1,
                eta = 100.3,
                threads = 4,
-               conv_tol = 1e-4,
+               conv_tol = 1e-2,
                verbose = FALSE)
   ctrl[names(mmsbm.control)] <- mmsbm.control
   if(!is.null(ctrl$phi_init_t)&!all(grepl("@", colnames(ctrl$phi_init_t)))){
@@ -380,7 +380,6 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                              function(x)cbind(0,x$beta),
                              simplify = "array")
     ctrl$xi_init <- mean(sapply(alpha_par_init, function(x)x$xi))
-    print(ctrl$xi_init)
   } 
   ctrl$beta_init <- vapply(lapply(seq(dim(ctrl$beta_init)[3]), function(x) ctrl$beta_init[ , , x]), 
                            function(mat, sd_vec, mean_vec){
