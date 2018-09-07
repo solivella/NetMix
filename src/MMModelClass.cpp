@@ -61,6 +61,7 @@ MMModel::MMModel(const NumericMatrix& z_t,
   time_id_dyad({N_DYAD}, time_id_dyad),
   time_id_node({N_NODE},time_id_node),
   n_nodes_time({N_TIME}, nodes_per_period),
+  sum_c(N_NODE, 0),
   maskalpha(N_MONAD_PRED * (N_BLK - 1) * N_STATE + 1, 1),
   masktheta(N_B_PAR + N_DYAD_PRED, 1),
   y({N_DYAD}, y),
@@ -105,6 +106,8 @@ MMModel::MMModel(const NumericMatrix& z_t,
   for(int d = 0; d < N_DYAD; ++d){
     p = node_id_dyad(d, 0);
     q = node_id_dyad(d, 1);
+    sum_c[p]++;
+    sum_c[q]++;
     for(int g = 0; g < N_BLK; ++g){
       send_phi(g, d) = phi_init(g, p);
       rec_phi(g, d) = phi_init(g, q);
@@ -112,7 +115,7 @@ MMModel::MMModel(const NumericMatrix& z_t,
       e_c_t(g, q) += rec_phi(g, d);
     }
   }
-  
+
   //Create matrix of theta parameter indeces
   //(for undirected networks should force
   //symmetric blockmodel)
@@ -157,8 +160,6 @@ MMModel::MMModel(const NumericMatrix& z_t,
   //Assign initial values to alpha and theta
   computeAlpha();
   computeTheta();
-  
-  
 }
 
 
@@ -170,15 +171,14 @@ MMModel::MMModel(const NumericMatrix& z_t,
 double MMModel::alphaLB()
 {
   computeAlpha();
-  double res = 0.0, n_node_term, kappa_val;
+  double res = 0.0, kappa_val;
   for(int m = 0; m < N_STATE; ++m){
     for(int p = 0; p < N_NODE; ++p){
       kappa_val = kappa_t(m, time_id_node[p]);
-      n_node_term = directed ? 2 * static_cast<double>(n_nodes_time[time_id_node[p]]) : static_cast<double>(n_nodes_time[time_id_node[p]]);
       for(int g = 0; g < N_BLK; ++g){
         res += kappa_val * lgammaDiff(alpha(g, p, m), e_c_t(g, p));
       }
-      res -= kappa_val * lgammaDiff(xi_param, n_node_term);
+      res -= kappa_val * lgammaDiff(xi_param, sum_c[p]);
     }
     
     //Prior for beta
@@ -210,7 +210,7 @@ double MMModel::alphaLB()
 void MMModel::alphaGr(int N_PAR, double *gr)
 {
   int t;
-  double res, n_node_term, alpha_val, kappa_val,  ddiff, fac;
+  double res, alpha_val, kappa_val,  ddiff, fac;
   double res_xi = 0.0;
   for(int m = 0; m < N_STATE; ++m){
     for(int g = 1; g < N_BLK; ++g){
@@ -219,13 +219,12 @@ void MMModel::alphaGr(int N_PAR, double *gr)
         for(int p = 0; p < N_NODE; ++p){
           t = time_id_node[p];
           kappa_val = kappa_t(m, t);
-          n_node_term = directed ? 2 * static_cast<double>(n_nodes_time[t]) : static_cast<double>(n_nodes_time[t]);
           alpha_val = alpha(g, p, m);
           ddiff = digammaDiff(alpha_val, e_c_t(g, p));
           fac = kappa_t(m, t) * x_t(x, p) * alpha_val/sum_e_xb(p, m);
           if(x == 0){
             if(g == 1){
-              res_xi -= kappa_val * digammaDiff(xi_param, n_node_term);
+              res_xi -= kappa_val * digammaDiff(xi_param, sum_c[p]);
             }
             res_xi += kappa_val * e_xb(g, p, m)/sum_e_xb(p, m) * ddiff;
           }
@@ -271,7 +270,7 @@ void MMModel::computeAlpha()
   for(int m = 0; m < N_STATE; ++m){
 #pragma omp parallel for
     for(int p = 0; p < N_NODE; ++p){
-    double linpred, linpred_sum, n_node_term;
+    double linpred, linpred_sum;
       linpred_sum = 0.0;
       for(int g = 0; g < N_BLK; ++g){
         linpred = 0.0;
@@ -296,9 +295,7 @@ void MMModel::computeAlpha()
         alpha(g, p, m) *= xi_param;
         alpha_term2(m, time_id_node[p]) += lgammaDiff(alpha(g, p, m), e_c_t(g, p));
       }
-      n_node_term = directed ? 2 * static_cast<double>(n_nodes_time[time_id_node[p]])
-        : static_cast<double>(n_nodes_time[time_id_node[p]]);
-      alpha_term1(m, time_id_node[p]) -= lgammaDiff(xi_param, n_node_term);
+      alpha_term1(m, time_id_node[p]) -= lgammaDiff(xi_param, sum_c[p]);
     }
   }
 }

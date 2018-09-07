@@ -96,8 +96,9 @@ private:
     time_id_dyad,
     time_id_node,
     n_nodes_time;
-
-  std::vector<int> maskalpha, //vectors
+  
+  std::vector<double> sum_c; //vectors
+  std::vector<int> maskalpha, 
     masktheta;
 
   Array<double> y,
