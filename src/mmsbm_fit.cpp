@@ -90,11 +90,22 @@ List mmsbm_fit(const NumericMatrix& z_t,
 
     // E-STEP
     Model.getC(Old_C);
+    
      Model.updatePhi();
      if(N_STATE > 1){
         Model.updateKappa();
       }
-
+     // newLL = Model.cLL();
+     // if(verbose){
+     //   Rprintf("\tLB after E kappa %i: %f\n", iter + 1, newLL);
+     // }
+     
+     // newLL = Model.cLL();
+     // if(verbose){
+     //   Rprintf("\tLB after E phi %i: %f\n", iter + 1, newLL);
+     // }
+     
+     
     //M-STEP
     Model.getB(Old_B);
     if(N_DYAD_PRED > 0){
@@ -102,11 +113,21 @@ List mmsbm_fit(const NumericMatrix& z_t,
     }
     Model.getBeta(Old_Beta);
     Model.optim(true); //optimize alphaLB
+    // newLL = Model.cLL();
+    // if(verbose){
+    //   Rprintf("\tLB after M alpha %i: %f\n", iter + 1, newLL);
+    // }
     Model.optim(false); //optimize thetaLB
     
     
     //Check convergence
     newLL = Model.cLL();
+    // if(verbose){
+    //   Rprintf("\tLB after M theta %i: %f\n", iter + 1, newLL);
+    // }
+    if(verbose){
+      Rprintf("\tLB %i: %f\n", iter + 1, newLL);
+    }
     gamma_conv = N_DYAD_PRED > 0 ?
       Model.checkConvChng(Old_Gamma.begin(), Old_Gamma.end(), 0, tol) :
       true;
@@ -118,10 +139,6 @@ List mmsbm_fit(const NumericMatrix& z_t,
         Model.checkConvChng(Old_C.begin(), Old_C.end(), 3, tol)
          ){
       conv = true;
-    }
-    
-    if(verbose){
-      Rprintf("\tLB %i: %f\n", iter + 1, newLL);
     }
     oldLL = newLL;
     ++iter;

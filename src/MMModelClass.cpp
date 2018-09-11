@@ -239,7 +239,7 @@ void MMModel::alphaGr(int N_PAR, double *gr)
       }
     }
   }
-  //gr[0] = -(res_xi - alpha_par[0] / var_xi - 1./pow(xi_param, 2.0));
+  //gr[0] = -(res_xi - alpha_par[0] / var_xi + 1./pow(xi_param, 2.0));
   gr[0] = 0.0;
   
 }
@@ -268,7 +268,6 @@ void MMModel::computeAlpha()
   
   
   for(int m = 0; m < N_STATE; ++m){
-#pragma omp parallel for
     for(int p = 0; p < N_NODE; ++p){
     double linpred, linpred_sum;
       linpred_sum = 0.0;
@@ -310,7 +309,6 @@ double MMModel::thetaLB(bool entropy = false)
   computeTheta();
   
   double res = 0.0;
-//#pragma omp parallel for reduction(+:res)
   for(int d = 0; d < N_DYAD; ++d){
     for(int g = 0; g < N_BLK; ++g){
       if(entropy){
@@ -493,6 +491,7 @@ void MMModel::alphaGrW(int n, double *par, double *gr, void *ex)
 
 void MMModel::updateKappa()
 {
+  computeAlpha();
   std::vector<double> kappa_vec(N_STATE);
   std::vector<double> correction_vec(N_STATE);
   double res, log_denom;
@@ -538,13 +537,13 @@ void MMModel::updateKappa()
       kappa_vec[m] = res;
     }
     log_denom = logSumExp(kappa_vec);
-    NumericVector mine(kappa_vec.begin(), kappa_vec.end());
+    //NumericVector mine(kappa_vec.begin(), kappa_vec.end());
    // Rprintf("For time %i: ",t);
     //print(mine);
     for(int m = 0; m < N_STATE; ++m){
       kappa_t(m, t) = exp(kappa_vec[m] - log_denom);
       if(ISNAN(kappa_t(m, t))){
-        Rprintf("Kappa value became NAN.");
+        stop("Kappa value became NAN.");
       }
       e_wm[m] += kappa_t(m, t);
       if(t > 0 & t < (N_TIME - 1)){
@@ -599,10 +598,9 @@ void MMModel::updatePhiInternal(int dyad, int rec,
     
     te = theta_temp;
     for(int h = 0; h < N_BLK; ++h, te+=incr2){
-      res += phi_o[h] * (edge * log(*te) + (1 - edge) * log(1.0 - *te));
+      res += phi_o[h] * (edge * log(*te) + (1.0 - edge) * log(1.0 - *te));
     }
 
-    
     
     phi[g] = exp(res);
     if(!isfinite(phi[g])){
@@ -625,6 +623,9 @@ void MMModel::updatePhi()
   for(int thread = 0; thread < N_THREAD; ++thread){
     std::fill(new_e_c_t[thread].begin(), new_e_c_t[thread].end(), 0.0);
   }
+  computeTheta();
+  computeAlpha();
+  
 #pragma omp parallel 
 {
   int thread = 0;
