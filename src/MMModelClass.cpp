@@ -487,8 +487,12 @@ void MMModel::updateKappa()
   for(int t = 0; t < N_TIME; ++t){
     for(int m = 0; m < N_STATE; ++m){
       res = 0.0;
-      e_wm[m] -= kappa_t(m, t);
+      if(t < (N_TIME - 1)){
+        e_wm[m] -= kappa_t(m, t);
+      }
       res -= log(double(N_STATE) * eta + e_wm[m]);
+      
+      //Rprintf("res 0 %f, e_wm[%i] %f, log %f\n", res, m, e_wm[m], log(double(N_STATE) * eta + e_wm[m]));
       
       if(t > 0 & t < (N_TIME - 1)){
         e_wmn_t(m, m) -= kappa_t(m, t) * (kappa_t(m, t + 1) + kappa_t(m, t - 1));
@@ -518,23 +522,22 @@ void MMModel::updateKappa()
           res += kappa_t(n, t - 1) * log(eta + e_wmn_t(m, n));
         }
       }
-      // Rprintf("res before %f\n", res);
       res += alpha_term1(m, t);
-      // Rprintf("then %f\n", res);
       res += alpha_term2(m, t);
-      // Rprintf("finally %f\n", res);
       kappa_vec[m] = res;
     }
     log_denom = logSumExp(kappa_vec);
-    //NumericVector mine(kappa_vec.begin(), kappa_vec.end());
-   // Rprintf("For time %i: ",t);
-    //print(mine);
     for(int m = 0; m < N_STATE; ++m){
       kappa_t(m, t) = exp(kappa_vec[m] - log_denom);
       if(ISNAN(kappa_t(m, t))){
+        // NumericVector mine(kappa_vec.begin(), kappa_vec.end());
+        // Rprintf("For t %i m %i: ", t, m);
+        // print(mine);
         stop("Kappa value became NAN.");
       }
-      e_wm[m] += kappa_t(m, t);
+      if(t < (N_TIME - 1)){
+        e_wm[m] += kappa_t(m, t);
+      }
       if(t > 0 & t < (N_TIME - 1)){
         e_wmn_t(m, m) += kappa_t(m, t) * (kappa_t(m, t + 1) + kappa_t(m, t - 1));
         for(int n = 0; n < N_STATE; ++n){
