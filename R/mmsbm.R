@@ -36,7 +36,7 @@
 #'     \describe{
 #'        \item{init}{Type of initialization algorithm for mixed-membership vectors. One of
 #'                    \code{kmeans} (default), \code{spectral}, or \code{lda} (see
-#'                     \code{\link[lda:mmsb.collapsed.gibbs.sampler]{lda}} for details about this function.)}
+#'                     \code{\link[lda:lda.collapsed.gibbs.sampler]{lda::mmsb.collapsed.gibbs.sampler()}} for details about this function.)}
 #'        \item{lda_iter}{If \code{init="lda"}, number of MCMC iterations to obtain initial values}
 #'        \item{lda_alpha}{If \code{init="lda"}, value of \code{alpha} hyperparameter. Defaults to 1}
 #'        \item{max_em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3}
