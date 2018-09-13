@@ -492,7 +492,7 @@ void MMModel::updateKappa()
       }
       res -= log(double(N_STATE) * eta + e_wm[m]);
       
-      //Rprintf("res 0 %f, e_wm[%i] %f, log %f\n", res, m, e_wm[m], log(double(N_STATE) * eta + e_wm[m]));
+      // Rprintf("res 0 %f, e_wm[%i] %f, log %f\n", res, m, e_wm[m], log(double(N_STATE) * eta + e_wm[m]));
       
       if((t > 0) & (t < (N_TIME - 1))){
         e_wmn_t(m, m) -= kappa_t(m, t) * (kappa_t(m, t + 1) + kappa_t(m, t - 1));
@@ -529,7 +529,7 @@ void MMModel::updateKappa()
     log_denom = logSumExp(kappa_vec);
     for(int m = 0; m < N_STATE; ++m){
       kappa_t(m, t) = exp(kappa_vec[m] - log_denom);
-      if(std::isfinite(kappa_t(m, t))){
+      if(!std::isfinite(kappa_t(m, t))){
         // NumericVector mine(kappa_vec.begin(), kappa_vec.end());
         // Rprintf("For t %i m %i: ", t, m);
         // print(mine);
