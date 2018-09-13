@@ -10,7 +10,7 @@
 
 
 template<typename T>
-class Array
+class Array //traverse in order of indeces (i.e. i fastest)
 {
 public:
   template <typename Source>
@@ -39,10 +39,10 @@ const T& operator[](int i) const {
     return (data[i]);
   }
   //2d
-  T& operator()(int i, int j){
+  T& operator()(int i, int j){//j varies most slowly.
     return (data[i + dims[0] * j]);
   }
-  const T& operator()(int i, int j) const {
+  const T& operator()(int i, int j) const { 
     return (data[i + dims[0] * j]);
   }
   //3d

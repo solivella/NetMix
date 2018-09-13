@@ -6,23 +6,27 @@ MID_dyadCW <- MID_dyad[MID_dyad$year %in% 1950:1990,]
 system.time(fit_onset_f <- mmsbm(formula.dyad = MID_onset ~ trade_dep_low + IGOmems_joint +
                        ally + contiguity + dist +
                        peaceyrs + spline1 + spline2 + spline3,
-                     formula.monad =  ~ polity + logNMC + gdp_growth_67_a + region,
+                     formula.monad =  ~  polity + logNMC + gdp_growth_67_a + region,
                      data.dyad = MID_dyadCW, 
                      data.monad = MID_monadCW,
                      senderID = "country1", 
                      receiverID = "country2", 
                      nodeID = "country", 
                      timeID = "year",
-                     n.groups = 4, 
-                     n.hmmstates = 2,
+                     n.groups = 3, 
+                     n.hmmstates = 3,
                      directed=FALSE,
                      mmsbm.control = list(var_b = c(1,1),
                                           var_beta = 1,
                                           var_xi = 1,
                                           var_gamma = 1,
                                           eta= 0.1,
+                                          conv_tol = 1e-2,
                                           #mu_b = c(-5, 5),
                                           verbose = TRUE,
                                           em_iter = 3000,
                                           threads = 4
                      )))
+print(t(fit_onset_f$Kappa))
+print(head(fit_onset_f))
+print(head(fit_onset_f$BlockModel))

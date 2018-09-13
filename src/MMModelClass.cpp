@@ -150,8 +150,8 @@ MMModel::MMModel(const NumericMatrix& z_t,
   std::vector<double>::iterator it = alpha_par.begin() + 1;
   for(int m = 0; m < N_STATE; ++m){
     for(int g = 1; g < N_BLK; ++g){
-      for(int r1 = 0; r1 < N_MONAD_PRED; ++r1, ++it){
-        *it = beta(r1, g, m);
+      for(int x = 0; x < N_MONAD_PRED; ++x, ++it){
+        *it = beta(x, g, m);
       }
     }
   }
@@ -180,24 +180,17 @@ double MMModel::alphaLB()
       }
       res -= kappa_val * lgammaDiff(xi_param, sum_c[p]);
     }
-    
+
     //Prior for beta
-    //Rprintf("Res before reg is %f\n",res);
     for(int g = 1; g < N_BLK; ++g){
       for(int x = 0; x < N_MONAD_PRED; ++x){
-       // Rprintf("Value is %f, beta is %f, var is%f\n",
-      //          0.5 * pow(beta(x, g, m), 2.0) / var_beta,
-      //          beta(x, g, m),
-      //          var_beta
-      //  );
         res -= 0.5 * pow(beta(x, g, m), 2.0) / var_beta;
       }
     }
-    //Rprintf("Res aftre reg is %f\n",res);
   }
   //Prior for xi
-  res -= 0.5 * pow(log(xi_param), 2.0) / var_xi - 1./xi_param;
-  
+  res -= 0.5 * pow(log(xi_param), 2.0) / var_xi; 
+  res -= log(xi_param);
   
   res *= -1; //VMMIN minimizes.
   return res;
@@ -234,14 +227,12 @@ void MMModel::alphaGr(int N_PAR, double *gr)
             }
           }
         }
-        //Rprintf("res is %f, beta is %f, penalty is %f\n", res, beta(x, g, m), beta(x, g, m) / var_beta);
         gr[1 + x + N_MONAD_PRED * ((g - 1) + (N_BLK - 1) * m)] = -(res - beta(x, g, m) / var_beta);
       }
     }
   }
-  //gr[0] = -(res_xi - alpha_par[0] / var_xi + 1./pow(xi_param, 2.0));
-  gr[0] = 0.0;
-  
+  gr[0] = -(res_xi - log(xi_param) / (var_xi * xi_param) - 1./xi_param);
+
 }
 
 
@@ -259,9 +250,8 @@ void MMModel::computeAlpha()
   std::vector<double>::iterator it = alpha_par.begin() + 1;
   for(int m = 0; m < N_STATE; ++m){
     for(int g = 1; g < N_BLK; ++g){
-      for(int r1 = 0; r1 < N_MONAD_PRED; ++r1, ++it){
-        beta(r1, g, m) = *it;
-        //Rprintf("beta(%i, %i, %i)= %f\n",r1, g, m,beta(r1, g, m) );
+      for(int x = 0; x < N_MONAD_PRED; ++x, ++it){
+        beta(x, g, m) = *it;
       }
     }
   }
@@ -276,7 +266,6 @@ void MMModel::computeAlpha()
         for(int x = 0; x < N_MONAD_PRED; ++x){
           linpred += x_t(x, p) * beta(x, g, m);
         }
-        //Rprintf("linpred 0: %f\n", linpred);
         
         linpred = exp(linpred);
         
