@@ -70,8 +70,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
     verbose = as<bool>(control["verbose"]);
 
   double tol = as<double>(control["conv_tol"]);
-  double oldLL, newLL;
-    
+
       
   NumericVector Old_B(TOT_B), Old_Gamma,
     Old_Beta(TOT_BETA);
@@ -83,7 +82,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
   if(verbose){
     Rprintf("Estimating model...\n");
   }
-  oldLL = Model.cLL();
+  double oldLL = Model.cLL();
   //Rprintf("\tInitial LB: %f\n",oldLL);
   while(iter < EM_ITER && conv == false){
     checkUserInterrupt();
@@ -121,7 +120,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
     
     
     //Check convergence
-    newLL = Model.cLL();
+    double newLL = Model.cLL();
     // if(verbose){
     //   Rprintf("\tLB after M theta %i: %f\n", iter + 1, newLL);
     // }
@@ -173,7 +172,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
   res["Kappa"] = kappa_res;
   res["n_states"] = as<int>(control["states"]);
   res["n_blocks"] = as<int>(control["blocks"]);
-  res["LowerBound"] = newLL;
+  res["LowerBound"] = oldLL;
   res["niter"] = iter;
 
 

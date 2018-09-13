@@ -669,7 +669,7 @@ int MMModel::checkConvChng(NumericVector::iterator first,
                            int caseid,
                            double tol)
 {
-  double* target;
+  double* target = &*first;
   switch(caseid){
   case 0:
     target = &*(gamma.begin());
