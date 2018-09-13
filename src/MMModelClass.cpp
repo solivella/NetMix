@@ -494,7 +494,7 @@ void MMModel::updateKappa()
       
       //Rprintf("res 0 %f, e_wm[%i] %f, log %f\n", res, m, e_wm[m], log(double(N_STATE) * eta + e_wm[m]));
       
-      if(t > 0 & t < (N_TIME - 1)){
+      if((t > 0) & (t < (N_TIME - 1))){
         e_wmn_t(m, m) -= kappa_t(m, t) * (kappa_t(m, t + 1) + kappa_t(m, t - 1));
         res += kappa_t(m, t + 1) * kappa_t(m, t - 1) * log(eta + e_wmn_t(m, m) + 1);
         
@@ -529,7 +529,7 @@ void MMModel::updateKappa()
     log_denom = logSumExp(kappa_vec);
     for(int m = 0; m < N_STATE; ++m){
       kappa_t(m, t) = exp(kappa_vec[m] - log_denom);
-      if(ISNAN(kappa_t(m, t))){
+      if(std::isfinite(kappa_t(m, t))){
         // NumericVector mine(kappa_vec.begin(), kappa_vec.end());
         // Rprintf("For t %i m %i: ", t, m);
         // print(mine);
@@ -538,7 +538,7 @@ void MMModel::updateKappa()
       if(t < (N_TIME - 1)){
         e_wm[m] += kappa_t(m, t);
       }
-      if(t > 0 & t < (N_TIME - 1)){
+      if((t > 0) & (t < (N_TIME - 1))){
         e_wmn_t(m, m) += kappa_t(m, t) * (kappa_t(m, t + 1) + kappa_t(m, t - 1));
         for(int n = 0; n < N_STATE; ++n){
           if(m != n){
@@ -595,7 +595,7 @@ void MMModel::updatePhiInternal(int dyad, int rec,
 
     
     phi[g] = exp(res);
-    if(!isfinite(phi[g])){
+    if(!std::isfinite(phi[g])){
       err = 1;
     }
     total += phi[g];
@@ -794,7 +794,7 @@ NumericMatrix MMModel::getKappa()
 NumericMatrix MMModel::getWmn()
 {
   NumericMatrix res(N_STATE, N_STATE);
-  if(N_TIME > 1 & N_STATE > 1){
+  if((N_TIME > 1) & (N_STATE > 1)){
     double row_total;
     for(int c = 0; c < N_STATE; ++c){
       row_total = 0.0;
