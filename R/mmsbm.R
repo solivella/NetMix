@@ -263,17 +263,36 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                        return(adj_mat)
                      })
   
-  soc_mats_m <- tapply(soc_mats,
-     list(state_init),
-     function(x){
-      mat <- Reduce(.modSum,x)
-      mat[is.na(mat)] <- sample(0:1, sum(is.na(mat)), replace = TRUE)
-      return(mat)
-  }, simplify = FALSE)
+  # soc_mats_m <- tapply(soc_mats,
+  #    list(state_init),
+  #    function(x){
+  #     mat <- Reduce(.modSum,x)
+  #     mat[is.na(mat)] <- sample(0:1, sum(is.na(mat)), replace = TRUE)
+  #     return(mat)
+  # }, simplify = FALSE)
   
   if(is.null(ctrl$phi_init)) {
-    phi_init_m <- lapply(soc_mats_m,
-                            function(mat){
+    if(ctrl$init!="lda"){
+      first_ind <- which(!duplicated(state_init))
+    if(ctrl$init=="kmeans"){
+      target_mat <- soc_mats[first_ind]
+    } else {
+      target_mat <- lapply(first_ind,
+                           function(x){
+                             sv <- svd(soc_mats[[x]])
+                             d <- matrix(0, nrow(soc_mats[[x]]), ncol(soc_mats[[x]]))
+                             diag(d) <- sv$d
+                             d %*% t(sv$v)
+                           })
+    }
+      target_kmeans <- lapply(target_mat, kmeans,
+                               centers = n.groups,
+                               nstart = 10,
+                               iter.max = 50)
+    } else {
+    target_kmeans <- rep(0, n.hmmstates)
+  }
+    phi_init <- mapply(function(mat, target_kmean){
                               if(ctrl$init=="lda"){
                                 a_mat <- b_mat <- mu_b
                                 a_mat[a_mat<0] <- b_mat[b_mat>0] <- 1
@@ -299,21 +318,23 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                               } else {
                                 target <- mat
                               }
-                              clust_internal <- kmeans(target,n.groups,nstart = 5, iter.max = 50)$cluster
+                              kmean_res <- kmeans(target,n.groups,nstart = 5, iter.max = 50)
+                              ord <- clue::solve_LSAP(kmean_res$centers %*% t(target_kmean$centers), TRUE)
+                              clust_internal <- ord[kmean_res$cluster]
                               phi_internal <- model.matrix(~ factor(clust_internal, levels=1:n.groups) - 1)
                               phi_internal <- prop.table(phi_internal + runif(length(phi_internal),0,0.1),1)
                               rownames(phi_internal) <- rownames(mat)
                               return(t(phi_internal))
                               }
-                            })
-    scaled_soc_mats_m <- mapply("/",
-                           soc_mats_m,
-                           tapply(state_init, state_init, FUN=length, simplify=FALSE),
-                           SIMPLIFY = FALSE 
-                           )
+                            }, mat = soc_mats, target_kmean = target_kmeans[state_init], SIMPLIFY = FALSE)
+    # scaled_soc_mats_m <- mapply("/",
+    #                        soc_mats_m,
+    #                        tapply(state_init, state_init, FUN=length, simplify=FALSE),
+    #                        SIMPLIFY = FALSE 
+    #                        )
     blockmodel_temp <- mapply(approxB,
-                              scaled_soc_mats_m,
-                              phi_init_m,
+                              soc_mats,
+                              phi_init,
                               MoreArgs = list(directed = directed),
                               SIMPLIFY = FALSE)
     if(is.null(ctrl$b_init_t)){
@@ -330,12 +351,12 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                     dimnames = list(rep(NA, n.groups),
                                     paste(colnames(phi)[ind], 
                                           dyad[1,"(tid)"],sep="@"))))
-    }, dyad = dyads, phi = phi_init_m[state_init], SIMPLIFY = FALSE
+    }, dyad = dyads, phi = phi_init, SIMPLIFY = FALSE
     )
     
-    ctrl$phi_init_t <- do.call(cbind,
+    ctrl$phi_init_t <- do.call(cbind, 
                                mapply(function(ind, mat){(mat[ind,])},
-                                      right_perm[state_init],
+                                      right_perm,
                                       phi_init_temp,
                                       SIMPLIFY = FALSE))
   } 
