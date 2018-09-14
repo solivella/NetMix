@@ -36,7 +36,7 @@
 #'     \describe{
 #'        \item{init}{Type of initialization algorithm for mixed-membership vectors. One of
 #'                    \code{kmeans} (default), \code{spectral}, or \code{lda} (see
-#'                     \code{\link[lda:lda.collapsed.gibbs.sampler]{lda::mmsb.collapsed.gibbs.sampler()}} for details about this function.)}
+#'                     \code{\link[lda:lda.collapsed.gibbs.sampler]{mmsb.collapsed.gibbs.sampler}} for details about this function.)}
 #'        \item{lda_iter}{If \code{init="lda"}, number of MCMC iterations to obtain initial values}
 #'        \item{lda_alpha}{If \code{init="lda"}, value of \code{alpha} hyperparameter. Defaults to 1}
 #'        \item{max_em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3}
@@ -369,8 +369,11 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
     monadic_m <- split(monadic, state_init[monadic$time_id_int])
     alpha_par_init <- lapply(monadic_m,
                              function(dat){
+                               n_row <- nrow(dat)
                                X_internal <-  model.matrix(formula.monad, data=dat)
-                               Y_transf <- as.matrix(log(dat[,tail(names(dat), n.groups - 1)]/dat[,"G_1"]))
+                               Y_internal <- as.matrix(dat[,tail(names(dat), n.groups)])
+                               Y_internal <- (Y_internal*(n_row - 1) + 1 / ncol(Y_internal)) / n_row
+                               Y_transf <- as.matrix(log(Y_internal[,-1]/Y_internal[,1]))
                                beta <- lm.fit(X_internal, Y_transf)$coefficients
                                xi <- (mean(dat[,"G_1"])-mean(dat[,"G_1"]^2))/(mean(dat[,"G_1"]^2) - mean(dat[,"G_1"])^2)
                                return(list(beta=beta, xi=xi))
