@@ -258,7 +258,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                        adj_mat[is.na(adj_mat)] <- sample(0:1, sum(is.na(adj_mat)), replace = TRUE)
                        if(!directed){
                          mat_ind <- which(upper.tri(adj_mat), arr.ind = TRUE)
-                         adj_mat[mat_ind[,c(3,2)]] <- adj_mat[upper.tri(adj_mat)]
+                         adj_mat[mat_ind[,c(2,1)]] <- adj_mat[upper.tri(adj_mat)]
                        }
                        return(adj_mat)
                      })
