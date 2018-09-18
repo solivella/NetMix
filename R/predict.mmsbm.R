@@ -22,7 +22,7 @@ predict.mmsbm <- function(fm,
     dyad <- fm$dyadic.data
   }
   if(!is.null(new.data.monad)){
-    nid <- fm$call$nodeID
+    nid <- ifelse(fm$call$nodeID %in% colnames(new.data.monad), fm$call$nodeID, "(nid)")
     monad <- new.data.monad
     if(is.null(fm$call$timeID)){
       tid <- "(tid)"
@@ -35,7 +35,7 @@ predict.mmsbm <- function(fm,
     tid <- "(tid)"
     monad <- fm$monadic.data
   }
-  X_d <- model.matrix(eval(fm$call$formula.dyad), dyad)
+  X_d <- model.matrix(eval(fm$call$formula.dyad), dyad)[,-1]
   if(is.null(fm$call$formula.monad)){
     X_m <- model.matrix(~ 1, data = monad)
   } else {
@@ -54,7 +54,7 @@ predict.mmsbm <- function(fm,
     } else {
       ph <- .pi.hat(X_m, fm$MonadCoef)
     }
-    eta_dyad <- X_d %*% t(fm$DyadCoef)
+    eta_dyad <- X_d %*% as.matrix(fm$DyadCoef)
     if(type=="expectation"){
       if(parametric_mm){
         p <- .e.pi(ph, fm$Kappa[,t_ind])
