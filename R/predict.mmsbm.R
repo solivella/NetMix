@@ -46,7 +46,9 @@ predict.mmsbm <- function(fm,
   }
   s_ind <- match(dyad[,sid], monad[,nid])
   r_ind <- match(dyad[,rid], monad[,nid])
-  t_ind <- match(dyad[,tid], monad[,tid])
+  t_ind <- ifelse(tid %in% colnames(dyad), 
+                  match(dyad[,tid], monad[,tid]),
+                  match(dyad[,"(tid)"], monad[,"(tid)"]))
   n_blk <- fm$n_blocks
   if(!out.sample){
     if(!parametric_mm){
