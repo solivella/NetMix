@@ -125,7 +125,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
     }
     Model.getBeta(Old_Beta);
 
-    //Model.optim(true); //optimize alphaLB
+    Model.optim(true); //optimize alphaLB
     newLL = Model.cLL();
     // if(verbose){
     //   Rprintf("\t\tLB after M alpha %i: %f\n", iter + 1, newLL);
