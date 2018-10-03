@@ -3,6 +3,15 @@
 #########################
 
 
+.mpower <- function(x, p){
+  orig <- x
+  while(p > 1){
+    x <- x %*% orig
+    p = p - 1 
+  }
+  return(x)
+}
+
 .reRange <- function(x) {
   nmax <- 1.0 - 1e-12
   nmin <- 1e-12

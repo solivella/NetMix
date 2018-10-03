@@ -117,8 +117,7 @@ private:
 
   Array<double> kappa_t,
     b_t,
-    alpha_term1,
-    alpha_term2,
+    alpha_term,
     sum_e_xb,
     send_phi,
     rec_phi,

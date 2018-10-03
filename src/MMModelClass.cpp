@@ -77,8 +77,7 @@ MMModel::MMModel(const NumericMatrix& z_t,
   var_b_t({N_BLK, N_BLK}, var_b),
   kappa_t({N_STATE, N_TIME}, kappa_init_t),
   b_t({N_BLK, N_BLK}, b_init_t),
-  alpha_term1({N_STATE, N_TIME}, 0.0),
-  alpha_term2({N_STATE, N_TIME}, 0.0),
+  alpha_term({N_STATE, N_TIME}, 0.0),
   sum_e_xb({N_NODE, N_STATE},0.0),
   send_phi({N_BLK, N_DYAD}, 0.0),
   rec_phi({N_BLK, N_DYAD}, 0.0),
@@ -138,7 +137,7 @@ MMModel::MMModel(const NumericMatrix& z_t,
   //Assign theta pars (which include B and gamma pars)
   for(int g = 0; g < N_BLK; ++g){
     for(int h = 0; h < N_BLK; ++h){
-      theta_par[par_ind(h, g)] = b_t(h, g);
+      theta_par[par_ind(h, g)] = b_t(g, h);
     }
   }
   
@@ -178,13 +177,13 @@ double MMModel::alphaLB()
       for(int g = 0; g < N_BLK; ++g){
         res += kappa_val * lgammaDiff(alpha(g, p, m), e_c_t(g, p));
       }
-      res -= kappa_val * lgammaDiff(xi_param, sum_c[p]);
+      res -= lgammaDiff(xi_param, sum_c[p]);
     }
 
     //Prior for beta
     for(int g = 1; g < N_BLK; ++g){
       for(int x = 0; x < N_MONAD_PRED; ++x){
-        res -= 0.5 * pow(beta(x, g, m), 2.0) / var_beta;
+        res += 0.5 * pow(beta(x, g, m), 2.0) / var_beta;
       }
     }
   }
@@ -217,7 +216,7 @@ void MMModel::alphaGr(int N_PAR, double *gr)
           fac = kappa_t(m, t) * x_t(x, p) * alpha_val/sum_e_xb(p, m);
           if(x == 0){
             if(g == 1){
-              res_xi -= kappa_val * digammaDiff(xi_param, sum_c[p]);
+              res_xi -= digammaDiff(xi_param, sum_c[p]);
             }
             res_xi += kappa_val * e_xb(g, p, m)/sum_e_xb(p, m) * ddiff;
           }
@@ -227,12 +226,12 @@ void MMModel::alphaGr(int N_PAR, double *gr)
             }
           }
         }
-        gr[1 + x + N_MONAD_PRED * ((g - 1) + (N_BLK - 1) * m)] = -(res - beta(x, g, m) / var_beta);
+        gr[1 + x + N_MONAD_PRED * ((g - 1) + (N_BLK - 1) * m)] = -(res + beta(x, g, m) / var_beta);
       }
     }
   }
-  gr[0] = -(res_xi - log(xi_param) / (var_xi * xi_param) - 1./xi_param);
-
+  //gr[0] = -(res_xi - log(xi_param) / (var_xi * xi_param) - 1./xi_param);
+  gr[0] = 1e-18;
 }
 
 
@@ -242,9 +241,8 @@ void MMModel::alphaGr(int N_PAR, double *gr)
 
 void MMModel::computeAlpha()
 {
-  std::fill(alpha_term1.begin(), alpha_term1.end(), 0.0);
-  std::fill(alpha_term2.begin(), alpha_term2.end(), 0.0);
-  
+  std::fill(alpha_term.begin(), alpha_term.end(), 0.0);
+
   xi_param = exp(alpha_par[0]);
   //Rprintf("xi_param %f here!\n", xi_param);
   std::vector<double>::iterator it = alpha_par.begin() + 1;
@@ -264,6 +262,7 @@ void MMModel::computeAlpha()
       for(int g = 0; g < N_BLK; ++g){
         linpred = 0.0;
         for(int x = 0; x < N_MONAD_PRED; ++x){
+          //Rprintf("beta(%i, %i, %i) is %f\n",x, g, m,beta(x, g, m));
           linpred += x_t(x, p) * beta(x, g, m);
         }
         
@@ -275,15 +274,14 @@ void MMModel::computeAlpha()
       }
       sum_e_xb(p, m) = linpred_sum;
       for(int g = 0; g < N_BLK; ++g) {
-        if(ISNAN(alpha(g, p, m))){
+        if(!std::isfinite(alpha(g, p, m))){
           Rprintf("Linpredsum is %f, xi_param is %f\n",linpred_sum, xi_param);
-          stop("alpha 1 is nan\n");
+          stop("alpha is nan\n");
         } 
         alpha(g, p, m) /= linpred_sum;
         alpha(g, p, m) *= xi_param;
-        alpha_term2(m, time_id_node[p]) += lgammaDiff(alpha(g, p, m), e_c_t(g, p));
+        alpha_term(m, time_id_node[p]) += lgammaDiff(alpha(g, p, m), e_c_t(g, p));
       }
-      alpha_term1(m, time_id_node[p]) -= lgammaDiff(xi_param, sum_c[p]);
     }
   }
 }
@@ -305,7 +303,8 @@ double MMModel::thetaLB(bool entropy = false)
           res -= rec_phi(g, d) * log(rec_phi(g, d));
       }
       for(int h = 0; h < N_BLK; ++h){
-        res += send_phi(g, d) * rec_phi(h, d) * (y[d] * log(theta(h, g, d)) + (1.0 - y[d]) * log(1.0 - theta(h, g, d)));
+        res += send_phi(g, d) * rec_phi(h, d) * (y[d] * log(theta(h, g, d)) 
+                                                   + (1.0 - y[d]) * log(1.0 - theta(h, g, d)));
       }
     }
   }
@@ -345,17 +344,21 @@ void MMModel::thetaGr(int N_PAR, double *gr)
     gr[i] = 0.0;
   }
   
+  
   int npar;
   for(int d = 0; d < N_DYAD; ++d){
     res = 0.0;
     for(int g = 0; g < N_BLK; ++g){
       for(int h = 0; h < N_BLK; ++h){
-        res_local = send_phi(g, d) * rec_phi(h, d) * (y[d] - theta(h, g, d));
+        res_local = send_phi(g, d) * rec_phi(h, d) * (theta(h, g, d) * (y[d] - 1.0) 
+                                                        + (1.0 - theta(h, g, d)) * y[d]);
         res += res_local;
         if((h < g) && !directed){
           continue;
         }
         npar = par_ind(h, g);
+        //Rprintf("for h=%i g=%i, npar=%i\n",h,g,npar);
+        
         gr[npar] -= res_local;
       }
     }
@@ -388,7 +391,7 @@ void MMModel::computeTheta()
 {
   for(int g = 0; g < N_BLK; ++g){
     for(int h = 0; h < N_BLK; ++h){
-      b_t(h, g) = theta_par[par_ind(h, g)];
+      b_t(g, h) = theta_par[par_ind(h, g)];
     }
   }
   for(int z = 0; z < N_DYAD_PRED; ++z){
@@ -427,7 +430,7 @@ double MMModel::cLL()
         //Rprintf("Res 4: %f\n", res);
       }
       //Entropy for kappa
-      res -= kappa_t(m, t) * log(kappa_t(m,t) + 1e-16);
+      res -= kappa_t(m, t) * log(kappa_t(m,t) + 1e-12);
       //Rprintf("Res 5: %f\n", res);
     }
   }
@@ -443,10 +446,10 @@ void MMModel::optim(bool alpha)
 {
   if(alpha){
     vmmin_ours(N_MONAD_PRED * (N_BLK - 1) * N_STATE + 1, &alpha_par[0], &fminAlpha, alphaLBW, alphaGrW, OPT_ITER, 0,
-               &maskalpha[0], -1.0e+35, 1.0e-6, 1, this, &fncountAlpha, &grcountAlpha, &m_failAlpha);
+               &maskalpha[0], -1.0e+35, 1.0e-5, 1, this, &fncountAlpha, &grcountAlpha, &m_failAlpha);
   } else {
     vmmin_ours(N_B_PAR + N_DYAD_PRED, &theta_par[0], &fminTheta, thetaLBW, thetaGrW, OPT_ITER, 0,
-               &masktheta[0], -1.0e+35, 1.0e-6, 1, this, &fncountTheta, &grcountTheta, &m_failTheta);
+               &masktheta[0], -1.0e+35, 1.0e-5, 1, this, &fncountTheta, &grcountTheta, &m_failTheta);
   }
 }
 
@@ -480,11 +483,10 @@ void MMModel::alphaGrW(int n, double *par, double *gr, void *ex)
 
 void MMModel::updateKappa()
 {
-  computeAlpha();
+  //computeAlpha();
   std::vector<double> kappa_vec(N_STATE);
-  std::vector<double> correction_vec(N_STATE);
   double res, log_denom;
-  for(int t = 0; t < N_TIME; ++t){
+  for(int t = 1; t < N_TIME; ++t){
     for(int m = 0; m < N_STATE; ++m){
       res = 0.0;
       if(t < (N_TIME - 1)){
@@ -494,27 +496,25 @@ void MMModel::updateKappa()
       
       // Rprintf("res 0 %f, e_wm[%i] %f, log %f\n", res, m, e_wm[m], log(double(N_STATE) * eta + e_wm[m]));
       
-      if((t > 0) & (t < (N_TIME - 1))){
+      
+      if(t < (N_TIME - 1)){
         e_wmn_t(m, m) -= kappa_t(m, t) * (kappa_t(m, t + 1) + kappa_t(m, t - 1));
         res += kappa_t(m, t + 1) * kappa_t(m, t - 1) * log(eta + e_wmn_t(m, m) + 1);
         
-        res += (kappa_t(m, t - 1) - kappa_t(m, t - 1) * kappa_t(m, t + 1)
+        res += (kappa_t(m, t - 1) * (1 - kappa_t(m, t + 1))
                   + kappa_t(m, t + 1)) * log(eta + e_wmn_t(m, m));
         
         for(int n = 0; n < N_STATE; ++n){
           if(m != n){
             e_wmn_t(n, m) -= kappa_t(m, t) * kappa_t(n, t + 1);
+          
             res += kappa_t(n, t + 1) * log(eta + e_wmn_t(n, m));
             
             e_wmn_t(m, n) -= kappa_t(m, t) * kappa_t(n, t - 1);
+            
             res += kappa_t(n, t - 1) * log(eta + e_wmn_t(m, n));
             
           }
-        }
-      } else if (t == 0) {
-        for(int n = 0; n < N_STATE; ++n){
-          e_wmn_t(n, m) -= kappa_t(m, t) * kappa_t(n, t + 1);
-          res += kappa_t(n, t + 1) * log(eta + e_wmn_t(n, m));
         }
       } else { // t = T
         for(int n = 0; n < N_STATE; ++n){
@@ -522,33 +522,23 @@ void MMModel::updateKappa()
           res += kappa_t(n, t - 1) * log(eta + e_wmn_t(m, n));
         }
       }
-      res += alpha_term1(m, t);
-      res += alpha_term2(m, t);
+      res += alpha_term(m, t);
       kappa_vec[m] = res;
     }
     log_denom = logSumExp(kappa_vec);
     for(int m = 0; m < N_STATE; ++m){
       kappa_t(m, t) = exp(kappa_vec[m] - log_denom);
       if(!std::isfinite(kappa_t(m, t))){
-        // NumericVector mine(kappa_vec.begin(), kappa_vec.end());
-        // Rprintf("For t %i m %i: ", t, m);
-        // print(mine);
         stop("Kappa value became NAN.");
       }
       if(t < (N_TIME - 1)){
         e_wm[m] += kappa_t(m, t);
-      }
-      if((t > 0) & (t < (N_TIME - 1))){
         e_wmn_t(m, m) += kappa_t(m, t) * (kappa_t(m, t + 1) + kappa_t(m, t - 1));
         for(int n = 0; n < N_STATE; ++n){
           if(m != n){
             e_wmn_t(n, m) += kappa_t(m, t) * kappa_t(n, t + 1);
             e_wmn_t(m, n) += kappa_t(m, t) * kappa_t(n, t - 1);
           }
-        }
-      } else if (t == 0) {
-        for(int n = 0; n < N_STATE; ++n){
-          e_wmn_t(n, m) += kappa_t(m, t) * kappa_t(n, t + 1);
         }
       } else { // t = T
         for(int n = 0; n < N_STATE; ++n){
@@ -593,7 +583,6 @@ void MMModel::updatePhiInternal(int dyad, int rec,
       res += phi_o[h] * (edge * log(*te) + (1.0 - edge) * log(1.0 - *te));
     }
 
-    
     phi[g] = exp(res);
     if(!std::isfinite(phi[g])){
       err = 1;
@@ -615,10 +604,10 @@ void MMModel::updatePhi()
   for(int thread = 0; thread < N_THREAD; ++thread){
     std::fill(new_e_c_t[thread].begin(), new_e_c_t[thread].end(), 0.0);
   }
-  computeTheta();
-  computeAlpha();
-  
-#pragma omp parallel 
+  // computeTheta();
+  // computeAlpha();
+  // 
+#pragma omp parallel
 {
   int thread = 0;
 #ifdef _OPENMP
@@ -688,6 +677,7 @@ int MMModel::checkConvChng(NumericVector::iterator first,
   int res = 1;
   for(NumericVector::iterator it = first; it != last; ++it, ++target){
     diff = fabs((*it - *target) / *it);
+    //if(caseid == 3) Rprintf("%f\n",diff);
     if(diff > tol) {
       res = 0;
       break;

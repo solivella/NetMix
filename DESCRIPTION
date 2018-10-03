@@ -3,6 +3,7 @@ Type: Package
 Title: Dynamic mixed-membership network regression model
 Version: 0.2.8
 Date: 2018-09-13
+Encoding: UTF-8
 Author: Kosuke Imai [aut, cre],
 	Tyler Pratt [aut, cre],
 	Adeline Lo [aut, cre],

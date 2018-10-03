@@ -10,21 +10,20 @@ Rcpp::NumericMatrix approxBdyad(Rcpp::NumericVector y,
 {
   int N_BLK = pi_mat.nrow();
   int N_DYAD = y.size();
-  int s, r, z_1, z_2, check;
-  double u_1, u_2, prob_temp;
-  Rcpp::NumericVector cs(N_BLK);
+  int s, r;//, z_1, z_2, check;
+  double prob_temp;//u_1, u_2;
+  //Rcpp::NumericVector cs(N_BLK);
   Rcpp::NumericMatrix den(N_BLK, N_BLK), num(N_BLK, N_BLK);
-  Rcpp::NumericMatrix B_t(N_BLK, N_BLK);
 
   for(int dyad = 0; dyad < N_DYAD; ++dyad){
     s = node_id(dyad, 0);
     r = node_id(dyad, 1);
-    u_1 = R::runif(0, 1);
-    u_2 = R::runif(0, 1);
-    cs = Rcpp::cumsum(pi_mat.column(s)).get();
-    z_1 = findInterval(&cs[0], N_BLK, u_1, FALSE, FALSE, N_BLK - 1, &check);
-    cs = Rcpp::cumsum(pi_mat.column(r)).get();
-    z_2 = findInterval(&cs[0], N_BLK, u_2, FALSE, FALSE, N_BLK - 1, &check);
+    // u_1 = R::runif(0, 1);
+    // u_2 = R::runif(0, 1);
+    // cs = Rcpp::cumsum(pi_mat.column(s)).get();
+    // z_1 = findInterval(&cs[0], N_BLK, u_1, FALSE, FALSE, N_BLK - 1, &check);
+    // cs = Rcpp::cumsum(pi_mat.column(r)).get();
+    // z_2 = findInterval(&cs[0], N_BLK, u_2, FALSE, FALSE, N_BLK - 1, &check);
     for(int g = 0; g < N_BLK; ++g){
       for(int h = 0; h < N_BLK; ++h){
         if(!directed){
@@ -32,7 +31,8 @@ Rcpp::NumericMatrix approxBdyad(Rcpp::NumericVector y,
             continue;
           }
         }
-        prob_temp =  (g == z_1) * (h == z_2);
+        //prob_temp =  (g == z_1) * (h == z_2);
+        prob_temp = pi_mat(g, s) * pi_mat(h, r);
         num(h, g) += y(dyad) * prob_temp;
         den(h, g) += prob_temp;
         if(!directed){
@@ -45,6 +45,7 @@ Rcpp::NumericMatrix approxBdyad(Rcpp::NumericVector y,
   std::transform(den.begin(), den.end(), den.begin(),
                  [](double& x){return x < 1e-12 ? 1e-12 : x;});
   
+  Rcpp::NumericMatrix B_t(N_BLK, N_BLK);
   std::transform(num.begin(), num.end(),
                  den.begin(),
                  B_t.begin(),

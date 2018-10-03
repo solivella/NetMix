@@ -21,7 +21,7 @@
 #'     \code{data.monad[,nodeID]}.
 #' @param timeID Charater string. Quoted name of the variable in both \code{data.dyad} and
 #'     \code{data.monad} indicating the time in which network (and correspding nodal atrributes)
-#'     were pbserved. 
+#'     were observed. The variable itself must be composed of integers.
 #' @param data.dyad Data frame. Sociomatrix in ``long'' (i.e. dyadic) format. Must contain at
 #'    least three variables: the sender identifier (or identifier of the first node in an undirected networks dyad),
 #'    the receiver identifier (or identifier of the second node in an undirected network dyad), and the value
@@ -37,7 +37,7 @@
 #'        \item{init}{Type of initialization algorithm for mixed-membership vectors. One of
 #'                    \code{kmeans} (default), \code{spectral}, or \code{lda} (see
 #'                     \code{\link[lda:lda.collapsed.gibbs.sampler]{mmsb.collapsed.gibbs.sampler}} for details about this function.)}
-#'        \item{lda_iter}{If \code{init="lda"}, number of MCMC iterations to obtain initial values}
+#'        \item{lda_iter}{If \code{init="lda"}, number of MCMC iterations to obtain initial values. Defaults to 250}
 #'        \item{lda_alpha}{If \code{init="lda"}, value of \code{alpha} hyperparameter. Defaults to 1}
 #'        \item{max_em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3}
 #'        \item{max_opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3}
@@ -174,11 +174,11 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                phi_init_t = NULL,
                kappa_init_t = NULL,
                b_init_t = NULL,
-               xi_init = 10,
+               xi_init = NULL,
                beta_init = NULL,
                gamma_init = NULL,
                init = "kmeans",
-               lda_iter = 2000,
+               lda_iter = 250,
                lda_alpha = 1,
                max_em_iter = 5000,
                max_opt_iter = 10e3,
@@ -187,7 +187,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                var_beta = 5.0,
                var_gamma = 5.0,
                var_xi = 1,
-               eta = 100.3,
+               eta = 1,
                threads = 4,
                conv_tol = 1e-2,
                verbose = FALSE)
@@ -212,17 +212,18 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   ## Initial values for hidden Markov states
   if(is.null(ctrl$kappa_init_t)){
     if(n.hmmstates > 1){
+      indeces <- as.matrix(dyadic[,c("(tid)","dyad_id")])  
       dyad_time <- matrix(NA,
-                          ctrl$times,
-                          length(unique(dyadic[["dyad_id"]])),
-                          dimnames = list(unique(dyadic[["(tid)"]]),
-                                          unique(dyadic[["dyad_id"]]))
+                          length(unique(indeces[,1])),
+                          length(unique(indeces[,2])),
+                          dimnames = list(unique(indeces[,1]),
+                                          unique(indeces[,2]))
       )
-      dyad_time[as.matrix(dyadic[,c("(tid)","dyad_id")])] <- model.response(dyadic)
+      dyad_time[indeces] <- model.response(dyadic)
       dyad_time[is.na(dyad_time)] <- sample(0:1, sum(is.na(dyad_time)), replace = TRUE)
-      state_internal <- kmeans(dyad_time,
+      state_internal <- fitted(kmeans(dyad_time,
                                n.hmmstates,
-                               nstart = 5)$cluster
+                               nstart = 15),"classes")
       kappa_internal <- model.matrix(~ as.factor(state_internal) - 1)
       kappa_internal <- prop.table(kappa_internal + runif(length(kappa_internal),0,0.1),1)
       ctrl$kappa_init_t <- t(kappa_internal)
@@ -245,15 +246,16 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                               nnode = length(all.nodes),
                               nodes = all.nodes)
                      {
+                       indeces <- as.matrix(dyad_df[,c("(sid)","(rid)")])
                        adj_mat <-  matrix(NA, 
                                           nnode,
                                           nnode,
                                           dimnames = list(nodes,
                                                           nodes))
                        diag(adj_mat) <- 0
-                       adj_mat[as.matrix(dyad_df[,c("(sid)","(rid)")])] <- dyad_df[,4]
+                       adj_mat[indeces] <- dyad_df[,4]
                        if(!directed){
-                         adj_mat[as.matrix(dyad_df[,c("(rid)","(sid)")])] <- dyad_df[,4]
+                         adj_mat[indeces[,c(2,1)]] <- dyad_df[,4]
                        }
                        adj_mat[is.na(adj_mat)] <- sample(0:1, sum(is.na(adj_mat)), replace = TRUE)
                        if(!directed){
@@ -262,14 +264,6 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                        }
                        return(adj_mat)
                      })
-  
-  # soc_mats_m <- tapply(soc_mats,
-  #    list(state_init),
-  #    function(x){
-  #     mat <- Reduce(.modSum,x)
-  #     mat[is.na(mat)] <- sample(0:1, sum(is.na(mat)), replace = TRUE)
-  #     return(mat)
-  # }, simplify = FALSE)
   
   if(is.null(ctrl$phi_init)) {
     if(ctrl$init!="lda"){
@@ -403,7 +397,9 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
     ctrl$beta_init <- sapply(alpha_par_init,
                              function(x)cbind(0,x$beta),
                              simplify = "array")
-    ctrl$xi_init <- mean(sapply(alpha_par_init, function(x)x$xi))
+    if(is.null(ctrl$xi_init)){
+      ctrl$xi_init <- mean(sapply(alpha_par_init, function(x)x$xi))
+    }
   } 
   ctrl$beta_init <- vapply(lapply(seq(dim(ctrl$beta_init)[3]), function(x) ctrl$beta_init[ , , x]), 
                            function(mat, sd_vec, mean_vec){
@@ -471,7 +467,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   ## Rescale and name coefficients
   fit[["DyadCoef"]] <- fit[["DyadCoef"]] / Z_sd[-which(Z_sd==0)]
   if(length(fit[["DyadCoef"]])){
-    fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]]) 
+    fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]])
   }
   dimnames(fit[["BlockModel"]]) <- replicate(2,paste("Group",1:n.groups), simplify = FALSE)
   dimnames(fit[["TransitionKernel"]]) <- replicate(2,paste("State",1:n.hmmstates), simplify = FALSE)

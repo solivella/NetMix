@@ -27,6 +27,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
 	       List control
 	       )
 {
+  
   //Obtain nr. of cores
   int N_THREADS = 1;
 #ifdef _OPENMP
@@ -79,64 +80,82 @@ List mmsbm_fit(const NumericMatrix& z_t,
     Old_Gamma = NumericVector(N_DYAD_PRED);
   }
 
+  double oldLL = Model.cLL();
   if(verbose){
     Rprintf("Estimating model...\n");
+    Rprintf("\tLB 0: %f\n",oldLL);
   }
-  double oldLL = Model.cLL();
-  //Rprintf("\tInitial LB: %f\n",oldLL);
-  while(iter < EM_ITER && conv == false){
+  double newLL;
+  int phi_iter;
+  while((iter < EM_ITER) && (conv == false)){
     checkUserInterrupt();
 
-    // E-STEP
-    Model.getC(Old_C);
+    // // E-STEP
+    //Model.getC(Old_C);
     
+    phi_iter = 50;
+    do {
+       checkUserInterrupt();
+     Model.getC(Old_C);
      Model.updatePhi();
+     
+       --phi_iter;
+    } while((1-Model.checkConvChng(Old_C.begin(), Old_C.end(), 3, 1e-2)) & (phi_iter > 0));
+
+     newLL = Model.cLL();
+     // if(verbose){
+     //   Rprintf("\t\tLB after E phi %i: %f\n", iter + 1, newLL);
+     // }
+
      if(N_STATE > 1){
-        Model.updateKappa();
-      }
-     // newLL = Model.cLL();
+      Model.updateKappa();
+    }
+
+     newLL = Model.cLL();
      // if(verbose){
-     //   Rprintf("\tLB after E kappa %i: %f\n", iter + 1, newLL);
+     //   Rprintf("\t\tLB after E kappa %i: %f\n", iter + 1, newLL);
      // }
-     
-     // newLL = Model.cLL();
-     // if(verbose){
-     //   Rprintf("\tLB after E phi %i: %f\n", iter + 1, newLL);
-     // }
+
      
      
-    //M-STEP
+    // // M-STEP
     Model.getB(Old_B);
     if(N_DYAD_PRED > 0){
       Model.getGamma(Old_Gamma);
     }
     Model.getBeta(Old_Beta);
-    Model.optim(true); //optimize alphaLB
-    // newLL = Model.cLL();
+
+    //Model.optim(true); //optimize alphaLB
+    newLL = Model.cLL();
     // if(verbose){
-    //   Rprintf("\tLB after M alpha %i: %f\n", iter + 1, newLL);
+    //   Rprintf("\t\tLB after M alpha %i: %f\n", iter + 1, newLL);
     // }
     Model.optim(false); //optimize thetaLB
+    newLL = Model.cLL();
+    // if(verbose){
+    //   Rprintf("\t\tLB after M theta %i: %f\n", iter + 1, newLL);
+    // }
     
     
     //Check convergence
-    double newLL = Model.cLL();
-    // if(verbose){
-    //   Rprintf("\tLB after M theta %i: %f\n", iter + 1, newLL);
-    // }
+    newLL = Model.cLL();
     if(verbose){
       Rprintf("\tLB %i: %f\n", iter + 1, newLL);
     }
     gamma_conv = N_DYAD_PRED > 0 ?
       Model.checkConvChng(Old_Gamma.begin(), Old_Gamma.end(), 0, tol) :
       true;
+    //Rprintf("%i\n",Model.checkConvChng(Old_C.begin(), Old_C.end(), 3, tol));
+    //Rprintf("%i\n",Model.checkConvChng(Old_B.begin(), Old_B.end(), 1, tol));
+    //Rprintf("%i\n",Model.checkConvChng(Old_Beta.begin(), Old_Beta.end(), 2, tol));
+    
     if(//fabs((oldLL - newLL)/oldLL) < tol
         //  &&
-        (gamma_conv &&
+        (Model.checkConvChng(Old_C.begin(), Old_C.end(), 3, tol) &&
         Model.checkConvChng(Old_B.begin(), Old_B.end(), 1, tol) &&
-        Model.checkConvChng(Old_Beta.begin(), Old_Beta.end(), 2, tol)) &&
-        Model.checkConvChng(Old_C.begin(), Old_C.end(), 3, tol)
-         ){
+        Model.checkConvChng(Old_Beta.begin(), Old_Beta.end(), 2, tol) &&
+        gamma_conv 
+        )){
       conv = true;
     }
     oldLL = newLL;
