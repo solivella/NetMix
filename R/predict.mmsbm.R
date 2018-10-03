@@ -48,7 +48,7 @@ predict.mmsbm <- function(fm,
     fm$DyadCoef <- as.vector(0)
   }
   if(!is.null(new.data.monad)){
-    nid <- fm$call$nodeID
+    nid <- ifelse(fm$call$nodeID %in% colnames(new.data.monad), fm$call$nodeID, "(nid)")
     monad <- new.data.monad
     if(is.null(fm$call$timeID)){
       tid <- "(tid)"
