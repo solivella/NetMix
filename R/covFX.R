@@ -21,13 +21,13 @@
 
 
 covFX <- function(fm, cov, shift, max.val=FALSE){
-  predict.ties <- predict.mmsbm(fm, type="expectation", outcome="probability")
+  predict.ties <- predict.mmsbm(fm, type="prediction", outcome="probability")
   monadic.data2 <- fm$monadic.data
   monadic.data2[,cov] <- fm$monadic.data[,cov] + shift
   if(!isFALSE(max.val)){
     monadic.data2[which(fm$monadic.data[,cov] == max(fm$monadic.data[,cov])),cov] <- max.val
   }
-  predict.ties2 <- predict.mmsbm(fm, new.data.monad=monadic.data2, type="expectation", outcome="probability")
+  predict.ties2 <- predict.mmsbm(fm, new.data.monad=monadic.data2, type="prediction", outcome="probability")
   FX <- list(mean(predict.ties2 - predict.ties), #avg
              tapply(predict.ties2-predict.ties, fm$dyadic.data[,"(tid)"], mean), #time
              sapply(unique(fm$monadic.data[,"(nid)"]), function(x){ #node

@@ -93,18 +93,18 @@
 
 
 cluster.mems <- function(fm, t, n=10, demean=FALSE){
-  Mem <- fm$MixedMembership[,fm$monadic.data[,"(tid)"] %in% t]
-  Nodes <- fm$monadic.data[,"(nid)"][fm$monadic.data[,"(tid)"] %in% t]
-  node.mems <- t(do.call(cbind, lapply(unique(Nodes), function(x){
-    rowMeans(as.matrix(Mem[,Nodes==x]))})))
-  rownames(node.mems) <- as.character(unique(Nodes))
-  if(demean){
-    node.mems2 <- apply(node.mems, 2, function(x){x - mean(x)}) 
-    sort(apply(node.mems2, 1, which.max))
-  } else {
-    lapply(1:fm$n_blocks, function(x){
-      node.mems[order(node.mems[,x], decreasing=T)[1:n],x]})
-  }
+    Mem <- fm$MixedMembership[,fm$monadic.data[,"(tid)"] %in% t]
+    Nodes <- unlist(lapply(strsplit(colnames(Mem), "@"), "[[", 1))
+    node.mems <- t(do.call(cbind, lapply(unique(Nodes), function(x){
+        rowMeans(as.matrix(Mem[,Nodes==x]))})))
+    rownames(node.mems) <- as.character(unique(Nodes))
+    if(demean){
+        node.mems2 <- apply(node.mems, 2, function(x){x - mean(x)})
+        sort(apply(node.mems2, 1, which.max))
+    } else {
+        lapply(1:fm$n_blocks, function(x){
+            node.mems[order(node.mems[,x], decreasing=T)[1:n],x]})
+    }
 }
 
 
