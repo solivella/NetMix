@@ -9,17 +9,17 @@
 #'     Same syntax as a \code{glm} formula. 
 #' @param formula.monad An optional \code{formula} object. LHS is ignored. RHS contains 
 #'     names of nodal atrributes found in \code{data.monad}.  
-#' @param senderID Charater string. Quoted name of the variable in \code{data.dyad} identifying 
+#' @param senderID Character string. Quoted name of the variable in \code{data.dyad} identifying 
 #'     the sender node. For undirected networks, the variable simply contains name of first node 
 #'     in dyad.
-#' @param receiverID Charater string. Quoted name of the variable in \code{data.dyad} identifying 
+#' @param receiverID Character string. Quoted name of the variable in \code{data.dyad} identifying 
 #'     the receiver node. For undirected networks, the variable simply contains name of second node 
 #'     in dyad.
-#' @param nodeID Charater string. Quoted name of the variable in \code{data.monad} identifying 
+#' @param nodeID Character string. Quoted name of the variable in \code{data.monad} identifying 
 #'     a node in either \code{data.dyad[,senderID]} or \code{data.dyad[,senderID]}. If not \code{NULL},
 #'     every node \code{data.dyad[,senderID]} or \code{data.dyad[,senderID]} must be present in 
 #'     \code{data.monad[,nodeID]}.
-#' @param timeID Charater string. Quoted name of the variable in both \code{data.dyad} and
+#' @param timeID Character string. Quoted name of the variable in both \code{data.dyad} and
 #'     \code{data.monad} indicating the time in which network (and correspding nodal atrributes)
 #'     were observed. The variable itself must be composed of integers.
 #' @param data.dyad Data frame. Sociomatrix in ``long'' (i.e. dyadic) format. Must contain at
@@ -32,6 +32,7 @@
 #' @param n.hmmstates Integer value. How many hidden Markov state should be used in the HMM? Defaults 
 #'    to 1 (i.e. no HMM).  
 #' @param directed Boolean. Is the network directed? Defaults to \code{TRUE}.
+#' @param missing Means of handling missing data. One of "indicator method" (default) or "listwise deletion".
 #' @param mmsbm.control A named list of optional algorithm control parameters.
 #'     \describe{
 #'        \item{init}{Type of initialization algorithm for mixed-membership vectors. One of
@@ -82,7 +83,7 @@
 
 mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                   nodeID = NULL, timeID = NULL, data.dyad, data.monad = NULL,
-                  n.groups, n.hmmstates = 1, directed = TRUE,
+                  n.groups, n.hmmstates = 1, directed = TRUE, missing = "indicator method",
                   mmsbm.control = list()){
 
   stopifnot(class(formula.dyad) == "formula",
@@ -105,6 +106,57 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
       data.monad[timeID] <- 1  
     }
   }
+  
+  ## Address missing data 
+  if(missing=="indicator method"){
+    # dyadic dataset
+    miss.d <- apply(data.dyad[,all.vars(formula.dyad)[-1]], 2, function(x){length(na.omit(x))}) < nrow(data.dyad)
+    md <- names(miss.d[miss.d])
+    if(length(md)>0){
+      m.ind <- apply(data.dyad[,md], 2, function(x){
+        ifelse(is.na(x), 1, 0)
+        })
+      colnames(m.ind) <- paste(colnames(m.ind), "_missing", sep="")
+      data.dyad[,md] <- apply(data.dyad[,md], 2, function(x){
+        x[is.na(x)] <- 0
+        return(x)
+      })
+      data.dyad <- cbind(data.dyad, m.ind)
+      fc <- paste(as.character(formula.dyad[[2]]), as.character(formula.dyad[[1]]),
+                  paste(c(all.vars(formula.dyad)[-1], colnames(m.ind)), collapse=" + "))
+      formula.dyad <- eval(parse(text=fc))
+    }
+    # monadic dataset
+    miss.m <- apply(data.monad[,all.vars(formula.monad)], 2, function(x){length(na.omit(x))}) < nrow(data.monad)
+    mm <- names(miss.m[miss.m])
+    if(length(mm)>0){
+      m.ind <- apply(data.monad[,mm], 2, function(x){
+        ifelse(is.na(x), 1, 0)
+      })
+      colnames(m.ind) <- paste(colnames(m.ind), "_missing", sep="")
+      data.monad[,mm] <- apply(data.monad[,mm], 2, function(x){
+        x[is.na(x)] <- 0
+        return(x)
+      })
+      data.monad <- cbind(data.monad, m.ind)
+      fc <- paste("~", paste(c(all.vars(formula.monad), colnames(m.ind)),  collapse=" + "))
+      formula.monad <- eval(parse(text=fc))
+    }
+  }
+  if(missing=="listwise deletion"){
+    mdyad <- apply(data.dyad[,all.vars(formula.dyad)], 1, function(x){!any(is.na(x))})
+    mmonad <- apply(data.monad[,all.vars(formula.monad)], 1, function(x){!any(is.na(x))})
+    data.dyad <- data.dyad[mdyad,]
+    data.monad <- data.monad[mmonad,]
+    d.keep <- lapply(unique(data.dyad[,timeID]), function(x){
+      nts <- data.monad[data.monad[,timeID]==x,nodeID]
+      dd <- data.dyad[data.dyad[,timeID]==x,]
+      dd <- dd[dd[,senderID] %in% nts & dd[,receiverID] %in% nts,]
+      return(dd)
+    })
+    data.dyad <- do.call("rbind", d.keep)
+  }
+              
   
   ## Form dyadid model frame and model matrix
   dyadic <- do.call(model.frame, list(formula = formula.dyad,
@@ -253,7 +305,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                                           dimnames = list(nodes,
                                                           nodes))
                        diag(adj_mat) <- 0
-                       adj_mat[indeces] <- dyad_df[,4]
+                       adj_mat[indeces] <- dyad_df[,4] # out of bounds
                        if(!directed){
                          adj_mat[indeces[,c(2,1)]] <- dyad_df[,4]
                        }
