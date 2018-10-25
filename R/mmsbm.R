@@ -115,7 +115,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
     if(length(md)>0){
       m.ind <- apply(data.dyad[,md], 2, function(x){
         ifelse(is.na(x), 1, 0)
-        })
+      })
       colnames(m.ind) <- paste(colnames(m.ind), "_missing", sep="")
       data.dyad[,md] <- apply(data.dyad[,md], 2, function(x){
         x[is.na(x)] <- 0
@@ -130,11 +130,11 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
     miss.m <- apply(data.monad[,all.vars(formula.monad)], 2, function(x){length(na.omit(x))}) < nrow(data.monad)
     mm <- names(miss.m[miss.m])
     if(length(mm)>0){
-      m.ind <- apply(data.monad[,mm], 2, function(x){
+      m.ind <- apply(as.data.frame(data.monad[,mm]), 2, function(x){
         ifelse(is.na(x), 1, 0)
       })
-      colnames(m.ind) <- paste(colnames(m.ind), "_missing", sep="")
-      data.monad[,mm] <- apply(data.monad[,mm], 2, function(x){
+      colnames(m.ind) <- paste(mm, "_missing", sep="")
+      data.monad[,mm] <- apply(as.data.frame(data.monad[,mm]), 2, function(x){
         x[is.na(x)] <- 0
         return(x)
       })
