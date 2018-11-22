@@ -96,18 +96,18 @@ gof <- function (x, ...) {
 
 
 cluster.mems <- function(fm, t, n=10, demean=FALSE){
-  Mem <- fm$MixedMembership[,fm$monadic.data[,"(tid)"] %in% t]
-  Nodes <- fm$monadic.data[,"(nid)"][fm$monadic.data[,"(tid)"] %in% t]
-  node.mems <- t(do.call(cbind, lapply(unique(Nodes), function(x){
-    rowMeans(as.matrix(Mem[,Nodes==x]))})))
-  rownames(node.mems) <- as.character(unique(Nodes))
-  if(demean){
-    node.mems2 <- apply(node.mems, 2, function(x){x - mean(x)}) 
-    sort(apply(node.mems2, 1, which.max))
-  } else {
-    lapply(1:fm$n_blocks, function(x){
-      node.mems[order(node.mems[,x], decreasing=T)[1:n],x]})
-  }
+    Mem <- fm$MixedMembership[,fm$monadic.data[,"(tid)"] %in% t]
+    Nodes <- unlist(lapply(strsplit(colnames(Mem), "@"), "[[", 1))
+    node.mems <- t(do.call(cbind, lapply(unique(Nodes), function(x){
+        rowMeans(as.matrix(Mem[,Nodes==x]))})))
+    rownames(node.mems) <- as.character(unique(Nodes))
+    if(demean){
+        node.mems2 <- apply(node.mems, 2, function(x){x - mean(x)})
+        sort(apply(node.mems2, 1, which.max))
+    } else {
+        lapply(1:fm$n_blocks, function(x){
+            node.mems[order(node.mems[,x], decreasing=T)[1:n],x]})
+    }
 }
 
 
@@ -226,26 +226,26 @@ degree.dist <- function(fm, Y){
   }
 }
 
-covFX <- function(fm, cov, shift, max.val=FALSE){
-  predict.ties <- predict(fm)
-  monadic.data2 <- fm$monadic.data
-  monadic.data2[,cov] <- fm$monadic.data[,cov] + shift
-  if(!isFALSE(max.val)){
-    monadic.data2[which(fm$monadic.data[,cov] == max(fm$monadic.data[,cov])),cov] <- max.val
-  }
-  predict.ties2 <- predict(fm, monad=monadic.data2)
-  FX <- list(mean(predict.ties2 - predict.ties), #avg
-             tapply(predict.ties2-predict.ties, fm$dyadic.data[,"(tid)"], mean), #time
-             sapply(unique(fm$monadic.data[,"(nid)"]), function(x){ #node
-               mean((predict.ties2-predict.ties)[fm$dyadic.data[,"(sid)"]==x | fm$dyadic.data[,"(rid)"]==x])}),
-             tapply(predict.ties2-predict.ties, paste(fm$dyadic.data[,"(sid)"], fm$dyadic.data[,"(rid)"], sep="_"), mean),#dyad
-             predict.ties2 - predict.ties) #dyad-time
-  names(FX[[5]]) <- paste(fm$dyadic.data[,"(sid)"], fm$dyadic.data[,"(rid)"], sep="_")
-  names(FX) <- c(paste("Overall Avg. Effect of", cov), paste("Avg. Effect of", cov, "by Time"),
-                 paste("Avg. Effect of", cov, "by Node"), paste("Avg. Effect of", cov, "by Dyad"),
-                 paste("Effect of", cov, "by Dyad-Time"))
-  return(FX)
-}
+## covFX <- function(fm, cov, shift, max.val=FALSE){
+##   predict.ties <- predict(fm)
+##   monadic.data2 <- fm$monadic.data
+##   monadic.data2[,cov] <- fm$monadic.data[,cov] + shift
+##   if(!isFALSE(max.val)){
+##     monadic.data2[which(fm$monadic.data[,cov] == max(fm$monadic.data[,cov])),cov] <- max.val
+##   }
+##   predict.ties2 <- predict(fm, monad=monadic.data2)
+##   FX <- list(mean(predict.ties2 - predict.ties), #avg
+##              tapply(predict.ties2-predict.ties, fm$dyadic.data[,"(tid)"], mean), #time
+##              sapply(unique(fm$monadic.data[,"(nid)"]), function(x){ #node
+##                mean((predict.ties2-predict.ties)[fm$dyadic.data[,"(sid)"]==x | fm$dyadic.data[,"(rid)"]==x])}),
+##              tapply(predict.ties2-predict.ties, paste(fm$dyadic.data[,"(sid)"], fm$dyadic.data[,"(rid)"], sep="_"), mean),#dyad
+##              predict.ties2 - predict.ties) #dyad-time
+##   names(FX[[5]]) <- paste(fm$dyadic.data[,"(sid)"], fm$dyadic.data[,"(rid)"], sep="_")
+##   names(FX) <- c(paste("Overall Avg. Effect of", cov), paste("Avg. Effect of", cov, "by Time"),
+##                  paste("Avg. Effect of", cov, "by Node"), paste("Avg. Effect of", cov, "by Dyad"),
+##                  paste("Effect of", cov, "by Dyad-Time"))
+##   return(FX)
+## }
 
 
 
