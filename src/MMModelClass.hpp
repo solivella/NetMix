@@ -44,7 +44,6 @@ public:
   Rcpp::NumericMatrix getPhi(bool);
   Rcpp::NumericMatrix getWmn();
   Rcpp::NumericMatrix getKappa();
-  double getConcentration();
   Rcpp::NumericMatrix getB();
   void getB(Rcpp::NumericVector&);
   Rcpp::NumericVector getGamma();
@@ -72,12 +71,10 @@ private:
 
   const double eta,
     var_gamma,
-    var_beta,
-    var_xi;
+    var_beta;
 
   double fminAlpha,
-    fminTheta,
-    xi_param;
+    fminTheta;
 
 
   int fncountAlpha,
@@ -103,7 +100,6 @@ private:
 
   Array<double> y,
     theta_par,
-    alpha_par,  
     e_wm,
     gamma;
 
@@ -118,14 +114,13 @@ private:
   Array<double> kappa_t,
     b_t,
     alpha_term,
-    sum_e_xb,
     send_phi,
     rec_phi,
     e_wmn_t,
-    e_c_t;
+    e_c_t,
+    xi;
 
   Array<double> alpha, //3d array (column major)
-    e_xb,
     theta,
     beta;
 

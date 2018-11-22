@@ -4,9 +4,9 @@
 \alias{mmsbm}
 \title{Dynamic mixed-membership stochastic blockmodel with covariates}
 \usage{
-mmsbm(formula.dyad, formula.monad = ~1, senderID, receiverID,
-  nodeID = NULL, timeID = NULL, data.dyad, data.monad = NULL,
-  n.groups, n.hmmstates = 1, directed = TRUE, mmsbm.control = list())
+mmsbm(formula.dyad, formula.monad = ~1, senderID, receiverID, nodeID = NULL,
+  timeID = NULL, data.dyad, data.monad = NULL, n.groups, n.hmmstates = 1,
+  directed = TRUE, mmsbm.control = list())
 }
 \arguments{
 \item{formula.dyad}{A \code{formula} object. The variable in \code{data.dyad} that contains 
@@ -32,7 +32,7 @@ every node \code{data.dyad[,senderID]} or \code{data.dyad[,senderID]} must be pr
 
 \item{timeID}{Charater string. Quoted name of the variable in both \code{data.dyad} and
 \code{data.monad} indicating the time in which network (and correspding nodal atrributes)
-were pbserved.}
+were observed. The variable itself must be composed of integers.}
 
 \item{data.dyad}{Data frame. Sociomatrix in ``long'' (i.e. dyadic) format. Must contain at
 least three variables: the sender identifier (or identifier of the first node in an undirected networks dyad),
@@ -53,8 +53,8 @@ to 1 (i.e. no HMM).}
 \describe{
    \item{init}{Type of initialization algorithm for mixed-membership vectors. One of
                \code{kmeans} (default), \code{spectral}, or \code{lda} (see
-                \code{\link[lda:mmsb.collapsed.gibbs.sampler]{lda}} for details about this function.)}
-   \item{lda_iter}{If \code{init="lda"}, number of MCMC iterations to obtain initial values}
+                \code{\link[lda:lda.collapsed.gibbs.sampler]{mmsb.collapsed.gibbs.sampler}} for details about this function.)}
+   \item{lda_iter}{If \code{init="lda"}, number of MCMC iterations to obtain initial values. Defaults to 250}
    \item{lda_alpha}{If \code{init="lda"}, value of \code{alpha} hyperparameter. Defaults to 1}
    \item{max_em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3}
    \item{max_opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3}
@@ -110,8 +110,9 @@ data(MID_dyad_CW)
 
 
 ## Estimate model (takes about 5 minutes)
+set.seed(123)
 system.time(fit_onset <- mmsbm(formula.dyad = mid_onset ~ hially + dist + 
-                                 peaceyrs + spline1 + spline2 + spline3,
+                                 peaceyrs,
                                formula.monad =  ~ polity + logcinc,
                                data.dyad = MID_dyad_CW, data.monad = MID_monad_CW,
                                senderID = "country1", receiverID = "country2", 
@@ -120,7 +121,15 @@ system.time(fit_onset <- mmsbm(formula.dyad = mid_onset ~ hially + dist +
                                n.groups = 3, 
                                n.hmmstates = 2,
                                directed = FALSE,
-                               mmsbm.control = list(em_iter = 3000)))
+                               mmsbm.control = list(max_em_iter = 0,
+                                                    init = "lda",
+                                                    lda_iter = 200,
+                                                    conv_tol = 1e-2,
+                                                    eta = 1,
+                                                    var_beta = 1,
+                                                    xi_init = 1,
+                                                    threads = 1,
+                                                    verbose = TRUE)))
 
 ## Summarize model
 summary(fit_onset) 

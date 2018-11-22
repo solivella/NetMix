@@ -1,6 +1,27 @@
 #include "Aux.hpp"
 #include "MMModelClass.hpp"
 
+//[[Rcpp::export]]
+Rcpp::IntegerMatrix getZ(Rcpp::NumericMatrix pmat)
+{
+  int NROW = pmat.nrow();
+  int NCOL = pmat.ncol();
+  int mflag, bloc;
+  double u, acc;
+  Rcpp::NumericVector cprob(NROW); 
+  Rcpp::IntegerMatrix res(NROW, NCOL);
+  for(int i = 0; i < NCOL; ++i){
+    u = R::runif(0, 1);
+    acc = 0.0;
+    for(int j = 0; j < NROW; ++j){
+      acc += pmat(j, i);
+      cprob[j] = acc;
+    }
+    bloc = findInterval(&(cprob[0]), NROW, u, FALSE, FALSE, 0, &mflag);
+    res(bloc, i) = 1;
+  }
+  return(res);
+}
 
 //[[Rcpp::export]]
 Rcpp::NumericMatrix approxBdyad(Rcpp::NumericVector y,
@@ -75,9 +96,9 @@ Rcpp::NumericMatrix approxB(Rcpp::NumericMatrix y,
       u_1 = R::runif(0, 1);
       u_2 = R::runif(0, 1);
       cs = Rcpp::cumsum(pi_mat.column(row)).get();
-      z_1 = findInterval(&cs[0], N_BLK, u_1, FALSE, FALSE, N_BLK - 1, &check);
+      z_1 = findInterval(&cs[0], N_BLK, u_1, FALSE, FALSE, 0, &check);
       cs = Rcpp::cumsum(pi_mat.column(col)).get();
-      z_2 = findInterval(&cs[0], N_BLK, u_2, FALSE, FALSE, N_BLK - 1, &check);
+      z_2 = findInterval(&cs[0], N_BLK, u_2, FALSE, FALSE, 0, &check);
       //probsum = 0.0;
       for(int g = 0; g < N_BLK; ++g){
         for(int h = 0; h < N_BLK; ++h){
@@ -98,7 +119,7 @@ Rcpp::NumericMatrix approxB(Rcpp::NumericMatrix y,
     }
   }
   std::transform(den.begin(), den.end(), den.begin(),
-                 [](double& x){return fabs(x) < 1e-12 ? sgn(x) * 1e-12 : x;});
+                 [](double& x){return fabs(x) < 1e-10 ? 1e-10 : x;});
   
   std::transform(num.begin(), num.end(),
                  den.begin(),

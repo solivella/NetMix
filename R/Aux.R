@@ -2,6 +2,9 @@
 ## Misc. Helper functions
 #########################
 
+gof <- function (x, ...) {
+  UseMethod("gof", x)
+}
 
 .mpower <- function(x, p){
   orig <- x
@@ -215,9 +218,10 @@ degree.dist <- function(fm, Y){
     return(pi_l[[1]])
   } else {
     n_states <- nrow(kappa)
-    pi.states <- lapply(1:nrow(kappa), function(m){
-      pi_l[[m]] * kappa[m,]
-    })
+    pi.states <- lapply(1:nrow(kappa),
+                        function(m){
+                          pi_l[[m]] * kappa[m,]
+                        })
     return(Reduce("+", pi_l))
   }
 }

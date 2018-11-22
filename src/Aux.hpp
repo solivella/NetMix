@@ -7,6 +7,8 @@
 #include <numeric>
 #include <Rcpp.h>
 #include <R_ext/Utils.h>
+#include <Rinternals.h>
+
 
 
 template<typename T>

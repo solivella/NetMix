@@ -5,6 +5,17 @@
 
 using namespace Rcpp;
 
+// getZ
+Rcpp::IntegerMatrix getZ(Rcpp::NumericMatrix pmat);
+RcppExport SEXP _NetMix_getZ(SEXP pmatSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type pmat(pmatSEXP);
+    rcpp_result_gen = Rcpp::wrap(getZ(pmat));
+    return rcpp_result_gen;
+END_RCPP
+}
 // approxBdyad
 Rcpp::NumericMatrix approxBdyad(Rcpp::NumericVector y, Rcpp::IntegerMatrix node_id, Rcpp::NumericMatrix pi_mat, bool directed);
 RcppExport SEXP _NetMix_approxBdyad(SEXP ySEXP, SEXP node_idSEXP, SEXP pi_matSEXP, SEXP directedSEXP) {
@@ -59,6 +70,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_NetMix_getZ", (DL_FUNC) &_NetMix_getZ, 1},
     {"_NetMix_approxBdyad", (DL_FUNC) &_NetMix_approxBdyad, 4},
     {"_NetMix_approxB", (DL_FUNC) &_NetMix_approxB, 3},
     {"_NetMix_mmsbm_fit", (DL_FUNC) &_NetMix_mmsbm_fit, 15},
