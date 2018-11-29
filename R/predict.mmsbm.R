@@ -70,12 +70,12 @@ predict.mmsbm <- function(fm,
     } else {
       X_m <- model.matrix(eval(fm$call$formula.monad), monad)
     }
-    ph <- .pi.hat(X_m, fm$MonadCoef)
+    alpha <- .pi.hat(X_m, fm$MonadCoef)
     if(forecast){
       new_kappa <- fm$Kappa[,ncol(fm$Kappa)] %*% .mpower(fm$TransitionKernel, forecast)
-      p <- .e.pi(ph, new_kappa)
+      p <- .e.pi(alpha, new_kappa)
     } else {
-      p <- .e.pi(ph, fm$Kappa[,monad[,tid]])
+      p <- .e.pi(alpha, fm$Kappa[,monad[,tid]])
     }
   }
   eta_dyad <- X_d %*% as.matrix(fm$DyadCoef)

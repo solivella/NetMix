@@ -21,7 +21,7 @@ gof.mmsbm <- function(fm,
                              }),
            "Geodesics" = sapply(nets,
                                function(y){
-                                 prop.table(igraph::distance_table(y, eval(fm$call$directed))$res)
+                                 prop.table(igraph::distance_table(y, fm$directed)$res)
                                }),
            "3-Motifs" = sapply(nets,
                             function(y){
@@ -34,19 +34,19 @@ gof.mmsbm <- function(fm,
                             }),
            "Dyad Shared Partners" = sapply(nets,
                           function(y){
-                            library(ergm); library(network)
-                            prop.table(summary(network(igraph::as_adj(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
-                                         dsp(0:(igraph::gorder(y) - 2))))}),
+                            prop.table(getS3method("summary", "formula")(network::network(igraph::as_adj(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
+                                         dsp(0:(igraph::gorder(y) - 2))))
+                            }),
            "Edge Shared Partners" = sapply(nets,
                           function(y){
-                            library(ergm); library(network)
-                            prop.table(summary(network(igraph::as_adj(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
-                                         esp(0:(igraph::gorder(y) - 2))))}),
+                            prop.table(getS3method("summary", "formula")(network::network(igraph::as_adj(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
+                                         esp(0:(igraph::gorder(y) - 2))))
+                          }),
            "Incoming K-stars" = sapply(nets,
                             function(y){
-                              library(ergm); library(network)
-                              prop.table(summary(network(igraph::as_adj(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
-                                           istar(0:(igraph::gorder(y) - 1))))})
+                              prop.table(getS3method("summary", "formula")(network::network(igraph::as_adj(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
+                                           istar(0:(igraph::gorder(y) - 1))))
+                            })
     )
   }
 
@@ -74,10 +74,10 @@ gof.mmsbm <- function(fm,
                  function(x){
                    x_full <- cbind(obs_dyad, x)
                    x_sub <- x_full[x_full[,3] == 1, c(1,2)]
-                   igraph::graph_from_edgelist(as.matrix(x_sub), eval(fm$call$directed))
+                   igraph::graph_from_edgelist(as.matrix(x_sub), fm$directed)
                  })
   
-  net_obs <- list(igraph::graph_from_edgelist(as.matrix(el_obs), eval(fm$call$directed)))
+  net_obs <- list(igraph::graph_from_edgelist(as.matrix(el_obs), fm$directed))
   
   if(gof_stat == "all"){
     gof_stat <- c("Geodesics","3-Motifs", "Dyad Shared Partners", "Edge Shared Partners", "Indegree","Outdegree","Incoming K-stars")
@@ -87,6 +87,9 @@ gof.mmsbm <- function(fm,
   sim_stats_l <- lapply(gof_stat, gof_getter, nets = nets, fm = fm)
   alpha <- (1 - level)/2 
   sim_stats <- mapply(function(x, y){
+                       if(y=="Geodesics"){
+                         x <- do.call(.cbind.fill, x)
+                       }
                        x[is.na(x)] <- 0  
                        res <- as.data.frame(t(apply(x, 1, quantile, probs = c(alpha, 0.5, level + alpha), na.rm=TRUE)))
                        names(res) <- c("LB","Est","UB")
@@ -104,8 +107,8 @@ gof.mmsbm <- function(fm,
   ## Plot results
   ggplot2::ggplot(sim_stats_full, aes(x=Val, y=Est)) +
     ggplot2::facet_wrap(~GOF, scales="free") +
-    ggplot2::geom_linerange(aes(ymin=LB, ymax=UB), lwd=1.2) +
-    ggplot2::geom_line(aes(y=Observed), col="gray70", lwd=1.1) +
+    ggplot2::geom_linerange(aes(ymin=LB, ymax=UB), col="gray60", lwd=2) +
+    ggplot2::geom_line(aes(y=Observed), lwd=1.1) +
     ggplot2::theme_bw() + 
     ggplot2::xlab("") +
     ggplot2::ylab("Density")

@@ -45,6 +45,8 @@ simulate.mmsbm <- function(fm,
   }
   if(length(fm$DyadCoef)==0){
     fm$DyadCoef <- as.vector(0)
+  } else {
+    fm$DyadCoef <- c(0, fm$DyadCoef)
   }
   s_ind <- match(dyad[,sid], monad[,nid])
   r_ind <- match(dyad[,rid], monad[,nid])
@@ -68,11 +70,7 @@ simulate.mmsbm <- function(fm,
   names(states) <- unique_t
   states_ind <- states[,match(monad[,tid], colnames(fm$Kappa))]
   if(parametric_mm){
-    ph <- .pi.hat(X_m, fm$MonadCoef)
-    a <- lapply(ph,
-                function(x){
-                  x * fm$MMConcentration
-                })
+    a <- .pi.hat(X_m, fm$MonadCoef)
     pind <- lapply(a,
                    function(x){
                      apply(x, 2,
@@ -86,11 +84,7 @@ simulate.mmsbm <- function(fm,
   }
   z <- getZ(p[,s_ind])
   w <- getZ(p[,r_ind])
-  if(length(fm$DyadCoef) >= 1){
-    eta_dyad <- X_d[,-1] %*% t(fm$DyadCoef)
-  } else {
-    eta_dyad <- X_d %*% t(fm$DyadCoef)
-  }
+  eta_dyad <- X_d %*% fm$DyadCoef
   for(a in 1:n_blk){ 
     for(b in 1:n_blk){
       eta_dyad <- eta_dyad + (z[a,]*w[b,]*fm$BlockModel[a,b])

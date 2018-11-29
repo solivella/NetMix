@@ -74,7 +74,7 @@
 #'                    \code{n.hmmstates} by years (or whatever time interval networks are observed at)}
 #'       \item{LowerBound}{Value of the lower bound at final iteration}
 #'       \item{niter}{Final number of VI iterations}
-#'       \item{monadic.data,dyadic.data,n_states,n_blocks}{Original values of parameters used during estimation}
+#'       \item{monadic.data,dyadic.data,n_states,n_blocks, directed}{Original values of parameters used during estimation}
 #'     }
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
@@ -110,24 +110,27 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   ## Address missing data 
   if(missing=="indicator method"){
     # dyadic dataset
-    miss.d <- apply(data.dyad[,all.vars(formula.dyad)[-1]], 2, function(x){length(na.omit(x))}) < nrow(data.dyad)
-    md <- names(miss.d[miss.d])
-    if(length(md)>0){
-      m.ind <- apply(data.dyad[,md], 2, function(x){
-        ifelse(is.na(x), 1, 0)
-      })
-      colnames(m.ind) <- paste(colnames(m.ind), "_missing", sep="")
-      data.dyad[,md] <- apply(data.dyad[,md], 2, function(x){
-        x[is.na(x)] <- 0
-        return(x)
-      })
-      data.dyad <- cbind(data.dyad, m.ind)
-      fc <- paste(as.character(formula.dyad[[2]]), as.character(formula.dyad[[1]]),
-                  paste(c(all.vars(formula.dyad)[-1], colnames(m.ind)), collapse=" + "))
-      formula.dyad <- eval(parse(text=fc))
+    if(length(all.vars(formula.dyad[[3]]))){
+      miss.d <- apply(data.dyad[,all.vars(formula.dyad[[3]])], 2, function(x){length(na.omit(x))}) < nrow(data.dyad)
+      md <- names(miss.d[miss.d])
+      if(length(md)>0){
+        m.ind <- apply(data.dyad[,md], 2, function(x){
+          ifelse(is.na(x), 1, 0)
+        })
+        colnames(m.ind) <- paste(colnames(m.ind), "_missing", sep="")
+        data.dyad[,md] <- apply(data.dyad[,md], 2, function(x){
+          x[is.na(x)] <- 0
+          return(x)
+        })
+        data.dyad <- cbind(data.dyad, m.ind)
+        fc <- paste(as.character(formula.dyad[[2]]), as.character(formula.dyad[[1]]),
+                    paste(c(all.vars(formula.dyad)[-1], colnames(m.ind)), collapse=" + "))
+        formula.dyad <- eval(parse(text=fc))
+      }
     }
     # monadic dataset
-    miss.m <- apply(data.monad[,all.vars(formula.monad)], 2, function(x){length(na.omit(x))}) < nrow(data.monad)
+    if(length(all.vars(formula.monad[[2]]))){
+    miss.m <- apply(data.monad[,all.vars(formula.monad[[2]])], 2, function(x){length(na.omit(x))}) < nrow(data.monad)
     mm <- names(miss.m[miss.m])
     if(length(mm)>0){
       m.ind <- apply(as.data.frame(data.monad[,mm]), 2, function(x){
@@ -142,10 +145,19 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
       fc <- paste("~", paste(c(all.vars(formula.monad), colnames(m.ind)),  collapse=" + "))
       formula.monad <- eval(parse(text=fc))
     }
+    }
   }
   if(missing=="listwise deletion"){
-    mdyad <- apply(data.dyad[,all.vars(formula.dyad)], 1, function(x){!any(is.na(x))})
-    mmonad <- apply(data.monad[,all.vars(formula.monad)], 1, function(x){!any(is.na(x))})
+    if(length(all.vars(formula.dyad[[3]]))){
+      mdyad <- apply(data.dyad[,all.vars(formula.dyad[[3]])], 1, function(x){!any(is.na(x))})
+    } else {
+      mdyad <- TRUE
+    }
+    if(length(all.vars(data.monad[[2]]))){
+      mmonad <- apply(data.monad[,all.vars(formula.monad[[2]])], 1, function(x){!any(is.na(x))})
+    } else {
+      mmonad <- TRUE
+    }
     data.dyad <- data.dyad[mdyad,]
     data.monad <- data.monad[mmonad,]
     d.keep <- lapply(unique(data.dyad[,timeID]), function(x){
@@ -521,6 +533,9 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   fit$monadic.data <- monadic[order(monadic_order),]
   fit$dyadic.data <- dyadic[order(dyadic_order),]
   fit$Y <- Y[order(dyadic_order)]
+  
+  ## Include whether network is directed 
+  fit$directed <- directed
   
   ## Include internal node id's
   fit$InternalNodeIndex <- nodes_in_dyads[order(dyadic_order),] + 1

@@ -6,6 +6,14 @@ gof <- function (x, ...) {
   UseMethod("gof", x)
 }
 
+.cbind.fill<-function(...){
+  nm <- list(...) 
+  nm<-lapply(nm, as.matrix)
+  n <- max(sapply(nm, nrow)) 
+  do.call(cbind, lapply(nm, function (x) 
+    rbind(x, matrix(NA, n-nrow(x), ncol(x))))) 
+}
+
 .mpower <- function(x, p){
   orig <- x
   while(p > 1){
@@ -200,14 +208,12 @@ degree.dist <- function(fm, Y){
 
 .pi.hat <- function(X, beta){
   if(dim(beta)[3]==1){
-    mu <- exp(X %*% t(beta[,,1]))
-    mu_n <- mu/rowSums(mu)
-    pi.states <- list(t(mu_n))
+    mu <- exp(X %*% beta[,,1])
+    pi.states <- list(t(mu))
   } else {
     pi.states <- lapply(1:dim(beta)[3], function(m){
       mu <- exp(X %*% beta[,,m])
-      mu_n <- mu/rowSums(mu)
-      return(t(mu_n))
+      return(t(mu))
     })
   }
   return(pi.states)
@@ -254,12 +260,12 @@ degree.dist <- function(fm, Y){
 
 
 
-boot.mmsbm <- function(fm, Y, cov){  ## add multiple core function here (for each loop)
+boot.mmsbm <- function(fm, Y, cov, m=1000){  ## add multiple core function here (for each loop)
   results <- list()
   results.cov <- list()
   if(ncol(cov) != ncol(fm$coef)-1){cov <- cov[,match(colnames(fm$coef)[2:ncol(fm$coef)], colnames(cov))]}
   orig.order <- colSums(fm$pi) # max, min, middle (will need to adjust this)
-  for(i in 1:1000){
+  for(i in 1:m){
     samp <- sample(1:nrow(Y), nrow(Y), replace=TRUE)
     Y.samp <- Y[samp, samp]
     cov.samp <- cov[samp,]
