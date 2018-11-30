@@ -79,7 +79,7 @@ gof.mmsbm <- function(fm,
   
   net_obs <- list(igraph::graph_from_edgelist(as.matrix(el_obs), fm$directed))
   
-  if(gof_stat == "all"){
+  if((length(gof_stat) == 1) && (gof_stat == "all")){
     gof_stat <- c("Geodesics","3-Motifs", "Dyad Shared Partners", "Edge Shared Partners", "Indegree","Outdegree","Incoming K-stars")
   }
   
@@ -87,7 +87,7 @@ gof.mmsbm <- function(fm,
   sim_stats_l <- lapply(gof_stat, gof_getter, nets = nets, fm = fm)
   alpha <- (1 - level)/2 
   sim_stats <- mapply(function(x, y){
-                       if(y=="Geodesics"){
+                       if(is.list(x)){
                          x <- do.call(.cbind.fill, x)
                        }
                        x[is.na(x)] <- 0  
