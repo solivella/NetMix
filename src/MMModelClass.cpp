@@ -391,7 +391,7 @@ double MMModel::cLL()
 void MMModel::optim(bool alpha)
 {
   if(alpha){
-    //std::fill(beta.begin(), beta.end(), 0.0);
+    std::fill(beta.begin(), beta.end(), 0.0);
     vmmin_ours(N_MONAD_PRED * N_BLK * N_STATE, &beta[0], &fminAlpha, alphaLBW, alphaGrW, OPT_ITER, 0,
                &maskalpha[0], -1.0e+35, 1.0e-6, 1, this, &fncountAlpha, &grcountAlpha, &m_failAlpha);
   } else {
