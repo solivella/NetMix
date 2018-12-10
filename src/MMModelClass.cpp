@@ -193,7 +193,7 @@ ALPHA GRADIENT
 void MMModel::alphaGr(int N_PAR, double *gr)
 {
   int t, n_node_term;
-  double res,  alpha_row, sd_beta = sqrt(var_beta);
+  double res,  alpha_row;
   for(int m = 0; m < N_STATE; ++m){
     for(int g = 0; g < N_BLK; ++g){
       for(int x = 0; x < N_MONAD_PRED; ++x){
@@ -204,9 +204,9 @@ void MMModel::alphaGr(int N_PAR, double *gr)
           for(int h = 0; h < N_BLK; ++h){
             alpha_row += alpha(h, p, m);
           }
-          res += digamma(alpha_row) - digamma(alpha_row + sum_c[p]);
-          res += digamma(alpha(g, p, m) + e_c_t(g, p)) - digamma(alpha(g, p, m));
-          res *= kappa_t(m, t) * alpha(g, p, m) * x_t(x, p);
+          (R::digamma(alpha_row) - R::digamma(alpha_row + sum_c[p])
+             + R::digamma(alpha(g, p, m) + e_c_t(g, p)) - R::digamma(alpha(g, p, m)))
+            * kappa_t(m,  time_id_node[p]) * alpha(g, p, m) * x_t(x, p);
         }
         gr[x + N_MONAD_PRED * (g + N_BLK * m)] = -(res - beta(x, g, m) / var_beta);
       }
@@ -391,7 +391,7 @@ double MMModel::cLL()
 void MMModel::optim(bool alpha)
 {
   if(alpha){
-    std::fill(beta.begin(), beta.end(), 0.0);
+    //std::fill(beta.begin(), beta.end(), 0.0);
     vmmin_ours(N_MONAD_PRED * N_BLK * N_STATE, &beta[0], &fminAlpha, alphaLBW, alphaGrW, OPT_ITER, 0,
                &maskalpha[0], -1.0e+35, 1.0e-6, 1, this, &fncountAlpha, &grcountAlpha, &m_failAlpha);
   } else {

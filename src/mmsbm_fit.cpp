@@ -97,7 +97,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
 
      Model.updatePhi();
      if(N_STATE > 1){
-       //Model.updateKappa();
+       Model.updateKappa();
      }
    
    // newLL = Model.cLL();
