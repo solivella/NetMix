@@ -182,9 +182,9 @@ NumericVector alphaGr(NumericVector alpha_par,
          for(int h = 0; h < N_BLK; ++h){
            alpha_row += alpha(h, p, m);
          }
-         res += R::digamma(alpha_row) - R::digamma(alpha_row + sum_c[p]);
-         res += R::digamma(alpha(g, p, m) + e_c_t(g, p)) - R::digamma(alpha(g, p, m));
-         res *= kappa_t(m,  time_id_node[p]) * alpha(g, p, m) * x_t(x, p);
+         res += (R::digamma(alpha_row) - R::digamma(alpha_row + sum_c[p])
+                  + R::digamma(alpha(g, p, m) + e_c_t(g, p)) - R::digamma(alpha(g, p, m)))
+                    * kappa_t(m,  time_id_node[p]) * alpha(g, p, m) * x_t(x, p);
        }
        gr[x + N_MONAD_PRED * (g + N_BLK * m)] = -(res - beta(x, g, m) / var_beta);
      }
