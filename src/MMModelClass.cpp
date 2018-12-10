@@ -204,7 +204,7 @@ void MMModel::alphaGr(int N_PAR, double *gr)
           for(int h = 0; h < N_BLK; ++h){
             alpha_row += alpha(h, p, m);
           }
-          (R::digamma(alpha_row) - R::digamma(alpha_row + sum_c[p])
+          res += (R::digamma(alpha_row) - R::digamma(alpha_row + sum_c[p])
              + R::digamma(alpha(g, p, m) + e_c_t(g, p)) - R::digamma(alpha(g, p, m)))
             * kappa_t(m,  time_id_node[p]) * alpha(g, p, m) * x_t(x, p);
         }
