@@ -255,7 +255,7 @@ alphaGr(beta_rand,
         time_id_node = rep(0, N),
         kappa_t_r = matrix(1, ncol = 1, nrow = 1),
         var_beta = 1)
-(bfgs_res <- optim(c(lm.fit(net2_list[[1]]$X[[1]],log(net2_list[[1]]$pi_vecs[[1]]))$coef),#log(t(C_t)))$coef), 
+(bfgs_res <- optim(c(lm.fit(cbind(1,scale(net2_list[[1]]$X[[1]][, -1])),log(t(C_t)))$coef), 
       alphaLB,
       gr = alphaGr,
       N_STATE = N_STATE,
