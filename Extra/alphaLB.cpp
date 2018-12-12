@@ -202,15 +202,26 @@ NumericVector alphaGr(NumericVector alpha_par,
 setwd("~/Dropbox/GitHub/NetMixRoot/NetMix/")
 source("Extra/NetGenerator.R")
 library(numDeriv)
-set.seed(831213)
-true_beta <- array(c( -1.00, 2.5, 2.3, -2.2,
-                      -1.00, 2.0, -2.75, 2.25,
-                      -1.00, -2.5, 2.75, 2.75),
-                      c(4,3,1))
-  N <- 150
+#set.seed(831213)
+  
+diffs <- rep(NA, length(1000))
+deriv.diffs <- rep(NA, length(1000))
+
+N <- 150
 N_REP <- 1
 X <- list(cbind(1, runif(N), runif(N), runif(N)))
+for(i in 1:1000){
+  true_beta <- array(c(1, rnorm(3, 0, 1),
+                       1, rnorm(3, 0, 1),
+                       1, rnorm(3, 0, 1)),
+                       c(4, 3, 1))
+  #true_beta <- array(c( -1.00, 2.5, 2.3, -2.2,
+  #                      -1.00, 2.0, -2.75, 2.25,
+  #                      -1.00, -2.5, 2.75, 2.75),
+  #                      c(4,3,1))
+  #X <- list(cbind(1, runif(N), runif(N), runif(N)))
   Z <- list(cbind(runif(N^2), runif(N^2), runif(N^2)))    
+    
   net2_list <-  replicate(N_REP, 
                           NetSim(BLK = 3
                                    ,NODE = N
@@ -223,55 +234,67 @@ X <- list(cbind(1, runif(N), runif(N), runif(N)))
                                    ,gamma_vec = c(1.05, -1.05, 1.05)
                                    ,X = X
                                    ,Z = Z),
-                                     simplify = FALSE)
-N = net2_list[[1]]$NODE
-C_t = t(net2_list[[1]]$pi_vecs[[1]])*(N*2)
-N_BLK <- 3
-N_STATE <- 1
-N_MONAD_PRED <- 4
-beta_rand <- rnorm(N_MONAD_PRED*N_BLK)
-grad(alphaLB, beta_rand,
-      N_PAR =  N_MONAD_PRED * N_BLK * N_STATE,
-        N_STATE = N_STATE,
-        N_BLK = N_BLK,
-        N_MONAD_PRED = N_MONAD_PRED,
-        N_NODE = N,
-        N_TIME = 1, 
-        x_t_r = t(net2_list[[1]]$X[[1]]),
-        e_c_t = C_t,
-        time_id_node = rep(0, N),
-        kappa_t_r = matrix(1, ncol = 1, nrow = 1),
-        var_beta = 1)
-
-alphaGr(beta_rand,
-        N_MONAD_PRED * N_BLK * N_STATE,
-        N_STATE,
-        N_BLK,
-        N_MONAD_PRED,
-        N_NODE = N,
-        N_TIME = 1, 
-        x_t_r = t(net2_list[[1]]$X[[1]]),
-        e_c_t = C_t,
-        time_id_node = rep(0, N),
-        kappa_t_r = matrix(1, ncol = 1, nrow = 1),
-        var_beta = 1)
-(bfgs_res <- optim(c(lm.fit(cbind(1,scale(net2_list[[1]]$X[[1]][, -1])),log(t(C_t)))$coef), 
-      alphaLB,
-      gr = alphaGr,
-      N_STATE = N_STATE,
-      N_PAR = N_MONAD_PRED * N_BLK * N_STATE,
-      N_BLK = N_BLK,
-      N_MONAD_PRED = N_MONAD_PRED,
-      N_NODE = N,
-      N_TIME = 1, 
-      x_t_r = t(net2_list[[1]]$X[[1]]),
-      e_c_t = C_t,
-      time_id_node = rep(0, N),
-      kappa_t_r = matrix(1, ncol = 1, nrow = 1),
-      var_beta = 10,
-      control=list(maxit=10000)
-     ,method = "BFGS"
-      ))
-array(bfgs_res$par, c(4, 3))
-net2_list[[1]]$beta_arr
+                                    simplify = FALSE)
+  N = net2_list[[1]]$NODE    
+  C_t = t(net2_list[[1]]$pi_vecs[[1]])*(N*2)
+  N_BLK <- 3
+  N_STATE <- 1
+  N_MONAD_PRED <- 4
+  #beta_rand <- rnorm(N_MONAD_PRED*N_BLK)
+  d1 <- grad(alphaLB, beta_rand,
+             N_PAR =  N_MONAD_PRED * N_BLK * N_STATE,
+             N_STATE = N_STATE,
+             N_BLK = N_BLK,
+             N_MONAD_PRED = N_MONAD_PRED,
+             N_NODE = N,
+             N_TIME = 1, 
+             x_t_r = t(net2_list[[1]]$X[[1]]),
+             e_c_t = C_t,
+             time_id_node = rep(0, N),
+             kappa_t_r = matrix(1, ncol = 1, nrow = 1),
+             var_beta = 1)
+    
+  d2 <- alphaGr(beta_rand,
+                N_MONAD_PRED * N_BLK * N_STATE,
+                N_STATE,
+                N_BLK,
+                N_MONAD_PRED,
+                N_NODE = N,
+                N_TIME = 1, 
+                x_t_r = t(net2_list[[1]]$X[[1]]),
+                e_c_t = C_t,
+                time_id_node = rep(0, N),
+                kappa_t_r = matrix(1, ncol = 1, nrow = 1),
+                var_beta = 1)
+  deriv.diffs[i] <- mean((d1 - d2) / d1)
+    
+  (bfgs_res <- optim(c(lm.fit(cbind(1,scale(net2_list[[1]]$X[[1]][, -1])),
+                              scale(log(t(C_t))))$coef), 
+                               alphaLB,
+                              gr = alphaGr,
+                              N_STATE = N_STATE,
+                              N_PAR = N_MONAD_PRED * N_BLK * N_STATE,
+                              N_BLK = N_BLK,
+                              N_MONAD_PRED = N_MONAD_PRED,
+                              N_NODE = N,
+                              N_TIME = 1, 
+                              x_t_r = t(net2_list[[1]]$X[[1]]),
+                              e_c_t = C_t,
+                              time_id_node = rep(0, N),
+                              kappa_t_r = matrix(1, ncol = 1, nrow = 1),
+                              var_beta = 10,
+                              control=list(maxit=10000)
+                              #,method = "BFGS"
+                     ))
+  array(bfgs_res$par, c(4, 3))
+  net2_list[[1]]$beta_arr
+    
+  diffs[i] <- mean((net2_list[[1]]$beta_arr[,,1]) - array(bfgs_res$par, c(4, 3)) / 
+                     net2_list[[1]]$beta_arr[,,1])
+}
+hist(diffs, breaks=500, xlim=c(-20, 20), freq=FALSE, main="Standardized Difference from True Betas")
+length(which(abs(diffs) < 2)) / length(diffs) #  
+length(which(abs(diffs) < 1)) / length(diffs) # 
+    
+hist(deriv.diffs, breaks=1000)
 */
