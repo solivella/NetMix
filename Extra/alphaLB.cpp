@@ -199,7 +199,7 @@ NumericVector alphaGr(NumericVector alpha_par,
 setwd("~/Dropbox/GitHub/NetMixRoot/NetMix/")
 source("Extra/NetGenerator.R")
 library(numDeriv)
-set.seed(831213)
+#set.seed(831213)
 net1 <-  NetSim(BLK = 3
                   ,NODE = 100
                   ,STATE = 1
