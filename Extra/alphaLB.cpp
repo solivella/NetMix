@@ -63,6 +63,7 @@ double digammaDiff(double alpha, double C) {
 
 // [[Rcpp::export]]
 double alphaLB(NumericVector alpha_par,
+               const int N_PAR,
                const int N_STATE,
                const int N_BLK,
                const int N_MONAD_PRED,
@@ -129,6 +130,8 @@ double alphaLB(NumericVector alpha_par,
   res *= -1; //VMMIN minimizes.
   return res;
 }
+
+
 
 // [[Rcpp::export]]
 NumericVector alphaGr(NumericVector alpha_par,
@@ -199,32 +202,44 @@ NumericVector alphaGr(NumericVector alpha_par,
 setwd("~/Dropbox/GitHub/NetMixRoot/NetMix/")
 source("Extra/NetGenerator.R")
 library(numDeriv)
-#set.seed(831213)
-net1 <-  NetSim(BLK = 3
-                  ,NODE = 100
-                  ,STATE = 1
-                  ,TIME = 1 
-                  ,DIRECTED = TRUE
-                  ,N_PRED=0
-                  ,B_t = matrix(c(5, rep(-5, 3), 5, rep(-5, 3), 5), 
-                                ncol=3)
-                  ,beta_arr = array(c(1.25, 1.25, 1.25)*-1,
-                                    c(1, 3, 1))
-                  ,gamma_vec = c(0))
-C_t = t(net1$pi_vecs[[1]])*200
-beta_rand <- rnorm(3)
-N_MONAD_PRED <- 1
+set.seed(831213)
+true_beta <- array(c( -1.00, 2.5, 2.3, -2.2,
+                      -1.00, 2.0, -2.75, 2.25,
+                      -1.00, -2.5, 2.75, 2.75),
+                      c(4,3,1))
+  N <- 150
+N_REP <- 1
+X <- list(cbind(1, runif(N), runif(N), runif(N)))
+  Z <- list(cbind(runif(N^2), runif(N^2), runif(N^2)))    
+  net2_list <-  replicate(N_REP, 
+                          NetSim(BLK = 3
+                                   ,NODE = N
+                                   ,STATE = 1
+                                   ,TIME = 1 
+                                   ,DIRECTED = TRUE
+                                   ,N_PRED = 3
+                                   ,B_t = diag(4.5, 3,3) - 1.5
+                                   ,beta_arr = true_beta
+                                   ,gamma_vec = c(1.05, -1.05, 1.05)
+                                   ,X = X
+                                   ,Z = Z),
+                                     simplify = FALSE)
+N = net2_list[[1]]$NODE
+C_t = t(net2_list[[1]]$pi_vecs[[1]])*(N*2)
 N_BLK <- 3
 N_STATE <- 1
+N_MONAD_PRED <- 4
+beta_rand <- rnorm(N_MONAD_PRED*N_BLK)
 grad(alphaLB, beta_rand,
+      N_PAR =  N_MONAD_PRED * N_BLK * N_STATE,
         N_STATE = N_STATE,
         N_BLK = N_BLK,
         N_MONAD_PRED = N_MONAD_PRED,
-        N_NODE = 100,
+        N_NODE = N,
         N_TIME = 1, 
-        x_t_r = t(net1$X[[1]]),
+        x_t_r = t(net2_list[[1]]$X[[1]]),
         e_c_t = C_t,
-        time_id_node = rep(0, 100),
+        time_id_node = rep(0, N),
         kappa_t_r = matrix(1, ncol = 1, nrow = 1),
         var_beta = 1)
 
@@ -233,11 +248,30 @@ alphaGr(beta_rand,
         N_STATE,
         N_BLK,
         N_MONAD_PRED,
-        N_NODE = 100,
+        N_NODE = N,
         N_TIME = 1, 
-        x_t_r = t(net1$X[[1]]),
+        x_t_r = t(net2_list[[1]]$X[[1]]),
         e_c_t = C_t,
-        time_id_node = rep(0, 100),
+        time_id_node = rep(0, N),
         kappa_t_r = matrix(1, ncol = 1, nrow = 1),
         var_beta = 1)
+(bfgs_res <- optim(c(lm.fit(net2_list[[1]]$X[[1]],log(net2_list[[1]]$pi_vecs[[1]]))$coef),#log(t(C_t)))$coef), 
+      alphaLB,
+      gr = alphaGr,
+      N_STATE = N_STATE,
+      N_PAR = N_MONAD_PRED * N_BLK * N_STATE,
+      N_BLK = N_BLK,
+      N_MONAD_PRED = N_MONAD_PRED,
+      N_NODE = N,
+      N_TIME = 1, 
+      x_t_r = t(net2_list[[1]]$X[[1]]),
+      e_c_t = C_t,
+      time_id_node = rep(0, N),
+      kappa_t_r = matrix(1, ncol = 1, nrow = 1),
+      var_beta = 10,
+      control=list(maxit=10000)
+     ,method = "BFGS"
+      ))
+array(bfgs_res$par, c(4, 3))
+net2_list[[1]]$beta_arr
 */
