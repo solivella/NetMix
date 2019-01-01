@@ -79,26 +79,6 @@ double logSumExp(const std::vector<double>& invec);
 
 template <typename T> int sgn(T val);
 
-typedef double optimfn(int, double*, void*);
-typedef void optimgr(int, double*, double*, void*);
-
-
-void vmmin_ours(int,
-		double*,
-		double*,
-		optimfn,
-		optimgr,
-		int,
-		int,
-		int*,
-		double,
-		double,
-		int,
-		void*,
-		int*,
-		int*,
-		int*);
-
 
 
 #endif // AUX_HPP

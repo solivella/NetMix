@@ -83,33 +83,35 @@ List mmsbm_fit(const NumericMatrix& z_t,
   double oldLL = Model.cLL();
   if(verbose){
     Rprintf("Estimating model...\n");
-    Rprintf("\tLB 0: %f\n",oldLL);
   }
   double newLL;
   int e_iter;
   while((iter < EM_ITER) && (conv == false)){
-    checkUserInterrupt();
   // 
   //   // // E-STEP
   // 
    
    Model.getC(Old_C);
-
+   e_iter = 100;
+  // while(e_iter){
      Model.updatePhi();
-     if(N_STATE > 1){
-       Model.updateKappa();
-     }
-   
-   // newLL = Model.cLL();
+    newLL = Model.cLL();
    //  if(verbose){
-   //    Rprintf("\t\tLB after E phi %i: %f\n", iter + 1, newLL);
+       //Rprintf("\t\tLB after E phi %i: %f\n", iter + 1, newLL);
    //  }
+      if(N_STATE > 1){
+        Model.updateKappa();
+     //   newLL = Model.cLL();
+     //   // if(verbose){
+     //   Rprintf("\t\tLB after E kappa %i: %f\n", iter + 1, newLL);
+     //   // }
+      }
+    // --e_iter;
+   //}
+   
 
      
-     // newLL = Model.cLL();
-     // if(verbose){
-     //   Rprintf("\t\tLB after E kappa %i: %f\n", iter + 1, newLL);
-     // }
+     
 
      
      
@@ -119,17 +121,20 @@ List mmsbm_fit(const NumericMatrix& z_t,
     }
     Model.getB(Old_B);
     Model.getBeta(Old_Beta);
-
+    
+    // //Alpha
     Model.optim(true); //optimize alphaLB
     // newLL = Model.cLL();
-    // if(verbose){
-    //   Rprintf("\t\tLB after M alpha %i: %f\n", iter + 1, newLL);
-    // }
+    // // // if(verbose){
+    //    Rprintf("\t\tLB after M alpha %i: %f\n", iter + 1, newLL);
+    // // // }
+    
+    //Theta
     Model.optim(false); //optimize thetaLB
     // newLL = Model.cLL();
-    // if(verbose){
+    // // if(verbose){
     //   Rprintf("\t\tLB after M theta %i: %f\n", iter + 1, newLL);
-    // }
+    // // }
     
     
     //Check convergence
@@ -145,13 +150,13 @@ List mmsbm_fit(const NumericMatrix& z_t,
     //Rprintf("%i\n",Model.checkConvChng(Old_Beta.begin(), Old_Beta.end(), 2, tol));
     
     if(fabs((oldLL - newLL)/oldLL) < tol
-        //   &&
-        // (Model.checkConvChng(Old_C.begin(), Old_C.end(), 3, tol) &&
+           &&
+         Model.checkConvChng(Old_C.begin(), Old_C.end(), 3, tol) &&
         // //e_iter < 100 &&
-        // Model.checkConvChng(Old_B.begin(), Old_B.end(), 1, tol) &&
-        // Model.checkConvChng(Old_Beta.begin(), Old_Beta.end(), 2, tol) &&
-        // gamma_conv 
-        ){
+         Model.checkConvChng(Old_B.begin(), Old_B.end(), 1, tol) &&
+         Model.checkConvChng(Old_Beta.begin(), Old_Beta.end(), 2, tol) &&
+         gamma_conv 
+         ){
       conv = true;
     }
     oldLL = newLL;

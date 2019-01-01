@@ -62,8 +62,12 @@ MMModel::MMModel(const NumericMatrix& z_t,
   time_id_node({N_NODE},time_id_node),
   n_nodes_time({N_TIME}, nodes_per_period),
   sum_c(N_NODE, 0.0),
-  maskalpha(N_MONAD_PRED * N_BLK * N_STATE, 1),
-  masktheta(N_B_PAR + N_DYAD_PRED, 1),
+  lb_alpha(N_MONAD_PRED * N_BLK * N_STATE, -10.0),
+  lb_theta(N_B_PAR + N_DYAD_PRED, -10.0),
+  ub_alpha(N_MONAD_PRED * N_BLK * N_STATE, 10.0),
+  ub_theta(N_B_PAR + N_DYAD_PRED, 10.0),
+  maskalpha(N_MONAD_PRED * N_BLK * N_STATE, 2),
+  masktheta(N_B_PAR + N_DYAD_PRED, 2),
   y({N_DYAD}, y),
   theta_par({N_B_PAR + N_DYAD_PRED}, 0.0),
   e_wm({N_STATE}, 0.0),
@@ -156,68 +160,6 @@ MMModel::MMModel(const NumericMatrix& z_t,
  ALPHA LOWER BOUND
  */
 
-double MMModel::alphaLB()
-{
-  computeAlpha();
-  double res = 0.0, alpha_row = 0.0, alpha_val = 0.0;
-#pragma omp parallel for firstprivate(alpha_row, alpha_val) reduction(+:res)
-  for(int m = 0; m < N_STATE; ++m){
-    for(int p = 0; p < N_NODE; ++p){
-      alpha_row = 0.0;
-      for(int g = 0; g < N_BLK; ++g){
-        alpha_val = alpha(g, p, m);
-        alpha_row += alpha_val;
-        res += lgamma(alpha_val + e_c_t(g, p)) - lgamma(alpha_val);
-      }
-      res += lgamma(alpha_row) - lgamma(alpha_row + sum_c[p]);
-      res *= kappa_t(m, time_id_node[p]);
-    }
-    
-    //Prior for beta
-    for(int g = 0; g < N_BLK; ++g){
-      for(int x = 0; x < N_MONAD_PRED; ++x){
-        res -= 0.5 * pow(beta(x, g, m), 2.0) / var_beta;
-      }
-    }
-  }
-  
-  
-  res *= -1; //VMMIN minimizes.
-  return res;
-}
-
-/**
-ALPHA GRADIENT
-*/
-
-void MMModel::alphaGr(int N_PAR, double *gr)
-{
-  int t, n_node_term;
-  double res,  alpha_row;
-  for(int m = 0; m < N_STATE; ++m){
-    for(int g = 0; g < N_BLK; ++g){
-      for(int x = 0; x < N_MONAD_PRED; ++x){
-        res = 0.0;
-        for(int p = 0; p < N_NODE; ++p){
-          t = time_id_node[p];
-          alpha_row = 0.0;
-          for(int h = 0; h < N_BLK; ++h){
-            alpha_row += alpha(h, p, m);
-          }
-          res += (R::digamma(alpha_row) - R::digamma(alpha_row + sum_c[p])
-             + R::digamma(alpha(g, p, m) + e_c_t(g, p)) - R::digamma(alpha(g, p, m)))
-            * kappa_t(m,  time_id_node[p]) * alpha(g, p, m) * x_t(x, p);
-        }
-        gr[x + N_MONAD_PRED * (g + N_BLK * m)] = -(res - beta(x, g, m) / var_beta);
-      }
-    }
-  }
-}
-
-
-/**
-ALPHA COMPUTATION
-*/
 
 void MMModel::computeAlpha()
 {
@@ -241,93 +183,79 @@ void MMModel::computeAlpha()
   }
 }
 
+double MMModel::alphaLB()
+{
+  computeAlpha();
+  double res = 0.0, res_int, alpha_row = 0.0, alpha_val = 0.0;
+#pragma omp parallel for firstprivate(alpha_row, alpha_val, res_int) reduction(+:res)
+  for(int m = 0; m < N_STATE; ++m){
+    for(int p = 0; p < N_NODE; ++p){
+      alpha_row = 0.0;
+      res_int = 0.0;
+      for(int g = 0; g < N_BLK; ++g){
+        alpha_val = alpha(g, p, m);
+        alpha_row += alpha_val;
+        res_int += (lgamma(alpha_val + e_c_t(g, p)) - lgamma(alpha_val));
+      }
+      res_int += (lgamma(alpha_row) - lgamma(alpha_row + sum_c[p]));
+      res += res_int * kappa_t(m, time_id_node[p]);
+    }
+    
+    //Prior for beta 
+    for(int g = 0; g < N_BLK; ++g){
+      res -= log(1.0 + pow(beta(0, g, m),2.0)/100);
+      for(int x = 1; x < N_MONAD_PRED; ++x){
+        res -= log(1.0 + pow(beta(x, g, m), 2.0)/1.5625);
+      }
+    }
+  }
+  
+  return -res/N_NODE;
+}
+
+/**
+ALPHA GRADIENT
+*/
+
+void MMModel::alphaGr(int N_PAR, double *gr)
+{
+  //computeAlpha();
+  double res=0.0, alpha_row=0.0, prior_gr=0.0;
+  for(int m = 0; m < N_STATE; ++m){
+    for(int g = 0; g < N_BLK; ++g){
+      for(int x = 0; x < N_MONAD_PRED; ++x){
+        res = 0.0;
+#pragma omp parallel for firstprivate(alpha_row) reduction(+:res)
+        for(int p = 0; p < N_NODE; ++p){
+          alpha_row = 0.0;
+          for(int h = 0; h < N_BLK; ++h){
+            alpha_row += alpha(h, p, m);
+          }
+          res += (R::digamma(alpha_row) - R::digamma(alpha_row + sum_c[p])
+                    + R::digamma(alpha(g, p, m) + e_c_t(g, p)) - R::digamma(alpha(g, p, m)))
+            * kappa_t(m,  time_id_node[p]) * alpha(g, p, m) * x_t(x, p);
+        }
+        if(x!=0){
+          prior_gr = 2 * beta(x, g, m) / (pow(beta(x, g, m), 2.0) + 1.5625);
+        } else {
+          prior_gr =  2 * (beta(x, g, m)) / (pow(beta(x, g, m), 2.0) + 100);
+        }
+        gr[x + N_MONAD_PRED * (g + N_BLK * m)] = -(res - prior_gr);
+      }
+    }
+  }
+  for(int i = 0; i < N_PAR; ++i){
+    gr[i] /= N_NODE;
+  }
+}
+
+
+
+
 
 
 /**
  THETA LB
- */
-
-double MMModel::thetaLB(bool entropy = false)
-{
-  computeTheta();
-  
-  double res = 0.0;
-  for(int d = 0; d < N_DYAD; ++d){
-    for(int g = 0; g < N_BLK; ++g){
-      if(entropy){
-        res += send_phi(g, d) * log(send_phi(g, d));
-        res += rec_phi(g, d) * log(rec_phi(g, d));
-      }
-      for(int h = 0; h < N_BLK; ++h){
-        res -= send_phi(g, d) * rec_phi(h, d) * (y[d] * log(theta(h, g, d)) 
-                                                   + (1.0 - y[d]) * log(1.0 - theta(h, g, d)));
-      }
-    }
-  }
-  //Rprintf("res now 2: %f\n", res);
-  
-  
-  
-  //Prior for gamma
-  for(int z = 0; z < N_DYAD_PRED; ++z){
-    res += pow(gamma[z], 2.0) / (2.0 * var_gamma);
-  }
-  
-  //Rprintf("res now 3: %f\n", res);
-  
-  
-  //Prior for B
-  // for(int g = 0; g < N_BLK; ++g){
-  //   for(int h = 0; h < N_BLK; ++h){
-  //     res += pow(b_t(h, g) - mu_b_t(h, g), 2.0) / (2.0 * var_b_t(h, g));
-  //   }
-  // }
-  //Rprintf("res now 4: %f\n", res);
-  return res;
-}
-
-
-/**
- GRADIENT FOR THETA
- */
-void MMModel::thetaGr(int N_PAR, double *gr)
-{
-  double res2, res;
-  for(int i = 0; i < N_PAR; ++i){
-    gr[i] = 0.0;
-  }
-  
-  
-  for(int g = 0; g < N_BLK; ++g){
-    for(int h = 0; h < N_BLK; ++h){
-      if(!directed & (h < g)){
-        continue;
-      }
-      for(int d = 0; d < N_DYAD; ++d){
-        res2 = send_phi(g, d) * rec_phi(h, d) * (y[d] - theta(h, g, d));
-        res += res2;
-        for(int z = 0; z < N_DYAD_PRED; ++z){
-          gr[N_B_PAR + z] -= res2 - gamma[z] / var_gamma;
-        }
-      }
-      gr[par_ind(h, g)] = -res;
-    }
-  }
-  
-  // for(int g = 0; g < N_BLK; ++g){
-  //   for(int h = 0; h < N_BLK; ++h){
-  //     if((h < g) && !directed){
-  //       continue;
-  //     }
-  //     npar = par_ind(h, g);
-  //     gr[npar] += (b_t(h, g) - mu_b_t(h, g)) / var_b_t(h, g);
-  //   }
-  // }
-}
-
-
-/**
- COMPUTE THETA
  */
 
 void MMModel::computeTheta()
@@ -339,7 +267,7 @@ void MMModel::computeTheta()
   }
   if(N_DYAD_PRED > 0){
     for(int z = 0; z < N_DYAD_PRED; ++z){
-       gamma[z] = theta_par[N_B_PAR + z];
+      gamma[z] = theta_par[N_B_PAR + z];
     }
   }
   
@@ -359,25 +287,108 @@ void MMModel::computeTheta()
   }
 }
 
+double MMModel::thetaLB(bool entropy = false)
+{
+  computeTheta();
+  
+  double res = 0.0;
+#pragma omp parallel for collapse(3) reduction(+:res)
+  for(int d = 0; d < N_DYAD; ++d){
+    for(int g = 0; g < N_BLK; ++g){
+      for(int h = 0; h < N_BLK; ++h){
+      if(entropy & (h==0)){
+        res -= send_phi(g, d) * log(send_phi(g, d));
+        res -= rec_phi(g, d) * log(rec_phi(g, d));
+      }
+        res += send_phi(g, d) * rec_phi(h, d) * (y[d] * log(theta(h, g, d)) 
+                                                   + (1.0 - y[d]) * log(1.0 - theta(h, g, d)));
+      }
+    }
+  }
+  //Rprintf("res now 2: %f\n", res);
+  
+  
+  
+  //Prior for gamma
+  for(int z = 0; z < N_DYAD_PRED; ++z){
+    res -= log(1.0 + pow(gamma[z], 2.0)/1.5625);
+  }
+  
+  //Rprintf("res now 3: %f\n", res);
+  
+  
+  //Prior for B
+  for(int g = 0; g < N_BLK; ++g){
+    for(int h = 0; h < N_BLK; ++h){
+      res -= log(1.0 + pow(b_t(h, g) - mu_b_t(h, g), 2.0)/100);
+    }
+  }
+  //Rprintf("res now 4: %f\n", res);
+  return -res/N_DYAD;
+}
+
+
+
+
+/**
+ GRADIENT FOR THETA
+ */
+void MMModel::thetaGr(int N_PAR, double *gr)
+{
+  double res2, res = 0.0;
+  for(int i = 0; i < N_PAR; ++i){
+    gr[i] = 0.0;
+  }
+  
+  
+  for(int g = 0; g < N_BLK; ++g){
+    for(int h = 0; h < N_BLK; ++h){
+      res = 0.0;
+      if(!directed & (h < g)){
+        continue;
+      }
+      for(int d = 0; d < N_DYAD; ++d){
+        res2 = send_phi(g, d) * rec_phi(h, d) * (y[d] - theta(h, g, d));
+        res += res2;
+        for(int z = 0; z < N_DYAD_PRED; ++z){
+          gr[N_B_PAR + z] -= res2 * z_t(z,d);
+        }
+      }
+      for(int z = 0; z < N_DYAD_PRED; ++z){
+        gr[N_B_PAR + z] += 2 * gamma[z] / (pow(gamma[z], 2.0) + 1.5625);
+      }
+      gr[par_ind(g, h)] = -res - 2 * (mu_b_t(g, h) - b_t(g, h))
+        / (pow(mu_b_t(g, h), 2.0) + 100 - 2 * mu_b_t(g, h) + pow(b_t(g, h), 2.0));
+    }
+  }
+  for(int i = 0; i < N_PAR; ++i){
+    gr[i] /= N_DYAD;
+  }
+}
+
+
+
+
+
 double MMModel::cLL()
 {
-  double res = -(thetaLB(true));
-  //Rprintf("Res 1: %f\n", res);
+  double res = 0.0;
+  //res -= thetaLB(true);
+  //Rprintf("Res1 is %f\n", res);
   res -= alphaLB();
-  //Rprintf("Res 2: %f\n", res);
+// Rprintf("Res2 is %f\n", res);
   for(int t = 0; t < N_TIME; ++t){
     for(int m = 0; m < N_STATE; ++m){
       if(t == 0){
         res -= lgamma(static_cast<double>(N_STATE) * eta + e_wm[m]);
-       //Rprintf("Res 3: %f\n", res);
         for(int n = 0; n < N_STATE; ++n){
           res += lgamma(eta + e_wmn_t(n, m));
         }
-        //Rprintf("Res 4: %f\n", res);
       }
+      //Rprintf("Res3 is %f\n", res);
       //Entropy for kappa
       res -= kappa_t(m, t) * log(kappa_t(m, t));
-      //Rprintf("Res 5: %f\n", res);
+      //Rprintf("Res4 is %f\n", res);
     }
   }
   res += lgamma(static_cast<double>(N_STATE) * eta) - lgamma(eta);
@@ -390,14 +401,53 @@ double MMModel::cLL()
 
 void MMModel::optim(bool alpha)
 {
+  Rcpp::checkUserInterrupt();
+  char msg[60];
   if(alpha){
-    //std::fill(beta.begin(), beta.end(), 0.0);
-    vmmin_ours(N_MONAD_PRED * N_BLK * N_STATE, &beta[0], &fminAlpha, alphaLBW, alphaGrW, OPT_ITER, 0,
-               &maskalpha[0], -1.0e+35, 1.0e-6, 1, this, &fncountAlpha, &grcountAlpha, &m_failAlpha);
+    std::fill(beta.begin(), beta.end(), 0.0);
+    lbfgsb(N_MONAD_PRED * N_BLK * N_STATE, //n
+           5,//m
+           &beta[0], //x
+           &lb_alpha[0], //l
+           &ub_alpha[0], //u
+           &maskalpha[0],// nbd  
+           &fminAlpha, //fMin
+           alphaLBW,//fminfn
+           alphaGrW,//fmingr
+           &m_failAlpha,//fail
+           this,//ex
+           1e7, 0.0, &fncountAlpha, &grcountAlpha, OPT_ITER, msg, 0, 1);
   } else {
     //std::fill(theta_par.begin(), theta_par.end(), 0.0);
-    vmmin_ours(N_B_PAR + N_DYAD_PRED, &theta_par[0], &fminTheta, thetaLBW, thetaGrW, OPT_ITER, 0,
-               &masktheta[0], -1.0e+35, 1.0e-6, 1, this, &fncountTheta, &grcountTheta, &m_failTheta);
+    lbfgsb(N_B_PAR + N_DYAD_PRED, //n
+           5,//m
+           &theta_par[0], //x
+           &lb_theta[0], //l
+           &ub_theta[0], //u
+           &masktheta[0],// nbd
+           &fminTheta, //fMin
+           thetaLBW,//fminfn
+           thetaGrW,//fmingr
+           &m_failTheta,//fail
+           this,//ex
+           1e7, 0.0, &fncountTheta, &grcountTheta, OPT_ITER, msg, 0, 1);
+    
+    // vmmin(N_B_PAR + N_DYAD_PRED, //n
+    //        &theta_par[0], //
+    //        &fminTheta,
+    //        thetaLBW,
+    //        thetaGrW,
+    //        OPT_ITER,
+    //        0,
+    //        &masktheta[0],//double* nbd
+    //        -1e18,
+    //        1e-8,
+    //        1,
+    //        this,
+    //        &fncountTheta,
+    //        &grcountTheta,
+    //        &m_failTheta
+    //        );
   }
 }
 
@@ -431,7 +481,8 @@ void MMModel::alphaGrW(int n, double *par, double *gr, void *ex)
 
 void MMModel::updateKappa()
 {
-  //computeAlpha();
+  Rcpp::checkUserInterrupt();
+  
   std::vector<double> kappa_vec(N_STATE);
   double res, log_denom;
   for(int t = 1; t < N_TIME; ++t){
@@ -504,7 +555,8 @@ void MMModel::updateKappa()
  VARIATIONAL UPDATE FOR PHI
  */
 
-void MMModel::updatePhiInternal(int dyad, int rec,
+void MMModel::updatePhiInternal(int dyad,
+                                int rec,
                                 double *phi,
                                 double *phi_o,
                                 double *new_c,
@@ -517,18 +569,19 @@ void MMModel::updatePhiInternal(int dyad, int rec,
   //Rprintf("Time is %i, dyad is %i\n", t, dyad);
   int incr1 = rec ? 1 : N_BLK;
   int incr2 = rec ? N_BLK : 1;
-  int node = node_id_dyad(dyad, rec);
+  int p = node_id_dyad(dyad, rec);
   double *theta_temp = &theta(0, 0, dyad);
   double *te;
   
-  double total = 0.0, res;
-    //double max_val = -std::numeric_limits<double>::infinity();
+  double res = 0.0;
+  //double max_val = -std::numeric_limits<double>::infinity();
+  double total = 0.0;
   for(int g = 0; g < N_BLK; ++g, theta_temp+=incr1){
     res = 0.0;
     for(int m = 0; m < N_STATE; ++m){
-      res += kappa_t(m, t) * log(alpha(g, node, m) + e_c_t(g, node) - phi[g]);
+      res += kappa_t(m, t) * log(alpha(g, p, m) + e_c_t(g, p) - phi[g]);
     }
-    
+
     te = theta_temp;
     for(int h = 0; h < N_BLK; ++h, te+=incr2){
       res += phi_o[h] * (edge * log(*te) + (1.0 - edge) * log(1.0 - *te));
@@ -537,14 +590,14 @@ void MMModel::updatePhiInternal(int dyad, int rec,
     phi[g] = exp(res);
     //phi[g] = res;
     //max_val = res > max_val ? res : max_val;
-    if(!std::isfinite(phi[g])){
-      err = 1;
-    }
     total += phi[g];
   }
   // for(int g = 0; g < N_BLK; ++g){
   //   phi[g] -= max_val;
   //   phi[g] = exp(phi[g]);
+  //   if(!std::isfinite(phi[g])){
+  //     err = 1;
+  //   }
   //   total += phi[g];
   // }
   
@@ -552,19 +605,19 @@ void MMModel::updatePhiInternal(int dyad, int rec,
   //and store new value in c
   for(int g = 0; g < N_BLK; ++g){
     phi[g] /= total;
-    new_c[g] += phi[g];      
+    new_c[g] += phi[g];
   }
 }
 
 
 void MMModel::updatePhi()
 {
+  Rcpp::checkUserInterrupt();
   for(int thread = 0; thread < N_THREAD; ++thread){
     std::fill(new_e_c_t[thread].begin(), new_e_c_t[thread].end(), 0.0);
   }
-  // computeTheta();
-   // computeAlpha();
-  // 
+  computeTheta();
+  computeAlpha();
 #pragma omp parallel
 {
   int thread = 0;

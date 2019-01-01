@@ -6,7 +6,7 @@
 \usage{
 mmsbm(formula.dyad, formula.monad = ~1, senderID, receiverID, nodeID = NULL,
   timeID = NULL, data.dyad, data.monad = NULL, n.groups, n.hmmstates = 1,
-  directed = TRUE, mmsbm.control = list())
+  directed = TRUE, missing = "indicator method", mmsbm.control = list())
 }
 \arguments{
 \item{formula.dyad}{A \code{formula} object. The variable in \code{data.dyad} that contains 
@@ -17,20 +17,20 @@ Same syntax as a \code{glm} formula.}
 \item{formula.monad}{An optional \code{formula} object. LHS is ignored. RHS contains 
 names of nodal atrributes found in \code{data.monad}.}
 
-\item{senderID}{Charater string. Quoted name of the variable in \code{data.dyad} identifying 
+\item{senderID}{Character string. Quoted name of the variable in \code{data.dyad} identifying 
 the sender node. For undirected networks, the variable simply contains name of first node 
 in dyad.}
 
-\item{receiverID}{Charater string. Quoted name of the variable in \code{data.dyad} identifying 
+\item{receiverID}{Character string. Quoted name of the variable in \code{data.dyad} identifying 
 the receiver node. For undirected networks, the variable simply contains name of second node 
 in dyad.}
 
-\item{nodeID}{Charater string. Quoted name of the variable in \code{data.monad} identifying 
+\item{nodeID}{Character string. Quoted name of the variable in \code{data.monad} identifying 
 a node in either \code{data.dyad[,senderID]} or \code{data.dyad[,senderID]}. If not \code{NULL},
 every node \code{data.dyad[,senderID]} or \code{data.dyad[,senderID]} must be present in 
 \code{data.monad[,nodeID]}.}
 
-\item{timeID}{Charater string. Quoted name of the variable in both \code{data.dyad} and
+\item{timeID}{Character string. Quoted name of the variable in both \code{data.dyad} and
 \code{data.monad} indicating the time in which network (and correspding nodal atrributes)
 were observed. The variable itself must be composed of integers.}
 
@@ -48,6 +48,8 @@ used in the \code{data.dyad} data frame.}
 to 1 (i.e. no HMM).}
 
 \item{directed}{Boolean. Is the network directed? Defaults to \code{TRUE}.}
+
+\item{missing}{Means of handling missing data. One of "indicator method" (default) or "listwise deletion".}
 
 \item{mmsbm.control}{A named list of optional algorithm control parameters.
 \describe{
@@ -90,7 +92,7 @@ Object of class \code{mmsbm}. List with named components:
                    \code{n.hmmstates} by years (or whatever time interval networks are observed at)}
       \item{LowerBound}{Value of the lower bound at final iteration}
       \item{niter}{Final number of VI iterations}
-      \item{monadic.data,dyadic.data,n_states,n_blocks}{Original values of parameters used during estimation}
+      \item{monadic.data,dyadic.data,n_states,n_blocks, directed}{Original values of parameters used during estimation}
     }
 }
 \description{
