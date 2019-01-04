@@ -47,7 +47,7 @@ NetSim <- function(BLK = 3,
     kappa_mat[1, ] <- piInit
     if(TIME > 1){
       for(i in 2:(TIME)){
-        kappa_mat[i, ] <- piInit %*% NetMix::.mpower(A_orig, i) 
+        kappa_mat[i, ] <- piInit %*% NetMix:::.mpower(A_orig, i) 
         sVec[i] <- which(rmultinom(1,1,kappa_mat[i, ])==1)
       }
     }
