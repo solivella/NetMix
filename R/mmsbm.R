@@ -240,7 +240,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                b_init_t = NULL,
                beta_init = NULL,
                gamma_init = NULL,
-               init = "spectral",
+               init = "spectral", # should this be "kmeans"?
                lda_iter = 250,
                lda_alpha = 1,
                max_em_iter = 5000,
@@ -336,7 +336,12 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                             L <- D %*% G %*% D 
                             res <- eigen(L, symmetric = TRUE)
                             ord <- order(abs(res$values), decreasing = TRUE)
-                            X_eigen <- res$vectors[,ord[2:n.groups]]/res$vectors[,ord[1]]
+                            #X_eigen <- res$vectors[,ord[2:n.groups]]/res$vectors[,ord[1]]
+                            # above step creates NaN because it divides by zero
+                            # so I subtract a small amount
+                            divid <- res$vectors[,ord[1]]
+                            divid[divid==0] <- -0.01
+                            X_eigen <- res$vectors[,ord[2:n.groups]]/divid
                             clust_internal <- fitted(kmeans(X_eigen,
                                                             n.groups,
                                                             nstart = 15),"classes")
