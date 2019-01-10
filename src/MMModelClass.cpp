@@ -176,7 +176,7 @@ void MMModel::computeAlpha()
         linpred = exp(linpred);
         row_sum += linpred;
         alpha(g, p, m) = linpred;
-        alpha_term(m, time_id_node[p]) += lgamma(alpha(g, p, m) + e_c_t(g, p)) - lgamma(alpha(g, p, m));
+        alpha_term(m, time_id_node[p]) += lgamma(linpred + e_c_t(g, p)) - lgamma(linpred);
       }
       alpha_term(m, time_id_node[p]) += lgamma(row_sum) - lgamma(row_sum + sum_c[p]);
     }
@@ -186,7 +186,7 @@ void MMModel::computeAlpha()
 double MMModel::alphaLB()
 {
   computeAlpha();
-  double res = 0.0, res_int, alpha_row = 0.0, alpha_val = 0.0;
+  double res = 0.0, res_int = 0.0, alpha_row = 0.0, alpha_val = 0.0;
 #pragma omp parallel for firstprivate(alpha_row, alpha_val, res_int) reduction(+:res)
   for(int m = 0; m < N_STATE; ++m){
     for(int p = 0; p < N_NODE; ++p){
@@ -264,18 +264,13 @@ void MMModel::computeTheta()
     for(int h = 0; h < N_BLK; ++h){
       b_t(g, h) = theta_par[par_ind(h, g)];
     }
-  }
-  if(N_DYAD_PRED > 0){
-    for(int z = 0; z < N_DYAD_PRED; ++z){
-      gamma[z] = theta_par[N_B_PAR + z];
-    }
-  }
-  
+  }  
 #pragma omp parallel for
   for(int d = 0; d < N_DYAD; ++d){
     double linpred = 0.0;
     if(N_DYAD_PRED > 0){
       for(int z = 0; z < N_DYAD_PRED; ++z){
+	gamma[z] = theta_par[N_B_PAR + z];
         linpred -= z_t(z, d) * gamma[z];
       }
     }
@@ -300,8 +295,8 @@ double MMModel::thetaLB(bool entropy = false)
         res -= send_phi(g, d) * log(send_phi(g, d));
         res -= rec_phi(g, d) * log(rec_phi(g, d));
       }
-        res += send_phi(g, d) * rec_phi(h, d) * (y[d] * log(theta(h, g, d)) 
-                                                   + (1.0 - y[d]) * log(1.0 - theta(h, g, d)));
+      res += send_phi(g, d) * rec_phi(h, d) * (y[d] * log(theta(h, g, d)) 
+					       + (1.0 - y[d]) * log(1.0 - theta(h, g, d)));
       }
     }
   }
@@ -373,10 +368,10 @@ void MMModel::thetaGr(int N_PAR, double *gr)
 double MMModel::cLL()
 {
   double res = 0.0;
-  //res -= thetaLB(true);
+  res -= thetaLB(true);
   //Rprintf("Res1 is %f\n", res);
   res -= alphaLB();
-// Rprintf("Res2 is %f\n", res);
+  //Rprintf("Res2 is %f\n", res);
   for(int t = 0; t < N_TIME; ++t){
     for(int m = 0; m < N_STATE; ++m){
       if(t == 0){
@@ -387,7 +382,7 @@ double MMModel::cLL()
       }
       //Rprintf("Res3 is %f\n", res);
       //Entropy for kappa
-      res -= kappa_t(m, t) * log(kappa_t(m, t));
+      res -= kappa_t(m, t) * log(kappa_t(m, t) + 1e-8);
       //Rprintf("Res4 is %f\n", res);
     }
   }
@@ -616,8 +611,7 @@ void MMModel::updatePhi()
   for(int thread = 0; thread < N_THREAD; ++thread){
     std::fill(new_e_c_t[thread].begin(), new_e_c_t[thread].end(), 0.0);
   }
-  computeTheta();
-  computeAlpha();
+  
 #pragma omp parallel
 {
   int thread = 0;

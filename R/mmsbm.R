@@ -36,7 +36,7 @@
 #' @param mmsbm.control A named list of optional algorithm control parameters.
 #'     \describe{
 #'        \item{init}{Type of initialization algorithm for mixed-membership vectors. One of
-#'                    \code{kmeans} (default), \code{spectral}, or \code{lda} (see
+#'                    \code{spectral} (default), \code{random}, or \code{lda} (see
 #'                     \code{\link[lda:lda.collapsed.gibbs.sampler]{mmsb.collapsed.gibbs.sampler}} for details about this function.)}
 #'        \item{lda_iter}{If \code{init="lda"}, number of MCMC iterations to obtain initial values. Defaults to 250}
 #'        \item{lda_alpha}{If \code{init="lda"}, value of \code{alpha} hyperparameter. Defaults to 1}
@@ -335,8 +335,9 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                             D <- diag(1/sqrt(rowSums(G)+1))
                             L <- D %*% G %*% D 
                             res <- eigen(L, symmetric = TRUE)
-                            ord <- order(abs(res$values), decreasing = TRUE)
-                            X_eigen <- res$vectors[,ord[2:n.groups]]/res$vectors[,ord[1]]
+                            ord_eigen <- order(abs(res$values), decreasing = TRUE)
+                            eta_spectral <- res$vectors %*% diag(res$values)
+                            X_eigen <- eta_spectral[,ord_eigen[2:n.groups]]/eta_spectral[,ord_eigen[1]]
                             clust_internal <- fitted(kmeans(X_eigen,
                                                             n.groups,
                                                             nstart = 15),"classes")
@@ -418,6 +419,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
     }
   }
   
+  print(ctrl$b_init_t)
   ## Initial value of monadic coefficients
   if(is.null(ctrl$beta_init)){
     ## Attach mm matrix to monadic df
@@ -432,8 +434,8 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                                n_row <- nrow(dat)
                                X_internal <-  model.matrix(formula.monad, data=dat)
                                Y_internal <- as.matrix(dat[,tail(names(dat), n.groups)])
-                               Y_transf <- as.matrix(log(Y_internal))
-                               beta <- lm.fit(X_internal, Y_transf)$coefficients
+                               #Y_transf <- as.matrix(log(Y_internal))
+                               beta <- lm.fit(X_internal, Y_internal)$coefficients
                                return(list(beta=beta))
                              }) 
     
