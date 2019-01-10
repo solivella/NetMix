@@ -43,7 +43,13 @@ predict.mmsbm <- function(fm,
     tid <- "(tid)"
     dyad <- fm$dyadic.data
   }
-  X_d <- model.matrix(eval(fm$call$formula.dyad), dyad)[, -1]
+  dform <- fm$call$formula.dyad
+  if(any(grepl("missing", names(fm$DyadCoef)))){
+    dform <- update(as.formula(fm$call$formula.dyad), 
+                    paste(c("~ .", names(fm$DyadCoef)[grep("missing", 
+                                    names(fm$DyadCoef))]), collapse=" + "))
+  }
+  X_d <- model.matrix(eval(dform), dyad)[, -1]
   if(length(fm$DyadCoef)==0){
     fm$DyadCoef <- as.vector(0)
   }
@@ -62,20 +68,26 @@ predict.mmsbm <- function(fm,
     monad <- fm$monadic.data
   }
   n_blk <- fm$n_blocks
+  mform <- fm$call$formula.monad
+  if(any(grepl("missing", rownames(fm$MonadCoef)))){
+    mform <- update(as.formula(fm$call$formula.monad), 
+                    paste(c("~ .", rownames(fm$MonadCoef)[grep("missing", 
+                                      rownames(fm$MonadCoef))]), collapse=" + "))
+  }
   if(!parametric_mm){
     p <- fm$MixedMembership
   } else {
     if(is.null(fm$call$formula.monad)){
       X_m <- model.matrix(~ 1, data = monad)
     } else {
-      X_m <- model.matrix(eval(fm$call$formula.monad), monad)
+      X_m <- model.matrix(eval(mform), monad)
     }
     alpha <- .pi.hat(X_m, fm$MonadCoef)
     if(forecast){
       new_kappa <- fm$Kappa[,ncol(fm$Kappa)] %*% .mpower(fm$TransitionKernel, forecast)
       p <- .e.pi(alpha, new_kappa)
     } else {
-      p <- .e.pi(alpha, fm$Kappa[,monad[,tid]])
+      p <- .e.pi(alpha, fm$Kappa[,as.character(monad[,tid])])
     }
   }
   eta_dyad <- X_d %*% as.matrix(fm$DyadCoef)

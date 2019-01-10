@@ -103,7 +103,7 @@ gof <- function (x, ...) {
 }
 
 
-cluster.mems <- function(fm, t, n=10, demean=FALSE){
+cluster.mems <- function(fm, t=unique(fm$dyadic.data$`(tid)`), n=10, demean=FALSE){
     Mem <- fm$MixedMembership[,fm$monadic.data[,"(tid)"] %in% t]
     Nodes <- unlist(lapply(strsplit(colnames(Mem), "@"), "[[", 1))
     node.mems <- t(do.call(cbind, lapply(unique(Nodes), function(x){

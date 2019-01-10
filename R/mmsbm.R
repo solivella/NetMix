@@ -88,7 +88,8 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   
   stopifnot(class(formula.dyad) == "formula",
             class(formula.monad) == "formula",
-            is.data.frame(data.dyad))
+            is.data.frame(data.dyad),
+            length(unique(data.monad[,timeID])) > n.hmmstates)
   if(!is.null(data.monad)){
     stopifnot(is.data.frame(data.monad),
               !is.null(nodeID))
@@ -338,7 +339,10 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                             res <- eigen(L, symmetric = TRUE)
                             ord_eigen <- order(abs(res$values), decreasing = TRUE)
                             eta_spectral <- res$vectors %*% diag(res$values)
-                            X_eigen <- eta_spectral[,ord_eigen[2:n.groups]]/eta_spectral[,ord_eigen[1]]
+                            X_eigen <- eta_spectral[,ord_eigen[2:n.groups]]/eta_spectral[,ord_eigen[1]] # divide by zero
+                            d <- eta_spectral[,ord_eigen[1]] # temp
+                            if(any(d==0)){d[d==0] <- -0.001} # temp
+                            X_eigen <- eta_spectral[,ord_eigen[2:n.groups]]/d # temp
                             clust_internal <- fitted(kmeans(X_eigen,
                                                             n.groups,
                                                             nstart = 15),"classes")
