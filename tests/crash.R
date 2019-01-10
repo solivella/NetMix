@@ -1,27 +1,19 @@
-load("tests/MIDdata.Rdata") 
 library(NetMix)
-#set.seed(9999)
-#rand_phis <- prop.table(matrix(runif(length(node_names)*4), c(4, length(node_names))), 2)
-#colnames(rand_phis) <- node_names
-system.time(fit_onset_pW <- mmsbm(formula.dyad = MID_onset ~ IGOmems_joint + trade_dep_low + 
-                                    ally + contiguity + dist +
-                                    peaceyrs + spline1 + spline2 + spline3,
-                                  formula.monad =  ~ polity + logNMC,
-                                  data.dyad = MID_dyad, data.monad = MID_monad,
-                                  senderID = "country1", receiverID = "country2", 
-                                  nodeID = "country", 
-                                  timeID = "year",
-                                  n.groups = 4, 
-                                  n.hmmstates = 3,
-                                  directed=FALSE,
-                                  mmsbm.control = list(
-                                    init = "spectral",
-                                    verbose = TRUE,
-                                    em_iter = 3000,
-                                    conv_tol = 1e-6,
-                                    #phi_init_t = rand_phis,
-                                    #eta = 1,
-                                    threads = 4
-                                  )))
+source("Extra/NetGenerator.R")
+set.seed(9999)
+sim <- NetSim(BLK=3, NODE=30, STATE=2, TIME=10, DIRECTED=TRUE, N_PRED=3,
+              beta_arr = array(rnorm(12), dim=c(4,3,2)),
+              gamma_vec = rnorm(3, 2, 0.1))
 
+set.seed(9999)
+f <-  mmsbm(formula.dyad = Y ~ 1,
+            formula.monad = ~ V1 + V2 + V3,
+            data.dyad = sim$dyad.data, 
+            data.monad = sim$monad.data,
+            senderID="sender", receiverID="receiver",
+            nodeID="node", timeID="year",
+            n.groups=sim$BLK, n.hmmstates=sim$STATE,
+            directed=TRUE,
+            mmsbm.control = list(verbose = TRUE,
+                                 threads = parallel::detectCores()))
 

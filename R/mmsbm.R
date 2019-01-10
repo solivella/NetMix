@@ -240,7 +240,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                b_init_t = NULL,
                beta_init = NULL,
                gamma_init = NULL,
-               init = "spectral",
+               init = "spectral", # should this be "kmeans"?
                lda_iter = 250,
                lda_alpha = 1,
                max_em_iter = 5000,
@@ -331,8 +331,9 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
     if(ctrl$init=="spectral"){
       phi_init  <- lapply(soc_mats,
                           function(W){
-                            G <- W %*% t(W) + t(W) %*% W 
-                            D <- diag(1/sqrt(rowSums(G)+1))
+                              G <- W %*% t(W) + t(W) %*% W ##bibliometric symmetrization
+                              degs  <- rowSums(G)
+                            D <- diag(1/sqrt(degs+0.1*max(degs)))
                             L <- D %*% G %*% D 
                             res <- eigen(L, symmetric = TRUE)
                             ord_eigen <- order(abs(res$values), decreasing = TRUE)
