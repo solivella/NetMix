@@ -330,19 +330,16 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   
   if(is.null(ctrl$phi_init_t)) {
     if(ctrl$init=="spectral"){
+      test <- 1
       phi_init  <- lapply(soc_mats,
                           function(W){
                               G <- W %*% t(W) + t(W) %*% W ##bibliometric symmetrization
                               degs  <- rowSums(G)
                             D <- diag(1/sqrt(degs+0.1*max(degs)))
-                            L <- D %*% G %*% D 
+                            L <- D %*% (G + 0.1*max(degs)) %*% D 
                             res <- eigen(L, symmetric = TRUE)
-                            ord_eigen <- order(abs(res$values), decreasing = TRUE)
                             eta_spectral <- res$vectors %*% diag(res$values)
-                            X_eigen <- eta_spectral[,ord_eigen[2:n.groups]]/eta_spectral[,ord_eigen[1]] # divide by zero
-                            d <- eta_spectral[,ord_eigen[1]] # temp
-                            if(any(d==0)){d[d==0] <- -0.001} # temp
-                            X_eigen <- eta_spectral[,ord_eigen[2:n.groups]]/d # temp
+                            X_eigen <- eta_spectral[,2:n.groups]/eta_spectral[,1] 
                             clust_internal <- fitted(kmeans(X_eigen,
                                                             n.groups,
                                                             nstart = 15),"classes")
@@ -424,7 +421,6 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
     }
   }
   
-  print(ctrl$b_init_t)
   ## Initial value of monadic coefficients
   if(is.null(ctrl$beta_init)){
     ## Attach mm matrix to monadic df

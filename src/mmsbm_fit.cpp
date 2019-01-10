@@ -150,12 +150,12 @@ List mmsbm_fit(const NumericMatrix& z_t,
     //Rprintf("%i\n",Model.checkConvChng(Old_Beta.begin(), Old_Beta.end(), 2, tol));
     
     if(fabs((oldLL - newLL)/oldLL) < tol
-          // &&
-         //Model.checkConvChng(Old_C.begin(), Old_C.end(), 3, tol) &&
+           &&
+         Model.checkConvChng(Old_C.begin(), Old_C.end(), 3, tol) &&
         // //e_iter < 100 &&
-         //Model.checkConvChng(Old_B.begin(), Old_B.end(), 1, tol) &&
-         //Model.checkConvChng(Old_Beta.begin(), Old_Beta.end(), 2, tol) &&
-         //gamma_conv 
+         Model.checkConvChng(Old_B.begin(), Old_B.end(), 1, tol) &&
+         Model.checkConvChng(Old_Beta.begin(), Old_Beta.end(), 2, tol) &&
+         gamma_conv 
          ){
       conv = true;
     }
