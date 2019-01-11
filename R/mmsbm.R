@@ -89,7 +89,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   stopifnot(class(formula.dyad) == "formula",
             class(formula.monad) == "formula",
             is.data.frame(data.dyad),
-            length(unique(data.monad[,timeID])) > n.hmmstates)
+            (length(unique(data.monad[,timeID])) == 0)  | (length(unique(data.monad[,timeID])) > n.hmmstates))
   if(!is.null(data.monad)){
     stopifnot(is.data.frame(data.monad),
               !is.null(nodeID))
@@ -327,19 +327,18 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                        }
                        return(adj_mat)
                      })
+  agg_soc_mats <- tapply(soc_mats, state_init, function(x) Reduce("+",x), simplify = FALSE)
   
   if(is.null(ctrl$phi_init_t)) {
     if(ctrl$init=="spectral"){
-      test <- 1
       phi_init  <- lapply(soc_mats,
                           function(W){
-                              G <- W %*% t(W) + t(W) %*% W ##bibliometric symmetrization
-                              degs  <- rowSums(G)
+                            degs  <- rowSums(W)
                             D <- diag(1/sqrt(degs+0.1*max(degs)))
-                            L <- D %*% (G + 0.1*max(degs)) %*% D 
+                            L <- D %*% (W + 0.1*max(degs)) %*% D 
                             res <- eigen(L, symmetric = TRUE)
                             eta_spectral <- res$vectors %*% diag(res$values)
-                            X_eigen <- eta_spectral[,2:n.groups]/eta_spectral[,1] 
+                            X_eigen <- eta_spectral[,2:(n.groups+1)]/eta_spectral[,1] 
                             clust_internal <- fitted(kmeans(X_eigen,
                                                             n.groups,
                                                             nstart = 15),"classes")
@@ -377,7 +376,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
     }
     blockmodel_temp <- mapply(approxB,
                               soc_mats,
-                              phi_init,
+                              phi_init[state_init],
                               MoreArgs = list(directed = directed),
                               SIMPLIFY = FALSE)
     if(is.null(ctrl$b_init_t)){
@@ -394,7 +393,7 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
                     dimnames = list(rep(NA, n.groups),
                                     paste(colnames(phi)[ind], 
                                           dyad[1,"(tid)"],sep="@"))))
-    }, dyad = dyads, phi = phi_init, SIMPLIFY = FALSE)
+    }, dyad = dyads, phi = phi_init[state_init], SIMPLIFY = FALSE)
     
     ctrl$phi_init_t <- do.call(cbind, 
                                mapply(function(ind, mat){(mat[ind,])},
@@ -542,7 +541,6 @@ mmsbm <- function(formula.dyad, formula.monad=~1, senderID, receiverID,
   
   ## Include internal node id's
   fit$InternalNodeIndex <- nodes_in_dyads[order(dyadic_order),] + 1
-  
   ## Include original call
   fit$call <- match.call()
   

@@ -93,21 +93,21 @@ List mmsbm_fit(const NumericMatrix& z_t,
    
    Model.getC(Old_C);
    e_iter = 100;
-  // while(e_iter){
+ //while(e_iter){
      Model.updatePhi();
-    newLL = Model.cLL();
    //  if(verbose){
+        //newLL = Model.cLL();
        //Rprintf("\t\tLB after E phi %i: %f\n", iter + 1, newLL);
    //  }
+   //  --e_iter;
+   //}
       if(N_STATE > 1){
         Model.updateKappa();
-     //   newLL = Model.cLL();
      //   // if(verbose){
+     //newLL = Model.cLL();
      //   Rprintf("\t\tLB after E kappa %i: %f\n", iter + 1, newLL);
      //   // }
       }
-    // --e_iter;
-   //}
    
 
      
@@ -124,15 +124,15 @@ List mmsbm_fit(const NumericMatrix& z_t,
     
     // //Alpha
     Model.optim(true); //optimize alphaLB
-    // newLL = Model.cLL();
     // // // if(verbose){
+    // newLL = Model.cLL();
     //    Rprintf("\t\tLB after M alpha %i: %f\n", iter + 1, newLL);
     // // // }
     
     //Theta
     Model.optim(false); //optimize thetaLB
-    // newLL = Model.cLL();
     // // if(verbose){
+    // newLL = Model.cLL();
     //   Rprintf("\t\tLB after M theta %i: %f\n", iter + 1, newLL);
     // // }
     
@@ -142,20 +142,19 @@ List mmsbm_fit(const NumericMatrix& z_t,
     if(verbose){
       Rprintf("\tLB %i: %f\n", iter + 1, newLL);
     }
-    gamma_conv = N_DYAD_PRED > 0 ?
-      Model.checkConvChng(Old_Gamma.begin(), Old_Gamma.end(), 0, tol) :
-      true;
+     gamma_conv = N_DYAD_PRED > 0 ?
+       Model.checkConvChng(Old_Gamma.begin(), Old_Gamma.end(), 0, tol) :
+       true;
     //Rprintf("%i\n",Model.checkConvChng(Old_C.begin(), Old_C.end(), 3, tol));
     //Rprintf("%i\n",Model.checkConvChng(Old_B.begin(), Old_B.end(), 1, tol));
     //Rprintf("%i\n",Model.checkConvChng(Old_Beta.begin(), Old_Beta.end(), 2, tol));
     
     if(fabs((oldLL - newLL)/oldLL) < tol
-           &&
-         Model.checkConvChng(Old_C.begin(), Old_C.end(), 3, tol) &&
-        // //e_iter < 100 &&
-         Model.checkConvChng(Old_B.begin(), Old_B.end(), 1, tol) &&
-         Model.checkConvChng(Old_Beta.begin(), Old_Beta.end(), 2, tol) &&
-         gamma_conv 
+        && Model.checkConvChng(Old_C.begin(), Old_C.end(), 3, tol) 
+        //&&e_iter < 100 
+        && Model.checkConvChng(Old_B.begin(), Old_B.end(), 1, tol)
+         && Model.checkConvChng(Old_Beta.begin(), Old_Beta.end(), 2, tol)
+         &&gamma_conv 
          ){
       conv = true;
     }

@@ -413,7 +413,7 @@ void MMModel::optim(bool alpha)
            this,//ex
            1e7, 0.0, &fncountAlpha, &grcountAlpha, OPT_ITER, msg, 0, 1);
   } else {
-    //std::fill(theta_par.begin(), theta_par.end(), 0.0);
+    std::fill(theta_par.begin(), theta_par.end(), 0.0);
     lbfgsb(N_B_PAR + N_DYAD_PRED, //n
            5,//m
            &theta_par[0], //x
