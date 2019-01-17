@@ -48,8 +48,6 @@
 #'                    and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(1.0, 1.0)}}
 #'        \item{var_beta}{Numeric positive value. (Gaussian) Prior variance of monadic coefficients. Defaults to 5.0.}
 #'        \item{var_gamma}{Numeric positive value. (Gaussian) Prior variance of dyadic coefficients. Defaults to 5.0.}
-#'        \item{var_xi}{Numeric positive value. (Gaussian) Prior variance of log-concentration paramemeter for mixed-
-#'                      membership vector. Defaults to 1}
 #'        \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 10.3}
 #'        \item{threads}{Numeric integer. Number of available cores for paralellization. Defaults to 4}
 #'        \item{conv_tol}{Numeric value. Absolute tolerance for VI convergence. Defaults to 1e-4}
