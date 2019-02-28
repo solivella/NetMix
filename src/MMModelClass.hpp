@@ -4,8 +4,6 @@
 #include <vector>
 #include <Rcpp.h>
 #include "Aux.hpp"
-#include <R_ext/Applic.h>
-
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -16,33 +14,31 @@ class MMModel
 {
 public:
   MMModel(const Rcpp::NumericMatrix& z_t,
-          const Rcpp::NumericMatrix& x_t,
-          const Rcpp::NumericVector& y,
-          const int N_THREAD,
-          const Rcpp::IntegerVector& time_id_dyad,
-          const Rcpp::IntegerVector& time_id_node,
-          const Rcpp::IntegerVector& nodes_per_period,
-          const Rcpp::IntegerMatrix& node_id_dyad,
-          const Rcpp::NumericMatrix& mu_b,
-          const Rcpp::NumericMatrix& var_b,
-          const Rcpp::NumericMatrix& phi_init,
-          Rcpp::NumericMatrix& kappa_init_t,
-          Rcpp::NumericMatrix& b_init_t,
-          Rcpp::NumericVector& beta_init,
-          Rcpp::NumericVector& gamma_init,
-          Rcpp::List& control
-  );
+	  const Rcpp::NumericMatrix& x_t,
+	  const Rcpp::IntegerVector& y,
+	  const int N_THREAD,
+	  const Rcpp::IntegerVector& time_id_dyad,
+	  const Rcpp::IntegerVector& time_id_node,
+	  const Rcpp::IntegerVector& nodes_per_period,
+	  const Rcpp::IntegerMatrix& node_id_dyad,
+	  const Rcpp::NumericMatrix& mu_b,
+	  const Rcpp::NumericMatrix& var_b,
+	  const Rcpp::NumericMatrix& phi_init,
+	  Rcpp::NumericMatrix& kappa_init_t,
+	  Rcpp::NumericMatrix& b_init_t,
+	  Rcpp::NumericVector& beta_init,
+	  Rcpp::NumericVector& gamma_init,
+	  Rcpp::List& control
+	  );
 
 
   void updatePhi();
   void updateKappa();
   void optim(bool);
   double cLL();
-  
-  
+
+
   Rcpp::NumericMatrix getC();
-  void getC(Rcpp::NumericMatrix&);
-  Rcpp::NumericMatrix getPhi(bool);
   Rcpp::NumericMatrix getWmn();
   Rcpp::NumericMatrix getKappa();
   Rcpp::NumericMatrix getB();
@@ -52,9 +48,10 @@ public:
   Rcpp::List getBeta();
   void getBeta(Rcpp::NumericVector&);
   int checkConvChng(Rcpp::NumericVector::iterator,
-                    Rcpp::NumericVector::iterator, 
-                    int,
-                    double);
+		    Rcpp::NumericVector::iterator, 
+		    int,
+		    double);
+
 
 private:
 
@@ -82,53 +79,48 @@ private:
     grcountAlpha,
     grcountTheta,
     m_failAlpha,
-    m_failTheta,
-    err;
+    m_failTheta;
 
 
   bool verbose,
     directed;
 
-  const Array<int>  //vectors
+  const Array<int> y, //vectors
     time_id_dyad,
     time_id_node,
     n_nodes_time;
-  
-  std::vector<double> sum_c,
-  lb_alpha, 
-  lb_theta,
-  ub_alpha,
-  ub_theta; //vectors
-  std::vector<int> maskalpha, 
-  masktheta;
 
-  Array<double> y,
-    theta_par,
+  std::vector<int> tot_nodes, //vectors
+    maskalpha, 
+    masktheta;
+
+  Array<double> theta_par,
     e_wm,
-    gamma;
+    gamma,
+    gamma_init;
 
   const Array<int> node_id_dyad; //matrix (column major)
   Array<int> par_ind;
 
-   const Array<double> x_t, //matrix (column major)
+  const Array<double> x_t, //matrix (column major)
     z_t,
     mu_b_t,
     var_b_t;
 
-   Array<double> kappa_t,
+  Array<double> kappa_t,
     b_t,
     alpha_term,
     send_phi,
     rec_phi,
     e_wmn_t,
-    e_c_t,
-    xi;
+    e_c_t;
 
-   Array<double> alpha, //3d array (column major)
+  Array<double> alpha, //3d array (column major)
     theta,
-    beta;
+    beta,
+    beta_init;
 
-   std::vector< Array<double> > new_e_c_t; //For reduce op.
+  std::vector< Array<double> > new_e_c_t; //For reduce op.
 
 
   void computeAlpha();
@@ -146,8 +138,7 @@ private:
 			 int,
 			 double*,
 			 double*,
-			 double*,
-			 int&);
+			 double*);
 
 };
 

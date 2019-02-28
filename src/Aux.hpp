@@ -6,13 +6,9 @@
 #include <functional>
 #include <numeric>
 #include <Rcpp.h>
-#include <R_ext/Utils.h>
-#include <Rinternals.h>
-
-
 
 template<typename T>
-class Array //traverse in order of indeces (i.e. i fastest)
+class Array
 {
 public:
   template <typename Source>
@@ -41,10 +37,10 @@ const T& operator[](int i) const {
     return (data[i]);
   }
   //2d
-  T& operator()(int i, int j){//j varies most slowly.
+  T& operator()(int i, int j){
     return (data[i + dims[0] * j]);
   }
-  const T& operator()(int i, int j) const { 
+  const T& operator()(int i, int j) const {
     return (data[i + dims[0] * j]);
   }
   //3d
@@ -60,24 +56,34 @@ private:
   std::vector<T> data;
 };
 
-Rcpp::NumericMatrix approxBdyad(Rcpp::NumericVector y,
-                                Rcpp::IntegerMatrix node_id,
-                                Rcpp::NumericMatrix pi_mat,
-                                bool directed);
-  
-Rcpp::NumericMatrix approxB(Rcpp::NumericMatrix y,
-                            Rcpp::NumericMatrix pi_mat,
-                            bool directed);
 
 
-double digamma_approx(double x);
-double lgamma_approx(double x);
-double lgammaDiff(double alpha, double C);
-double digammaDiff(double alpha, double C);
+// Coming from Abramowitz and Stegun 6.4.13 and 6.4.6
+double tetragamma(double);
+// Coming from Blei's lda implementation in C (github.com/blei-lab/lda-c)
+double trigamma(double);
+// double digamma(double x);
 
 double logSumExp(const std::vector<double>& invec);
 
-template <typename T> int sgn(T val);
+typedef double optimfn(int, double*, void*);
+typedef void optimgr(int, double*, double*, void*);
+
+void vmmin_ours(int,
+		double*,
+		double*,
+		optimfn,
+		optimgr,
+		int,
+		int,
+		int*,
+		double,
+		double,
+		int,
+		void*,
+		int*,
+		int*,
+		int*);
 
 
 

@@ -4,9 +4,10 @@
 \alias{mmsbm}
 \title{Dynamic mixed-membership stochastic blockmodel with covariates}
 \usage{
-mmsbm(formula.dyad, formula.monad = ~1, senderID, receiverID, nodeID = NULL,
-  timeID = NULL, data.dyad, data.monad = NULL, n.groups, n.hmmstates = 1,
-  directed = TRUE, missing = "indicator method", mmsbm.control = list())
+mmsbm(formula.dyad, formula.monad = ~1, senderID, receiverID,
+  nodeID = NULL, timeID = NULL, data.dyad, data.monad = NULL,
+  n.blocks, n.hmmstates, directed = TRUE, missing = "indicator method",
+  mmsbm.control = list())
 }
 \arguments{
 \item{formula.dyad}{A \code{formula} object. The variable in \code{data.dyad} that contains 
@@ -42,7 +43,7 @@ of the edge between them. Currently, only edges between zero and one (inclusive)
 \item{data.monad}{Data frame. Nodal atributes. Must contain a node identifier matching the names of nodes
 used in the \code{data.dyad} data frame.}
 
-\item{n.groups}{Integer value. How many latent groups should be used to estimate the model?}
+\item{n.blocks}{Integer value. How many latent groups should be used to estimate the model?}
 
 \item{n.hmmstates}{Integer value. How many hidden Markov state should be used in the HMM? Defaults 
 to 1 (i.e. no HMM).}
@@ -53,13 +54,10 @@ to 1 (i.e. no HMM).}
 
 \item{mmsbm.control}{A named list of optional algorithm control parameters.
 \describe{
-   \item{init}{Type of initialization algorithm for mixed-membership vectors. One of
-               \code{kmeans} (default), \code{spectral}, or \code{lda} (see
-                \code{\link[lda:lda.collapsed.gibbs.sampler]{mmsb.collapsed.gibbs.sampler}} for details about this function.)}
-   \item{lda_iter}{If \code{init="lda"}, number of MCMC iterations to obtain initial values. Defaults to 250}
-   \item{lda_alpha}{If \code{init="lda"}, value of \code{alpha} hyperparameter. Defaults to 1}
-   \item{max_em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3}
-   \item{max_opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3}
+   \item{spectral}{Boolean. Type of initialization algorithm for mixed-membership vectors. If \code{TRUE},
+               use spectral clustering with degree correction; otherwise, use kmeans algorithm.}
+   \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3}
+   \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3}
    \item{mu_b}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
                and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)}}
    \item{var_b}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
@@ -69,6 +67,14 @@ to 1 (i.e. no HMM).}
    \item{var_xi}{Numeric positive value. (Gaussian) Prior variance of log-concentration paramemeter for mixed-
                  membership vector. Defaults to 1}
    \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 10.3}
+   \item{phi_init}{Matrix, \code{n.blocks} by total number of nodes across years. Optional initial values for variational
+                  parameters for mixed-membership vectors. Column names must be of the form \code{nodeid\@year}
+                  }
+   \item{kappa_init_t}{Matrix, \code{n.hmmstates} by number of years. Optional initial values for variational 
+                  parameters for state probabilities.}
+   \item{b_init_t}{Matrix, \code{n.blocks} by \code{n.blocks}. Optional initial values for blockmodel.}
+   \item{beta_init}{Array, predictors by \code{n.blocks} by \code{n.hmmstates}. Optional initial values for monadic coefficients.}
+   \item{gamma_init}{vector. Optional initial values for dyadic coefficients.}
    \item{threads}{Numeric integer. Number of available cores for paralellization. Defaults to 4}
    \item{conv_tol}{Numeric value. Absolute tolerance for VI convergence. Defaults to 1e-4}
    \item{verbose}{Boolean. Should extra information be printed as model iterates? Defaults to FALSE}
@@ -79,9 +85,6 @@ Object of class \code{mmsbm}. List with named components:
     \describe{
       \item{MixedMembership}{Matrix of variational posterior of mean of mixed-membership vectors. \code{nodes} by \
                              \code{n.groups}}
-      \item{PhiSend,PhiRec}{Matrices of estimated variational parameters for the group indicators. \code{n.groups}
-                            by total number of observed dyads.}
-      \item{MMConcentration}{Estimated concentration parameter of mixed-membership vectors}
       \item{BlockModel}{\code{n.groups} by \code{n.groups} matrix of estimated tie log-odds between members
                         of corresponding latent groups. The blockmodel.}
       \item{MonadCoef}{Array of estimated coefficient values for monadic covariates. Has \code{n.groups} columns,
@@ -92,7 +95,8 @@ Object of class \code{mmsbm}. List with named components:
                    \code{n.hmmstates} by years (or whatever time interval networks are observed at)}
       \item{LowerBound}{Value of the lower bound at final iteration}
       \item{niter}{Final number of VI iterations}
-      \item{monadic.data,dyadic.data,n_states,n_blocks, directed}{Original values of parameters used during estimation}
+      \item{NodeIndex}{Order in which nodes are stored in all return objects.}
+      \item{monadic.data, dyadic.data, n_states, n_blocks, directed}{Original values of parameters used during estimation}
     }
 }
 \description{
@@ -112,9 +116,8 @@ data(MID_dyad_CW)
 
 
 ## Estimate model (takes about 5 minutes)
-set.seed(123)
 system.time(fit_onset <- mmsbm(formula.dyad = mid_onset ~ hially + dist + 
-                                 peaceyrs,
+                                 peaceyrs + spline1 + spline2 + spline3,
                                formula.monad =  ~ polity + logcinc,
                                data.dyad = MID_dyad_CW, data.monad = MID_monad_CW,
                                senderID = "country1", receiverID = "country2", 
@@ -123,15 +126,7 @@ system.time(fit_onset <- mmsbm(formula.dyad = mid_onset ~ hially + dist +
                                n.groups = 3, 
                                n.hmmstates = 2,
                                directed = FALSE,
-                               mmsbm.control = list(max_em_iter = 0,
-                                                    init = "lda",
-                                                    lda_iter = 200,
-                                                    conv_tol = 1e-2,
-                                                    eta = 1,
-                                                    var_beta = 1,
-                                                    xi_init = 1,
-                                                    threads = 1,
-                                                    verbose = TRUE)))
+                               mmsbm.control = list(em_iter = 3000)))
 
 ## Summarize model
 summary(fit_onset) 

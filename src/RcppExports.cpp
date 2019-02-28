@@ -6,53 +6,28 @@
 
 using namespace Rcpp;
 
-// getZ
-Rcpp::IntegerMatrix getZ(Rcpp::NumericMatrix pmat);
-RcppExport SEXP _NetMix_getZ(SEXP pmatSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type pmat(pmatSEXP);
-    rcpp_result_gen = Rcpp::wrap(getZ(pmat));
-    return rcpp_result_gen;
-END_RCPP
-}
-// approxBdyad
-Rcpp::NumericMatrix approxBdyad(Rcpp::NumericVector y, Rcpp::IntegerMatrix node_id, Rcpp::NumericMatrix pi_mat, bool directed);
-RcppExport SEXP _NetMix_approxBdyad(SEXP ySEXP, SEXP node_idSEXP, SEXP pi_matSEXP, SEXP directedSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y(ySEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type node_id(node_idSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type pi_mat(pi_matSEXP);
-    Rcpp::traits::input_parameter< bool >::type directed(directedSEXP);
-    rcpp_result_gen = Rcpp::wrap(approxBdyad(y, node_id, pi_mat, directed));
-    return rcpp_result_gen;
-END_RCPP
-}
 // approxB
-Rcpp::NumericMatrix approxB(Rcpp::NumericMatrix y, Rcpp::NumericMatrix pi_mat, bool directed);
-RcppExport SEXP _NetMix_approxB(SEXP ySEXP, SEXP pi_matSEXP, SEXP directedSEXP) {
+NumericMatrix approxB(NumericVector y, IntegerMatrix d_id, NumericMatrix pi_mat);
+RcppExport SEXP _NetMix_approxB(SEXP ySEXP, SEXP d_idSEXP, SEXP pi_matSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type y(ySEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type pi_mat(pi_matSEXP);
-    Rcpp::traits::input_parameter< bool >::type directed(directedSEXP);
-    rcpp_result_gen = Rcpp::wrap(approxB(y, pi_mat, directed));
+    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type d_id(d_idSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type pi_mat(pi_matSEXP);
+    rcpp_result_gen = Rcpp::wrap(approxB(y, d_id, pi_mat));
     return rcpp_result_gen;
 END_RCPP
 }
 // mmsbm_fit
-List mmsbm_fit(const NumericMatrix& z_t, const NumericMatrix& x_t, const NumericVector& y, const IntegerVector& time_id_dyad, const IntegerVector& time_id_node, const IntegerVector& nodes_per_period, const IntegerMatrix& node_id_dyad, const NumericMatrix& mu_b, const NumericMatrix& var_b, const NumericMatrix& phi_init, NumericMatrix& kappa_init_t, NumericMatrix& b_init_t, NumericVector& beta_init, NumericVector& gamma_init, List control);
+List mmsbm_fit(const NumericMatrix& z_t, const NumericMatrix& x_t, const IntegerVector& y, const IntegerVector& time_id_dyad, const IntegerVector& time_id_node, const IntegerVector& nodes_per_period, const IntegerMatrix& node_id_dyad, const NumericMatrix& mu_b, const NumericMatrix& var_b, const NumericMatrix& phi_init, NumericMatrix& kappa_init_t, NumericMatrix& b_init_t, NumericVector& beta_init, NumericVector& gamma_init, List control);
 RcppExport SEXP _NetMix_mmsbm_fit(SEXP z_tSEXP, SEXP x_tSEXP, SEXP ySEXP, SEXP time_id_dyadSEXP, SEXP time_id_nodeSEXP, SEXP nodes_per_periodSEXP, SEXP node_id_dyadSEXP, SEXP mu_bSEXP, SEXP var_bSEXP, SEXP phi_initSEXP, SEXP kappa_init_tSEXP, SEXP b_init_tSEXP, SEXP beta_initSEXP, SEXP gamma_initSEXP, SEXP controlSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericMatrix& >::type z_t(z_tSEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type x_t(x_tSEXP);
-    Rcpp::traits::input_parameter< const NumericVector& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const IntegerVector& >::type time_id_dyad(time_id_dyadSEXP);
     Rcpp::traits::input_parameter< const IntegerVector& >::type time_id_node(time_id_nodeSEXP);
     Rcpp::traits::input_parameter< const IntegerVector& >::type nodes_per_period(nodes_per_periodSEXP);
@@ -71,8 +46,6 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_NetMix_getZ", (DL_FUNC) &_NetMix_getZ, 1},
-    {"_NetMix_approxBdyad", (DL_FUNC) &_NetMix_approxBdyad, 4},
     {"_NetMix_approxB", (DL_FUNC) &_NetMix_approxB, 3},
     {"_NetMix_mmsbm_fit", (DL_FUNC) &_NetMix_mmsbm_fit, 15},
     {NULL, NULL, 0}

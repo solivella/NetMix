@@ -4,8 +4,9 @@
 \alias{predict.mmsbm}
 \title{Predict edges based on estimated mmsbm model}
 \usage{
-\method{predict}{mmsbm}(fm, new.data.dyad = NULL, new.data.monad = NULL,
-  parametric_mm = FALSE, forecast = FALSE, type = c("link", "response"))
+\method{predict}{mmsbm}(fm, new.data.dyad = NULL,
+  new.data.monad = NULL, parametric_mm = FALSE, forecast = FALSE,
+  type = c("link", "response"))
 }
 \arguments{
 \item{fm}{Object of class \code{mmsbm}.}
@@ -39,9 +40,8 @@ data(MID_dyad_CW)
 
 
 ## Estimate model (takes about 5 minutes)
-set.seed(123)
 system.time(fit_onset <- mmsbm(formula.dyad = mid_onset ~ hially + dist + 
-                                 peaceyrs,
+                                 peaceyrs + spline1 + spline2 + spline3,
                                formula.monad =  ~ polity + logcinc,
                                data.dyad = MID_dyad_CW, data.monad = MID_monad_CW,
                                senderID = "country1", receiverID = "country2", 
@@ -50,15 +50,7 @@ system.time(fit_onset <- mmsbm(formula.dyad = mid_onset ~ hially + dist +
                                n.groups = 3, 
                                n.hmmstates = 2,
                                directed = FALSE,
-                               mmsbm.control = list(max_em_iter = 0,
-                                                    init = "lda",
-                                                    lda_iter = 200,
-                                                    conv_tol = 1e-2,
-                                                    eta = 1,
-                                                    var_beta = 1,
-                                                    xi_init = 1,
-                                                    threads = 1,
-                                                    verbose = TRUE)))
+                               mmsbm.control = list(em_iter = 3000)))
 
 ## Summarize model
 summary(fit_onset) 

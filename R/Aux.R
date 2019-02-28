@@ -39,58 +39,63 @@ gof <- function (x, ...) {
 .findPerm <- function(block.list, max.iter, target.mat = NULL){
   n <- length(block.list)
   k <- ncol(block.list[[1]])
-  block.norm <- block.list
+  block.norm <- lapply(block.list, 
+                       function(mat){
+                         if(all(mat==0)){mat <- mat + 1e-6}
+                         #prop.table(mat, 1)
+                         rbind(mat, t(mat))
+                       })
   block.norm.p <- block.norm
-  if(!is.null(target.mat)){
-    target.mat <- prop.table(target.mat, 1)
-  }
+  # if(!is.null(target.mat)){
+  #   target.mat <- prop.table(target.mat, 1)
+  # }
   iter <- 0
   old.risk <- 1e6
   chg <- 1
   while((chg > 1e-6) && (iter < max.iter)){
     ## Step 1
     if(is.null(target.mat)){
-      B.prime <- Reduce("+",block.norm.p)/n
+      B.prime <- Reduce("+",block.norm.p)/n 
     } else {
-      B.prime <- target.mat
+      B.prime <- rbind(target.mat, t(target.mat))
     }
     ## Step 2
     ## Compute loss matrix (KL)
-    cost.mat <- lapply(block.norm,
-                       function(mat, mat2){
-                         res <- matrix(NA, ncol=k, nrow=k)
-                         mat <- .reRange(mat)
-                         mat2 <- .reRange(mat2)
-                         for(i in 1:k){
-                           for(j in 1:k){
-                             res[i, j] <- sum(.bernKL(mat[i,], mat2[j,]) +
-                               sum(.bernKL(mat[,i], mat2[,j])))
-                             }
-                         }
-                         return(res)
-                       }, mat2 = B.prime)
+    loss.mat <- lapply(block.norm,
+                       function(mat){
+                         t(mat) %*% B.prime
+                       })
     ##Get optimal perm 
-    perm.vecs <- lapply(cost.mat,
-                        function(mat){
-                          clue::solve_LSAP(mat)
-                        })
-
-    block.norm.p <- mapply(function(ind, mat){mat[ind,ind]}, perm.vecs, block.norm, SIMPLIFY = FALSE)
-
+    perm.mat <- lapply(loss.mat,
+                       function(mat){
+                         clue::solve_LSAP(t(mat), FALSE)
+                       })
+    block.norm.p <- mapply(function(mat, ord){rbind(mat[ord, ord], t(mat[ord,ord]))},block.norm,perm.mat, SIMPLIFY = FALSE)
+    
     ##Compute risk
-    new.risk <- sum(sapply(block.norm.p,
+    new.risk <- mean(sapply(block.norm.p,
                             function(mat,tar){
-                              mat <- .reRange(mat)
-                              tar <- .reRange(tar)
-                              sum(.bernKL(mat, tar))
+                              # pmat <- mat/sum(mat)
+                              # ptar <- tar/sum(tar)
+                              # sum(pmat * log(pmat/ptar))
+                              sum((mat-tar)^2)
                             },
                             tar = B.prime))
-
     chg <- abs(new.risk - old.risk)
     old.risk <- new.risk
     iter <- iter + 1
   }
-  perm.vecs
+  perm.mat
+}
+
+## Matrix power
+.mpower <- function(x, p){
+  orig <- x
+  while(p > 1){
+    x <- x %*% orig
+    p = p - 1 
+  }
+  return(x)
 }
 
 .transf <- function(mat){

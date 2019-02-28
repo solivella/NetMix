@@ -12,7 +12,7 @@ using Rcpp::as;
 // [[Rcpp::export]]
 List mmsbm_fit(const NumericMatrix& z_t,
 	       const NumericMatrix& x_t,
-	       const NumericVector& y,
+	       const IntegerVector& y,
 	       const IntegerVector& time_id_dyad,
 	       const IntegerVector& time_id_node,
 	       const IntegerVector& nodes_per_period,
@@ -27,7 +27,6 @@ List mmsbm_fit(const NumericMatrix& z_t,
 	       List control
 	       )
 {
-  
   //Obtain nr. of cores
   int N_THREADS = 1;
 #ifdef _OPENMP
@@ -57,139 +56,94 @@ List mmsbm_fit(const NumericMatrix& z_t,
 
   // VARIATIONAL EM
   int iter = 0,
-    EM_ITER = as<int>(control["max_em_iter"]),
-    N_NODE = sum(nodes_per_period),
+    EM_ITER = as<int>(control["em_iter"]),
     N_BLK = as<int>(control["blocks"]),
-    N_DYAD_PRED = Rcpp::sum(z_t(0, Rcpp::_)) == 0 ? 0 : z_t.nrow(),
+    N_DYAD_PRED = z_t.nrow(),
     N_MONAD_PRED = x_t.nrow(),
     N_STATE = as<int>(control["states"]);
 
   int TOT_BETA = N_MONAD_PRED * N_BLK * N_STATE,
     TOT_B = N_BLK * N_BLK;
   
-  bool conv = false, gamma_conv = true,
+  bool conv = false,
     verbose = as<bool>(control["verbose"]);
 
-  double tol = as<double>(control["conv_tol"]);
-
+  double newLL,
+    tol = as<double>(control["conv_tol"]);
       
-  NumericVector Old_B(TOT_B), Old_Gamma,
+  NumericVector Old_B(TOT_B),
+    Old_Gamma(N_DYAD_PRED),
     Old_Beta(TOT_BETA);
-  NumericMatrix Old_C(N_BLK, N_NODE); 
-  if(N_DYAD_PRED > 0){
-    Old_Gamma = NumericVector(N_DYAD_PRED);
-  }
 
-  double oldLL = Model.cLL();
   if(verbose){
     Rprintf("Estimating model...\n");
   }
-  double newLL;
-  int e_iter;
-  while((iter < EM_ITER) && (conv == false)){
-  // 
-  //   // // E-STEP
-  // 
-   
-   Model.getC(Old_C);
-   e_iter = 100;
- //while(e_iter){
-     Model.updatePhi();
-   //  if(verbose){
-        //newLL = Model.cLL();
-       //Rprintf("\t\tLB after E phi %i: %f\n", iter + 1, newLL);
-   //  }
-   //  --e_iter;
-   //}
-      if(N_STATE > 1){
-        Model.updateKappa();
-     //   // if(verbose){
-     //newLL = Model.cLL();
-     //   Rprintf("\t\tLB after E kappa %i: %f\n", iter + 1, newLL);
-     //   // }
-      }
-   
+  while(iter < EM_ITER && conv == false){
+    checkUserInterrupt();
 
-     
-     
+    // E-STEP
+    Model.updatePhi();
+    
+    
+    
+    if(N_STATE > 1){
+       Model.updateKappa();
+     }
 
-     
-     
-    // // M-STEP
-    if(N_DYAD_PRED > 0){
-      Model.getGamma(Old_Gamma);
-    }
+  
+    //M-STEP
     Model.getB(Old_B);
+    Model.getGamma(Old_Gamma);
     Model.getBeta(Old_Beta);
-    
-    // //Alpha
-    Model.optim(true); //optimize alphaLB
-    // // // if(verbose){
-    // newLL = Model.cLL();
-    //    Rprintf("\t\tLB after M alpha %i: %f\n", iter + 1, newLL);
-    // // // }
-    
-    //Theta
-    Model.optim(false); //optimize thetaLB
-    // // if(verbose){
-    // newLL = Model.cLL();
-    //   Rprintf("\t\tLB after M theta %i: %f\n", iter + 1, newLL);
-    // // }
-    
+#pragma omp parallel sections
+    {
+#pragma omp section
+      {
+ 	Model.optim(true); //optimize alphaLB
+      }
+#pragma omp section
+      {
+ 	Model.optim(false); //optimize thetaLB
+      }
+    }
     
     //Check convergence
     newLL = Model.cLL();
-    if(verbose){
-      Rprintf("\tLB %i: %f\n", iter + 1, newLL);
-    }
-     gamma_conv = N_DYAD_PRED > 0 ?
-       Model.checkConvChng(Old_Gamma.begin(), Old_Gamma.end(), 0, tol) :
-       true;
-    //Rprintf("%i\n",Model.checkConvChng(Old_C.begin(), Old_C.end(), 3, tol));
-    //Rprintf("%i\n",Model.checkConvChng(Old_B.begin(), Old_B.end(), 1, tol));
-    //Rprintf("%i\n",Model.checkConvChng(Old_Beta.begin(), Old_Beta.end(), 2, tol));
     
-    if(fabs((oldLL - newLL)/oldLL) < tol
-        && Model.checkConvChng(Old_C.begin(), Old_C.end(), 3, tol) 
-        //&&e_iter < 100 
-        && Model.checkConvChng(Old_B.begin(), Old_B.end(), 1, tol)
-         && Model.checkConvChng(Old_Beta.begin(), Old_Beta.end(), 2, tol)
-         &&gamma_conv 
-         ){
+    if(Model.checkConvChng(Old_Gamma.begin(), Old_Gamma.end(), 0, tol) &&
+       Model.checkConvChng(Old_B.begin(), Old_B.end(), 1, tol) &&
+       Model.checkConvChng(Old_Beta.begin(), Old_Beta.begin(), 2, tol)){
       conv = true;
     }
-    oldLL = newLL;
+    if(verbose)
+      Rprintf("LB %i: %f\n", iter, newLL);
+    
     ++iter;
   }
-  if(conv == false){
+  if(conv == false)
     Rprintf("Warning: model did not converge after %i iterations.\n", iter);
-  } else if (verbose) {
-    Rprintf("...converged after %i iterations.\n", iter);
-  }
+  else if (verbose)
+    Rprintf("done!\n");
   
   //Form return objects
-  NumericMatrix pi_res = Model.getC();
-  NumericMatrix phi_send_res = Model.getPhi(true);
-  NumericMatrix phi_rec_res = Model.getPhi(false);
+  NumericMatrix phi_res = Model.getC();
   NumericMatrix A = Model.getWmn();
   NumericMatrix kappa_res = Model.getKappa();
   NumericMatrix B = Model.getB();
-  NumericVector gamma_res = Model.getGamma(); 
+  NumericVector gamma_res = Model.getGamma();
   List beta_res = Model.getBeta();
 
 
   List res;
-  res["MixedMembership"] = pi_res;
-  res["PhiSend"] = phi_send_res;
-  res["PhiRec"] = phi_rec_res;
+  res["MixedMembership"] = phi_res;
   res["BlockModel"] = B;
   res["DyadCoef"] = gamma_res;
-  res["MonadCoef"] = beta_res;
   res["TransitionKernel"] = A;
+  res["MonadCoef"] = beta_res;
   res["Kappa"] = kappa_res;
   res["n_states"] = as<int>(control["states"]);
   res["n_blocks"] = as<int>(control["blocks"]);
-  res["LowerBound"] = oldLL;
+  res["LowerBound"] = newLL;
   res["niter"] = iter;
 
 
