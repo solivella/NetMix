@@ -1,5 +1,27 @@
 #include "Aux.hpp"
 
+//[[Rcpp::export]]
+Rcpp::IntegerMatrix getZ(Rcpp::NumericMatrix pmat)
+{
+  int NROW = pmat.nrow();
+  int NCOL = pmat.ncol();
+  int mflag, bloc;
+  double u, acc;
+  Rcpp::NumericVector cprob(NROW); 
+  Rcpp::IntegerMatrix res(NROW, NCOL);
+  for(int i = 0; i < NCOL; ++i){
+    u = R::runif(0, 1);
+    acc = 0.0;
+    for(int j = 0; j < NROW; ++j){
+      acc += pmat(j, i);
+      cprob[j] = acc;
+    }
+    bloc = findInterval(&(cprob[0]), NROW, u, FALSE, FALSE, 0, &mflag);
+    res(bloc, i) = 1;
+  }
+  return(res);
+}
+
 // Coming from Abramowitz and Stegun 6.4.13 and 6.4.6
 inline double tetragamma(double x)
 {

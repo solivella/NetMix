@@ -33,7 +33,7 @@ boot.mmsbm <- function(fm, iter, parallel=TRUE){
                    senderID = "(sid)", receiverID = "(rid)",
                    timeID = "(tid)", nodeID = "(nid)",
                    data.dyad=fm$dyadic.data, data.monad=fm$monadic.data,
-                   n.groups = fm$call$n.groups, 
+                   n.blocks = fm$call$n.groups, 
                    n.hmmstates = fm$call$n.hmmstates,
                    directed=fm$call$directed,
                    mmsbm.control = ctrl)
@@ -53,7 +53,7 @@ boot.mmsbm <- function(fm, iter, parallel=TRUE){
                  senderID = "(sid)", receiverID = "(rid)",
                  timeID = "(tid)", nodeID = "(nid)",
                  data.dyad=fm$dyadic.data, data.monad=fm$monadic.data,
-                 n.groups = fm$call$n.groups, 
+                 n.blocks = fm$call$n.groups, 
                  n.hmmstates = fm$call$n.hmmstates,
                  directed=fm$call$directed,
                  mmsbm.control = ctrl)

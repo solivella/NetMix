@@ -1,7 +1,7 @@
 gof.mmsbm <- function(fm,
-                      gof_stat = "all",
+                      gof_stat = c("Geodesics","3-Motifs", "Indegree","Outdegree"),
                       level = 0.99,
-                      samples = 100,
+                      samples = 50,
                       new.data.dyad = NULL,
                       new.data.monad  = NULL, 
                       parametric_mm = FALSE
@@ -34,17 +34,17 @@ gof.mmsbm <- function(fm,
                             }),
            "Dyad Shared Partners" = sapply(nets,
                           function(y){
-                            prop.table(getS3method("summary", "formula")(network::network(igraph::as_adj(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
+                            prop.table(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(igraph::as_adj(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
                                          dsp(0:(igraph::gorder(y) - 2))))
                             }),
            "Edge Shared Partners" = sapply(nets,
                           function(y){
-                            prop.table(getS3method("summary", "formula")(network::network(igraph::as_adj(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
+                            prop.table(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(igraph::as_adj(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
                                          esp(0:(igraph::gorder(y) - 2))))
                           }),
            "Incoming K-stars" = sapply(nets,
                             function(y){
-                              prop.table(getS3method("summary", "formula")(network::network(igraph::as_adj(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
+                              prop.table(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(igraph::as_adj(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
                                            istar(0:(igraph::gorder(y) - 1))))
                             })
     )
@@ -66,8 +66,8 @@ gof.mmsbm <- function(fm,
     which_1<- new.data.dyad[,all.vars(net3.dmodel$call$formula.dyad)[1]] == 1
     el_obs <- cbind(send_time_id[which_1], rec_time_id[which_1])
   } else {
-    obs_dyad <- fm$dyadic.data[,c("send_time_id","rec_time_id")]
-    el_obs <- fm$dyadic.data[fm$Y==1,c("send_time_id","rec_time_id")]
+    obs_dyad <- fm$dyadic.data[,c("(sid)","(rid)")]
+    el_obs <- fm$dyadic.data[fm$Y==1,c("(sid)","(rid)")]
   }
   ## Convert to igraph objects
   nets <- lapply(el,
@@ -81,6 +81,9 @@ gof.mmsbm <- function(fm,
   
   if((length(gof_stat) == 1) && (gof_stat == "all")){
     gof_stat <- c("Geodesics","3-Motifs", "Dyad Shared Partners", "Edge Shared Partners", "Indegree","Outdegree","Incoming K-stars")
+  }
+  if(any(c("Dyad Shared Partners", "Edge Shared Partners","Incoming K-stars")%in%gof_stat)){
+    cat("Resorting to third-party package `ergm'; expect substantial increase in computation time.\n")
   }
   
   ## Compute for simulated nets

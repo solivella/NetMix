@@ -429,6 +429,10 @@ mmsbm <- function(formula.dyad,
                    ctrl
   )
   
+  ## Add names
+  colnames(fit[["Kappa"]]) <- unique(mfm[,"(tid)"])
+  dimnames(fit[["BlockModel"]]) <- replicate(2,paste("Group",1:n.blocks), simplify = FALSE)
+  dimnames(fit[["TransitionKernel"]]) <- replicate(2,paste("State",1:n.hmmstates), simplify = FALSE)
   
   ##Reorder mixmem to match original order
   fit[["MixedMembership"]] <- fit[["MixedMembership"]][,order(monadic_order)] 
@@ -438,9 +442,7 @@ mmsbm <- function(formula.dyad,
   if(length(fit[["DyadCoef"]])){
     fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]])
   }
-  dimnames(fit[["BlockModel"]]) <- replicate(2,paste("Group",1:n.blocks), simplify = FALSE)
-  dimnames(fit[["TransitionKernel"]]) <- replicate(2,paste("State",1:n.hmmstates), simplify = FALSE)
-  
+
   if(ncol(Z)>1){
     names(fit[["DyadCoef"]]) <- colnames(Z) 
   }
