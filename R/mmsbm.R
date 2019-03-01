@@ -206,6 +206,8 @@ mmsbm <- function(formula.dyad,
   mfm <- mfm[monadic_order, ]
   ntid <- do.call(paste, c(mfm[c("(nid)","(tid)")], sep="@"))
   mfm <- mfm[ntid %in% unique(c(dntid)), ]
+  monadic_order <- with(mfm, order(`(tid)`, `(nid)`)) 
+  
   if(!all(udntid %in% ntid))
     stop("Nodes in dyadic dataset missing from monadic dataset. Are node and time identifiers identical in data.dyad and data.monad?")
   
@@ -303,8 +305,15 @@ mmsbm <- function(formula.dyad,
                       dimnames = list(ut,
                                       unique(td_id[,2])))
   dyad_time[td_id] <- Y
-  ##dyad_time[is.na(dyad_time)] <- sample(0:1,sum(is.na(dyad_time)),replace = TRUE)
-  if(is.null(ctrl$kappa_init_t)){
+  ## for each dyad, take average edge probability over time
+  if(any(is.na(dyad_time))){
+    dyad_time <- apply(dyad_time, 2, function(x){
+      x[is.na(x)] <- rbinom(sum(is.na(x)), 1, mean(x, na.rm=T))
+      return(x)
+    })
+  }
+  
+    if(is.null(ctrl$kappa_init_t)){
     if(n.hmmstates > 1){
       state_internal <- fitted(kmeans(dyad_time,
                                        n.hmmstates,
@@ -367,7 +376,7 @@ mmsbm <- function(formula.dyad,
       agg_phi_temp,
       agg_soc_mats,
       n_times = table(state_init),
-      n_nodes = 300,
+      n_nodes = length(all.nodes), 
       SIMPLIFY = FALSE)
     if(is.null(ctrl$b_init_t)){
       right_perm <- .findPerm(blockmodel_temp, 100)
@@ -392,7 +401,10 @@ mmsbm <- function(formula.dyad,
     ctrl$beta_init <- sapply(1:n.hmmstates,
                              function(m, dm, df, phi_i, states){
                                obsinm <- with(df, `(tid)` %in% unique(`(tid)`)[states == m])
-                               phi_temp <- t(phi_i[, obsinm])
+                               phi_inm <- c(sapply(length(all.nodes) * (which(states==m)-1) + 1, 
+                                                 function(x){seq(x, length.out=length(all.nodes))}))
+                               phi_temp <- t(phi_i[, phi_inm])
+                               phi_temp <- phi_temp[rownames(phi_temp) %in% paste(df[,"(nid)"], df[,"(tid)"], sep="@"),]
                                X_sub <- dm[obsinm, , drop = FALSE]
                                lm.fit(X_sub, log(phi_temp))$coefficients
                              },
