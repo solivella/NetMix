@@ -313,7 +313,7 @@ mmsbm <- function(formula.dyad,
     })
   }
   
-    if(is.null(ctrl$kappa_init_t)){
+  if(is.null(ctrl$kappa_init_t)){
     if(n.hmmstates > 1){
       state_internal <- fitted(kmeans(dyad_time,
                                        n.hmmstates,
@@ -330,17 +330,21 @@ mmsbm <- function(formula.dyad,
     names(state_init) = 1
   }
   
-
+  ## Adjusted this for when edges are never formed for a given node/year
   if(is.null(ctrl$phi_init_t)) {
     phi_init_temp <- lapply(soc_mats,
                             function(mat){
                                 D_o <- diag(1/sqrt(rowSums(mat)))
+                                D_o[D_o==Inf] <- 1 # check
                                 D_i <- diag(1/sqrt(colSums(mat)))
+                                D_i[D_i==Inf] <- 1 # check
                                 U <- D_o %*% mat %*% D_i %*% t(mat) %*% D_o +
                                   D_i %*% t(mat) %*% D_o %*% mat %*% D_i
                               if(ctrl$spectral) {
                                 res <- eigen(U, symmetric = TRUE)
-                                target <- res$vectors[,2:(n.blocks+2)]/res$vectors[,1] 
+                                div <- res$vectors[,1] # check 
+                                div[div==0] <- -1e-6 # check
+                                target <- res$vectors[,2:(n.blocks+2)]/div # check
                               } else {
                                 target <- U
                               }
