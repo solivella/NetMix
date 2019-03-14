@@ -13,15 +13,15 @@ net3 <-  NetSim(BLK = 3
                 ,TIME = 10 
                 ,DIRECTED = TRUE
                 ,N_PRED=2
-                ,B_t = matrix(c(5, rep(-5, 3), 5, rep(-5, 3), 5), 
+                ,B_t = matrix(c(-5, rep(-5, 3), 5, rep(-5, 3), 1), 
                               ncol=3)*-1
                 ,beta_arr = array(c(matrix(c(c(0.25, 0.25, 0.25)*2, #Intercept
                                              0.25, -1.25, 2.25,#Var1
-                                           0.25, -1.25, -1.25),#Var2
+                                           3.25, -1.25, -1.25),#Var2
                                            ncol=3, byrow = TRUE),
-                                  matrix(c(c(0.25, 0.25, 0.25)*2, #Intercept
-                                           1.25, -1.25, -2.25,#V1
-                                         -0.25, -1.25, 2.25),#Var2
+                                  matrix(c(c(0.25, 0.25, 0.25)*-2, #Intercept
+                                          -1.25, -1.25, -2.25,#V1
+                                         -0.25, 1.25, 2.25),#Var2
                                          ncol=3, byrow = TRUE)),c(3, 3, 2)),
                 sVec = rep(c(1,2),c(5,5))
                 ,gamma_vec = c(1.5, -1.3))
@@ -29,7 +29,7 @@ net3 <-  NetSim(BLK = 3
 real_phis3 <- t(do.call(rbind,net3$pi_vecs))
 colnames(real_phis3) <- with(subset(net3$monad.data), paste(node,year, sep="@"))
 
-net3.model <- mmsbm(formula.dyad = Y ~ V1 + V2,
+net3.model <- mmsbm(formula.dyad = Y ~  V1 + V2,
                     formula.monad = ~ V1 + V2,
                     senderID = "sender",
                     receiverID = "receiver",
@@ -46,7 +46,7 @@ net3.model <- mmsbm(formula.dyad = Y ~ V1 + V2,
                                          #phi_init_t = real_phis3,
                                          em_iter = 5000,
                                          conv_tol = 1e-3,
-                                         threads = 24
+                                         threads = 4
                     ))
 
 loss.mat.net3 <- net3.model$MixedMembership %*% do.call(rbind,net3$pi_vecs)

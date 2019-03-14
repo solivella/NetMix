@@ -108,7 +108,7 @@ gof.mmsbm <- function(fm,
   sim_stats_full$Observed <- Observed
 
   ## Plot results
-  ggplot2::ggplot(sim_stats_full, aes(x=Val, y=Est)) +
+  ggplot2::ggplot(subset(sim_stats_full, Est > 0), aes(x=Val, y=Est)) +
     ggplot2::facet_wrap(~GOF, scales="free") +
     ggplot2::geom_linerange(aes(ymin=LB, ymax=UB), col="gray60", lwd=2) +
     ggplot2::geom_line(aes(y=Observed), lwd=1.1) +

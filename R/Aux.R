@@ -36,56 +36,18 @@ gof <- function (x, ...) {
   x * log(x/y) + (1-x)*log((1-x)/(1-y))
 }
 
-.findPerm <- function(block.list, max.iter, target.mat = NULL){
-  n <- length(block.list)
-  k <- ncol(block.list[[1]])
-  block.norm <- lapply(block.list, 
-                       function(mat){
-                         if(all(mat==0)){mat <- mat + 1e-6}
-                         #prop.table(mat, 1)
-                         rbind(mat, t(mat))
-                       })
-  block.norm.p <- block.norm
-  # if(!is.null(target.mat)){
-  #   target.mat <- prop.table(target.mat, 1)
-  # }
-  iter <- 0
-  old.risk <- 1e6
-  chg <- 1
-  while((chg > 1e-6) && (iter < max.iter)){
-    ## Step 1
-    if(is.null(target.mat)){
-      B.prime <- Reduce("+",block.norm.p)/n 
-    } else {
-      B.prime <- rbind(target.mat, t(target.mat))
-    }
-    ## Step 2
-    ## Compute loss matrix (KL)
-    loss.mat <- lapply(block.norm,
-                       function(mat){
-                         t(mat) %*% B.prime
-                       })
-    ##Get optimal perm 
-    perm.mat <- lapply(loss.mat,
-                       function(mat){
-                         clue::solve_LSAP(t(mat), FALSE)
-                       })
-    block.norm.p <- mapply(function(mat, ord){rbind(mat[ord, ord], t(mat[ord,ord]))},block.norm,perm.mat, SIMPLIFY = FALSE)
-    
-    ##Compute risk
-    new.risk <- mean(sapply(block.norm.p,
-                            function(mat,tar){
-                              # pmat <- mat/sum(mat)
-                              # ptar <- tar/sum(tar)
-                              # sum(pmat * log(pmat/ptar))
-                              sum((mat-tar)^2)
-                            },
-                            tar = B.prime))
-    chg <- abs(new.risk - old.risk)
-    old.risk <- new.risk
-    iter <- iter + 1
+## Permute blockmodels
+.findPerm <- function(block.list, target.mat=NULL){
+  if(is.null(target.mat)){
+    target.mat <- block.list[[1]] #align with first blockmodel by default
   }
-  perm.mat
+  #target.diag <- plogis(diag(target.mat))
+  target.diag <- (diag(target.mat))^2
+  lapply(block.list,
+         function(mat){
+           loss_mat <- (diag(mat))^2 %*% t(target.diag)
+           clue::solve_LSAP(loss_mat, TRUE)
+         })
 }
 
 ## Matrix power

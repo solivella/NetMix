@@ -35,8 +35,7 @@ net1.model <- mmsbm(formula.dyad = Y ~ 1,
                                          spectral = TRUE,
                                          #phi_init_t = real_phis1,
                                          em_iter = 500,
-                                         conv_tol = 1e-2,
-                                         verbose = TRUE
+                                         conv_tol = 1e-2
                     ))
 loss.mat.net1 <- net1.model$MixedMembership %*% net1$pi_vecs[[1]]
 net1_order <- clue::solve_LSAP(t(loss.mat.net1), TRUE)

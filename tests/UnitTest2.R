@@ -6,7 +6,7 @@
 library(NetMix)
 library(tidyverse)
 source("tests/NetGenerator.R")
-set.seed(831213)
+#set.seed(831213)
 net2 <-  NetSim(BLK = 3
                 ,NODE = 300
                 ,STATE = 1

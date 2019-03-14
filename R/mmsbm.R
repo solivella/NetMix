@@ -314,7 +314,7 @@ mmsbm <- function(formula.dyad,
   }
   
   if(is.null(ctrl$kappa_init_t)){
-    if(n.hmmstates > 1){
+    if((periods > 1) & (n.hmmstates > 1)){
       state_internal <- fitted(kmeans(dyad_time,
                                        n.hmmstates,
                                        nstart = 5), "classes")
@@ -322,7 +322,7 @@ mmsbm <- function(formula.dyad,
       kappa_internal <- prop.table(kappa_internal+runif(length(kappa_internal), 0.0, 0.2), 1)
       ctrl$kappa_init_t <- t(kappa_internal)
     } else {
-      ctrl$kappa_init_t <- t(matrix(1, nrow = length(ut)))
+      ctrl$kappa_init_t <- t(matrix(1, nrow = periods))
     }
   } 
   state_init <- apply(ctrl$kappa_init_t, 2, which.max)
@@ -383,15 +383,17 @@ mmsbm <- function(formula.dyad,
       n_nodes = length(all.nodes), 
       SIMPLIFY = FALSE)
     if(is.null(ctrl$b_init_t)){
-      right_perm <- .findPerm(blockmodel_temp, 100)
+      right_perm <- .findPerm(blockmodel_temp)
     } else {
-      right_perm <- .findPerm(blockmodel_temp, 100, plogis(t(ctrl$b_init_t)))
+      right_perm <- .findPerm(blockmodel_temp, t(ctrl$b_init_t))
     }
-    phi_init <- mapply(function(perm_ord, phi_mat){phi_mat[perm_ord,]},#prop.table(phi_mat[perm_ord,] + runif(length(phi_mat), 0, 0.15), 2)},
-                            rep(right_perm, times = table(state_init)),
-                            phi_init_temp,
-                            SIMPLIFY = FALSE)
+    phi_init <- mapply(function(perm_ord, phi_mat){
+      phi_mat[perm_ord,]},
+      rep(right_perm, times = table(state_init)),
+      phi_init_temp,
+      SIMPLIFY = FALSE)
     ctrl$phi_init_t <- do.call(cbind, phi_init)
+    ctrl$phi_list <- phi_init
   } else {
     ctrl$phi_init_t <- ctrl$phi_init_t[, monadic_order]
   }
@@ -410,7 +412,7 @@ mmsbm <- function(formula.dyad,
                                phi_temp <- t(phi_i[, phi_inm])
                                phi_temp <- phi_temp[rownames(phi_temp) %in% paste(df[,"(nid)"], df[,"(tid)"], sep="@"),]
                                X_sub <- dm[obsinm, , drop = FALSE]
-                               lm.fit(X_sub, log(phi_temp))$coefficients
+                               lm.fit(X_sub, log(phi_temp + 1e-5))$coefficients
                              },
                              dm = X, df = mfm, phi_i = ctrl$phi_init_t, states = state_init,
                              simplify = "array")
@@ -426,6 +428,36 @@ mmsbm <- function(formula.dyad,
   
   if(ncol(Z) == 0)
     Z <- matrix(0, nrow = nrow(Z), ncol = 1)
+  
+  ## Estimate models for multi-year inits
+  if(periods > 1 & !is.null(ctrl$phi_list)){
+    mfd_list <- split(data.dyad, mfd[,c("(tid)")])
+    mfm_list <- split(data.monad, mfm[,c("(tid)")])
+    temp_res <- lapply(1:periods, function(x){
+      mmsbm(update(formula.dyad, .~1),
+            formula.monad,
+            senderID,
+            receiverID,
+            nodeID,
+            timeID,
+            data.dyad = mfd_list[[x]],
+            data.monad = mfm_list[[x]],
+            n.blocks,
+            n.hmmstates = 1,
+            directed,
+            missing,
+            mmsbm.control = list(em.iter = 10,
+                                 phi_init_t = ctrl$phi_list[[x]]))
+    })
+    block_models <- Map(function(x)x$BlockModel, temp_res)
+    phis_temp <- Map(function(x)x$MixedMembership, temp_res)
+    perms_temp <- .findPerm(block_models)
+    #phi_names <- colnames(ctrl$phi_init_t)
+    ctrl$phi_init_t <- do.call(cbind,mapply(function(phi,perm){phi[perm,]},
+                                            phis_temp, perms_temp, SIMPLIFY = FALSE))
+    #colnames(ctrl$phi_init_t) <- phi_names
+    #ctrl$b_init_t <- (block_models[[1]])
+  }
   
   ## Estimate model
   fit <- mmsbm_fit(t(Z),
