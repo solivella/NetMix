@@ -267,6 +267,8 @@ mmsbm <- function(formula.dyad,
   
   
   ## Create initial values
+  if(ctrl$verbose)
+    cat("Obtaining initial values...\n")
   all.nodes <- unique(unlist(mfd[,c("(sid)","(rid)")]))
   node.cols <- which(names(mfd)%in%c("(sid)","(rid)", "(tid)"))
   dyads <- split.data.frame(mfd[,c(node.cols, 1)], mfd[, "(tid)"])
@@ -435,7 +437,7 @@ mmsbm <- function(formula.dyad,
     mfm_list <- split(data.monad, mfm[,c("(tid)")])
     temp_res <- lapply(1:periods, function(x){
       mmsbm(update(formula.dyad, .~1),
-            formula.monad,
+            formula.monad = ~ 1,
             senderID,
             receiverID,
             nodeID,
@@ -446,15 +448,16 @@ mmsbm <- function(formula.dyad,
             n.hmmstates = 1,
             directed,
             missing,
-            mmsbm.control = list(em.iter = 10,
-                                 phi_init_t = ctrl$phi_list[[x]]))
+            mmsbm.control = list(em.iter = 5,
+                                 phi_init_t = ctrl$phi_list[[x]],
+                                 verbose = FALSE))
     })
     block_models <- Map(function(x)x$BlockModel, temp_res)
     phis_temp <- Map(function(x)x$MixedMembership, temp_res)
     perms_temp <- .findPerm(block_models)
     #phi_names <- colnames(ctrl$phi_init_t)
     ctrl$phi_init_t <- do.call(cbind,mapply(function(phi,perm){phi[perm,]},
-                                            phis_temp, perms_temp, SIMPLIFY = FALSE))
+                                            ctrl$phi_list, perms_temp, SIMPLIFY = FALSE))
     #colnames(ctrl$phi_init_t) <- phi_names
     #ctrl$b_init_t <- (block_models[[1]])
   }

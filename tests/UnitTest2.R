@@ -13,7 +13,7 @@ net2 <-  NetSim(BLK = 3
                 ,TIME = 1 
                 ,DIRECTED = TRUE
                 ,N_PRED=1
-                ,B_t = matrix(c(5, rep(-5, 3), 5, rep(-5, 3), 5), 
+                ,B_t = matrix(c(5, rep(-5, 3), -5, rep(-5, 3), 1), 
                               ncol=3)*-1
                 ,beta_arr = array(c(1.25, 1.25, #BLOCK 1
                                     1.25, -1.25, #BLOCK 2
@@ -41,7 +41,7 @@ net2.model <- mmsbm(formula.dyad = Y ~ V1,
                                          #phi_init_t = real_phis2,
                                          em_iter = 500,
                                          conv_tol = 1e-3
-                    ))
+                                         ))
 loss.mat.net2 <- net2.model$MixedMembership %*% net2$pi_vecs[[1]]
 net2_order <- clue::solve_LSAP(t(loss.mat.net2), TRUE)
 pred_data_static <- data.frame(Network = rep(c("Network II"), each=net2$NODE*net2$BLK),

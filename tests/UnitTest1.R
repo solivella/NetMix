@@ -13,7 +13,7 @@ net1 <-  NetSim(BLK = 3
                 ,TIME = 1 
                 ,DIRECTED = TRUE
                 ,N_PRED=0
-                ,B_t = matrix(c(5, rep(-5, 3), 5, rep(-5, 3), 5), 
+                ,B_t = matrix(c(5, rep(-5, 3), -5, rep(-5, 3), 1), 
                               ncol=3)*-1
                 ,beta_arr = array(c(1.25, 1.25, 1.25)*-1,
                                   c(1, 3, 1))

@@ -117,14 +117,16 @@ List mmsbm_fit(const NumericMatrix& z_t,
       conv = true;
     }
     if(verbose)
-      Rprintf("LB %i: %f\n", iter, newLL);
+      if(iter % 25 == 0)
+        Rprintf("LB %i: %f\n", iter, newLL);
     
     ++iter;
   }
   if(conv == false)
     Rprintf("Warning: model did not converge after %i iterations.\n", iter);
   else if (verbose)
-    Rprintf("done!\n");
+    Rprintf("done after %i iterations.\n", iter);
+  
   
   //Form return objects
   NumericMatrix phi_res = Model.getC();

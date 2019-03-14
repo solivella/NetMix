@@ -210,7 +210,7 @@ double MMModel::alphaLB()
     
     //Prior for beta
         for(int g = 0; g < N_BLK; ++g){
-          for(int x = 0; x < N_MONAD_PRED; ++x){
+          for(int x = 1; x < N_MONAD_PRED; ++x){
             res -= 0.5 * pow(beta(x, g, m), 2.0) / var_beta;
           }
         }
@@ -223,30 +223,6 @@ double MMModel::alphaLB()
  ALPHA GRADIENT
  */
 
-// void MMModel::alphaGr(int N_PAR, double *gr)
-// {
-//   int t, n_node_term;
-//   double res,  alpha_row, sd_beta = sqrt(var_beta);
-//   for(int m = 0; m < N_STATE; ++m){
-//     for(int g = 0; g < N_BLK; ++g){
-//       for(int x = 0; x < N_MONAD_PRED; ++x){
-//         res = 0.0;
-//         for(int p = 0; p < N_NODE; ++p){
-//           t = time_id_node[p];
-//           alpha_row = 0.0;
-//           for(int h = 0; h < N_BLK; ++h){
-//             alpha_row += alpha(h, p, m);
-//           }
-//           n_node_term = directed ? 2 * (n_nodes_time[t] - 1): n_nodes_time[t];
-//           res += digamma(alpha_row) - digamma(alpha_row + n_node_term);
-//           res += digamma(alpha(g, p, m) + e_c_t(g, p)) - digamma(alpha(g, p, m));
-//           res *= kappa_t(m, t) * alpha(g, p, m) * x_t(x, p);
-//         }
-//         gr[x + N_MONAD_PRED * (g + N_BLK * m)] = -(res - beta(x, g, m) / sd_beta);
-//       }
-//     }
-//   }
-// }
 
 
 void MMModel::alphaGr(int N_PAR, double *gr)
@@ -267,7 +243,7 @@ void MMModel::alphaGr(int N_PAR, double *gr)
                     + R::digamma(alpha(g, p, m) + e_c_t(g, p)) - R::digamma(alpha(g, p, m)))
             * kappa_t(m,  time_id_node[p]) * alpha(g, p, m) * x_t(x, p);
         }
-        prior_gr =  beta(x, g, m) / sd_beta;
+        prior_gr =  x > 0 ? beta(x, g, m) / sd_beta : 0.0;
         gr[x + N_MONAD_PRED * (g + N_BLK * m)] = -(res - prior_gr);
       }
     }
