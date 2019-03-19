@@ -424,6 +424,9 @@ mmsbm <- function(formula.dyad,
                              dm = X, df = mfm, phi_i = ctrl$phi_init_t, states = state_init,
                              simplify = "array")
   }
+  if(any(is.na(ctrl$beta_init))){
+    stop("Nearly singular design matrix; check monadic predictors.")
+  }
   
   if(is.null(ctrl$gamma_init)){
     ctrl$gamma_init <- if(ncol(Z) > 0){
@@ -431,6 +434,9 @@ mmsbm <- function(formula.dyad,
     } else {
       0
     }
+  }
+  if(any(is.na(ctrl$gamma_init))){
+    stop("Nearly singular design matrix; check dyadic predictors.")
   }
   
   if(ncol(Z) == 0)
