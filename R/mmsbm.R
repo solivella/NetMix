@@ -120,11 +120,11 @@ mmsbm <- function(formula.dyad,
       miss.d <- apply(data.dyad[,all.vars(formula.dyad[[3]]), drop = FALSE], 2, function(x){length(na.omit(x))}) < nrow(data.dyad)
       md <- names(miss.d[miss.d])
       if(length(md)>0){
-        m.ind <- apply(data.dyad[,md], 2, function(x){
+        m.ind <- apply(as.data.frame(data.dyad[,md]), 2, function(x){
           ifelse(is.na(x), 1, 0)
         })
-        colnames(m.ind) <- paste(colnames(m.ind), "_missing", sep="")
-        data.dyad[,md] <- apply(data.dyad[,md], 2, function(x){
+        colnames(m.ind) <- paste(md, "_missing", sep="")
+        data.dyad[,md] <- apply(as.data.frame(data.dyad[,md]), 2, function(x){
           x[is.na(x)] <- 0
           return(x)
         })
@@ -206,6 +206,7 @@ mmsbm <- function(formula.dyad,
   mfm <- mfm[monadic_order, ]
   ntid <- do.call(paste, c(mfm[c("(nid)","(tid)")], sep="@"))
   mfm <- mfm[ntid %in% unique(c(dntid)), ]
+  data.monad <- data.monad[ntid %in% unique(c(dntid)), ]
   monadic_order <- with(mfm, order(`(tid)`, `(nid)`)) 
   
   if(!all(udntid %in% ntid))
@@ -433,9 +434,12 @@ mmsbm <- function(formula.dyad,
   
   ## Estimate models for multi-year inits
   if(periods > 1 & !is.null(ctrl$phi_list)){
-    mfd_list <- split(data.dyad, mfd[,c("(tid)")])
+    mfd_list <- split(data.dyad, mfd[,c("(tid)")]) 
     mfm_list <- split(data.monad, mfm[,c("(tid)")])
     temp_res <- lapply(1:periods, function(x){
+      ifelse(nrow(mfm_list[[x]]) != ncol(ctrl$phi_list[[x]]),
+             p <- ctrl$phi_list[[x]][,paste(mfm_list[[x]][,nodeID], "@", unique(mfm_list[[x]][,timeID]), sep="")],
+             p <- ctrl$phi_list[[x]])
       mmsbm(update(formula.dyad, .~1),
             formula.monad = ~ 1,
             senderID,
@@ -449,11 +453,11 @@ mmsbm <- function(formula.dyad,
             directed,
             missing,
             mmsbm.control = list(em.iter = 5,
-                                 phi_init_t = ctrl$phi_list[[x]],
+                                 phi_init_t = p, 
                                  verbose = FALSE))
     })
     block_models <- Map(function(x)x$BlockModel, temp_res)
-    phis_temp <- Map(function(x)x$MixedMembership, temp_res)
+    #phis_temp <- Map(function(x)x$MixedMembership, temp_res)
     perms_temp <- .findPerm(block_models)
     #phi_names <- colnames(ctrl$phi_init_t)
     ctrl$phi_init_t <- do.call(cbind,mapply(function(phi,perm){phi[perm,]},

@@ -1,19 +1,20 @@
 library(NetMix)
-source("Extra/NetGenerator.R")
-set.seed(9999)
-sim <- NetSim(BLK=3, NODE=30, STATE=2, TIME=10, DIRECTED=TRUE, N_PRED=3,
-              beta_arr = array(rnorm(12), dim=c(4,3,2)),
-              gamma_vec = rnorm(3, 2, 0.1))
+load("crash.Rdata") 
 
-set.seed(9999)
-f <-  mmsbm(formula.dyad = Y ~ 1,
-            formula.monad = ~ V1 + V2 + V3,
-            data.dyad = sim$dyad.data, 
-            data.monad = sim$monad.data,
-            senderID="sender", receiverID="receiver",
-            nodeID="node", timeID="year",
-            n.groups=sim$BLK, n.hmmstates=sim$STATE,
-            directed=TRUE,
-            mmsbm.control = list(verbose = TRUE,
-                                 threads = parallel::detectCores()))
-
+set.seed(999)
+test <- mmsbm(formula.dyad = MID_onset_DY ~ IGOmems_joint + 
+                           ally + contiguity + dist + peaceyrs + 
+                           spline1 + spline2 + spline3,
+                         formula.monad =  ~ polity + logNMC, 
+                         data.dyad = MID_dyad1820, data.monad = MID_monad1820,
+                         senderID = "country1", receiverID = "country2", 
+                         nodeID = "country", 
+                         timeID = "year",
+                         n.blocks = 4, 
+                         n.hmmstates = 1,
+                         directed=FALSE,
+                         mmsbm.control = list(
+                           verbose = TRUE,
+                           em_iter = 3000,
+                           threads = parallel::detectCores()
+                         ))
