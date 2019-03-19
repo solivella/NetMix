@@ -159,7 +159,7 @@ mmsbm <- function(formula.dyad,
     } else {
       mdyad <- TRUE
     }
-    if(length(all.vars(data.monad[[2]]))){
+    if(length(all.vars(formula.monad[[2]]))){
       mmonad <- apply(data.monad[,all.vars(formula.monad[[2]])], 1, function(x){!any(is.na(x))})
     } else {
       mmonad <- TRUE
