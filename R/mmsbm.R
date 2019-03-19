@@ -403,6 +403,10 @@ mmsbm <- function(formula.dyad,
   
   if(is.null(ctrl$b_init_t)){
     ctrl$b_init_t <- qlogis(approxB(Y, nt_id, ctrl$phi_init_t))
+    if(any(is.infinite(ctrl$b_init_t))){
+      which.inf <- which(is.infinite(ctrl$b_init_t))
+      ctrl$b_init_t[which.inf] <- -25
+    }
   }
   
   
@@ -457,13 +461,9 @@ mmsbm <- function(formula.dyad,
                                  verbose = FALSE))
     })
     block_models <- Map(function(x)x$BlockModel, temp_res)
-    #phis_temp <- Map(function(x)x$MixedMembership, temp_res)
     perms_temp <- .findPerm(block_models)
-    #phi_names <- colnames(ctrl$phi_init_t)
     ctrl$phi_init_t <- do.call(cbind,mapply(function(phi,perm){phi[perm,]},
                                             ctrl$phi_list, perms_temp, SIMPLIFY = FALSE))
-    #colnames(ctrl$phi_init_t) <- phi_names
-    #ctrl$b_init_t <- (block_models[[1]])
   }
   
   ## Estimate model
