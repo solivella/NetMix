@@ -158,38 +158,6 @@ MMModel::MMModel(const NumericMatrix& z_t,
  ALPHA LOWER BOUND
  */
 
-// double MMModel::alphaLB()
-// {
-//   computeAlpha();
-//   int n_node_term;
-//   double res = 0.0, alpha_row = 0.0, alpha_val = 0.0;
-// #pragma omp parallel for firstprivate(alpha_row, alpha_val) reduction(+:res)
-//   for(int m = 0; m < N_STATE; ++m){
-//     for(int p = 0; p < N_NODE; ++p){
-//       alpha_row = 0.0;
-//       for(int g = 0; g < N_BLK; ++g){
-//         alpha_val = alpha(g, p, m);
-//         alpha_row += alpha_val;
-//         res += lgamma(alpha_val + e_c_t(g, p)) - lgamma(alpha_val);
-//       }
-//       n_node_term = directed ? 2 * (n_nodes_time[time_id_node[p]] - 1) : n_nodes_time[time_id_node[p]];
-//       res += lgamma(alpha_row) - lgamma(alpha_row + n_node_term);
-//       res *= kappa_t(m, time_id_node[p]);
-//     }
-//     
-//     //Prior for beta
-//     for(int g = 0; g < N_BLK; ++g){
-//       for(int x = 0; x < N_MONAD_PRED; ++x){
-//         res -= 0.5 * pow(beta(x, g, m), 2.0) / var_beta;
-//       }
-//     }
-//   }
-//   
-//   
-//   res *= -1; //VMMIN minimizes.
-//   return res;
-// }
-
 double MMModel::alphaLB()
 {
   computeAlpha();
@@ -460,82 +428,6 @@ void MMModel::alphaGrW(int n, double *par, double *gr, void *ex)
 /**
  VARIATIONAL UPDATE FOR KAPPA
  */
-
-// void MMModel::updateKappa()
-// {
-//   std::vector<double> kappa_vec(N_STATE);
-//   std::vector<double> correction_vec(N_STATE);
-//   double res, log_denom;
-//   for(int t = 0; t < N_TIME; ++t){
-//     for(int m = 0; m < N_STATE; ++m){
-//       res = 0.0;
-//       e_wm[m] -= kappa_t(m, t);
-//       res -= log(double(N_STATE) * eta + e_wm[m]);
-//       
-//       if(t > 0 & t < (N_TIME - 1)){
-//         e_wmn_t(m, m) -= kappa_t(m, t) * (kappa_t(m, t + 1) + kappa_t(m, t - 1));
-//         res += kappa_t(m, t + 1) * kappa_t(m, t - 1) * log(eta + e_wmn_t(m, m) + 1);
-//         
-//         res += (kappa_t(m, t - 1) - kappa_t(m, t - 1) * kappa_t(m, t + 1)
-//                   + kappa_t(m, t + 1)) * log(eta + e_wmn_t(m, m));
-//         
-//         for(int n = 0; n < N_STATE; ++n){
-//           if(m != n){
-//             e_wmn_t(n, m) -= kappa_t(m, t) * kappa_t(n, t + 1);
-//             res += kappa_t(n, t + 1) * log(eta + e_wmn_t(n, m));
-//             
-//             e_wmn_t(m, n) -= kappa_t(m, t) * kappa_t(n, t - 1);
-//             res += kappa_t(n, t - 1) * log(eta + e_wmn_t(m, n));
-//             
-//           }
-//         }
-//       } else if (t == 0) {
-//         for(int n = 0; n < N_STATE; ++n){
-//           e_wmn_t(n, m) -= kappa_t(m, t) * kappa_t(n, t + 1);
-//           res += kappa_t(n, t + 1) * log(eta + e_wmn_t(n, m));
-//         }
-//       } else { // t = T
-//         for(int n = 0; n < N_STATE; ++n){
-//           e_wmn_t(m, n) -= kappa_t(m, t) * kappa_t(n, t - 1);
-//           res += kappa_t(n, t - 1) * log(eta + e_wmn_t(m, n));
-//         }
-//       }
-//       
-//       res += alpha_term1(m, t);
-//       res += alpha_term2(m, t);
-//       
-//       kappa_vec[m] = res;
-//     }
-//     //max_val = *std::max_element(kappa_vec.begin(), kappa_vec.end());
-//     //std::transform(kappa_vec.begin(), kappa_vec.end(), kappa_vec.begin(),
-//     //		   std::bind1st(std::multiplies<double>(),max_val));
-//     log_denom = logSumExp(kappa_vec);
-//     for(int m = 0; m < N_STATE; ++m){
-//       kappa_t(m, t) = exp(kappa_vec[m] - log_denom);
-//       if(ISNAN(kappa_t(m, t))){
-//         stop("Kappa value became NAN.");
-//       }
-//       e_wm[m] += kappa_t(m, t);
-//       if(t > 0 & t < (N_TIME - 1)){
-//         e_wmn_t(m, m) += kappa_t(m, t) * (kappa_t(m, t + 1) + kappa_t(m, t - 1));
-//         for(int n = 0; n < N_STATE; ++n){
-//           if(m != n){
-//             e_wmn_t(n, m) += kappa_t(m, t) * kappa_t(n, t + 1);
-//             e_wmn_t(m, n) += kappa_t(m, t) * kappa_t(n, t - 1);
-//           }
-//         }
-//       } else if (t == 0) {
-//         for(int n = 0; n < N_STATE; ++n){
-//           e_wmn_t(n, m) += kappa_t(m, t) * kappa_t(n, t + 1);
-//         }
-//       } else { // t = T
-//         for(int n = 0; n < N_STATE; ++n){
-//           e_wmn_t(m, n) += kappa_t(m, t) * kappa_t(n, t - 1);
-//         }
-//       }
-//     }
-//   }
-// }
 
 
 void MMModel::updateKappa()
