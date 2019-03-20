@@ -143,10 +143,10 @@ mmsbm <- function(formula.dyad,
           ifelse(is.na(x), 1, 0)
         })
         colnames(m.ind) <- paste(mm, "_missing", sep="")
-        data.monad[,mm] <- apply(as.data.frame(data.monad[,mm]), 2, function(x){
+        data.monad[,mm] <- as.vector(apply(as.data.frame(data.monad[,mm]), 2, function(x){
           x[is.na(x)] <- 0
           return(x)
-        })
+        }))
         data.monad <- cbind(data.monad, m.ind)
         fc <- paste("~", paste(c(all.vars(formula.monad), colnames(m.ind)),  collapse=" + "))
         formula.monad <- eval(parse(text=fc))
