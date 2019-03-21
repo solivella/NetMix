@@ -444,20 +444,20 @@ mmsbm <- function(formula.dyad,
   
   ## Estimate models for multi-year inits
   if(periods > 1 & !is.null(ctrl$phi_list)){
-    mfd_list <- split(data.dyad, mfd[,c("(tid)")]) 
-    mfm_list <- split(data.monad, mfm[,c("(tid)")])
+    mfd_list <- split(mfd, mfd[,c("(tid)")]) 
+    mfm_list <- split(mfm, mfm[,c("(tid)")])
     temp_res <- lapply(1:periods, function(x){
       ifelse(nrow(mfm_list[[x]]) != ncol(ctrl$phi_list[[x]]),
-             p <- ctrl$phi_list[[x]][,paste(mfm_list[[x]][,nodeID], "@", unique(mfm_list[[x]][,timeID]), sep="")],
+             p <- ctrl$phi_list[[x]][,paste(mfm_list[[x]][,"(nid)"], "@", unique(mfm_list[[x]][,"(tid)"]), sep="")],
              p <- ctrl$phi_list[[x]])
       mmsbm(update(formula.dyad, .~1),
             formula.monad = ~ 1,
-            senderID,
-            receiverID,
-            nodeID,
-            timeID,
+            "(sid)",
+            "(rid)",
+            "(nid)",
+            "(tid)",
             data.dyad = mfd_list[[x]],
-            data.monad = mfm_list[[x]],
+            data.monad = mfm_list[[x]][,c("(nid)", "(tid)")],
             n.blocks,
             n.hmmstates = 1,
             directed,
