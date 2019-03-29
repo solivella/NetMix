@@ -2,8 +2,8 @@
 
 NetSim2 <- function(BLK = 4,
                     NODE = 20,
-                    STATE = 2,
-                    TIME = 30,
+                    STATE = 1,
+                    TIME = 1,
                     DIRECTED = TRUE,
                     N_PRED = c(2, 2),
                     B = NULL,
@@ -24,6 +24,7 @@ NetSim2 <- function(BLK = 4,
         s[i] <- which.max(rmultinom(1, 1, A[s[i-1],]))
       }
     }
+    if(STATE==1){s <- s1}
   }
   
   if(is.null(beta_arr)){
@@ -42,7 +43,7 @@ NetSim2 <- function(BLK = 4,
   
   nodes <- 1:NODE
   pi <- lapply(nodes, function(x){
-    Xsub <- X[,paste(x, 1:TIME, sep="_")]
+    Xsub <- as.data.frame(X[,paste(x, 1:TIME, sep="_")])
     debetas <- sapply(1:ncol(Xsub), function(t){
       ebeta <- exp(t(Xsub[,t]) %*% t(beta_arr[[s[t]]]))
       return(rdirichlet(1, ebeta))
