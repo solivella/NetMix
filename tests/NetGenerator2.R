@@ -14,6 +14,8 @@ NetSim2 <- function(BLK = 4,
                     Z = NULL){
   require(MCMCpack)
   
+  stopifnot(TIME >= STATE)
+  
   if(is.null(sVec)){
     s1v <- rnorm(STATE)
     s1 <- which.max(rmultinom(n=1, size=1, exp(s1v)/sum(exp(s1v))))
