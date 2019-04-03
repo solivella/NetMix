@@ -24,7 +24,7 @@ NetSim2 <- function(BLK = 4,
         sVec[i] <- which.max(rmultinom(1, 1, A[sVec[i-1],]))
       }
     }
-    if(STATE==1){sVec <- s1}
+    if(STATE==1){sVec <- rep(s1, TIME)}
   }
   
   if(is.null(beta_arr)){
@@ -101,9 +101,10 @@ NetSim2 <- function(BLK = 4,
   monad.data <- as.data.frame(t(X))
   monad.data$node <- as.numeric(unlist(lapply(strsplit(rownames(monad.data), "_"), "[[", 1)))
   monad.data$time <- as.numeric(unlist(lapply(strsplit(rownames(monad.data), "_"), "[[", 2)))
+  pi.mat2 <- pi.mat[colnames(X),]
   for(i in 1:BLK){
     n <- paste("pi",i,sep="")
-    monad.data[,n] <- pi.mat[,i]
+    monad.data[,n] <- pi.mat2[,i]
   }
   
   return(list(BLK = BLK
@@ -122,7 +123,7 @@ NetSim2 <- function(BLK = 4,
               ,monad.data = monad.data
               ,X = X
               ,Z = Z
-              ,pi_vecs = pi.mat
+              ,pi_vecs = pi.mat2
               #,alpha = alpha
               #,grp = sapply(theta_grp, function(x)x$grp)
               ,theta = prob.edge
