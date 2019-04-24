@@ -20,10 +20,10 @@ List mmsbm_fit(const NumericMatrix& z_t,
                const NumericMatrix& mu_b,
                const NumericMatrix& var_b,
                const NumericMatrix& phi_init,
-               NumericMatrix& kappa_init_t,
-               NumericMatrix& b_init_t,
-               NumericVector& beta_init,
-               NumericVector& gamma_init,
+                NumericMatrix& kappa_init_t,
+                NumericMatrix& b_init_t,
+                NumericVector& beta_init,
+                NumericVector& gamma_init,
                List control
 )
 {
@@ -32,7 +32,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
 #ifdef _OPENMP
   int requested = as<int>(control["threads"]);
   omp_set_num_threads(requested);
-  N_THREADS = omp_get_max_threads();
+  N_THREADS = requested;
 #endif
   
   //Create model instance
@@ -68,16 +68,17 @@ List mmsbm_fit(const NumericMatrix& z_t,
   bool conv = false,
     verbose = as<bool>(control["verbose"]);
 
-  double newLL,
+  double newLL, oldLL,
   tol = as<double>(control["conv_tol"]);
   
-  NumericVector Old_B(TOT_B),
-  Old_Gamma(N_DYAD_PRED),
-  Old_Beta(TOT_BETA);
+  // NumericVector Old_B(TOT_B),
+  // Old_Gamma(N_DYAD_PRED),
+  // Old_Beta(TOT_BETA);
   
   if(verbose){
     Rprintf("Estimating model...\n");
   }
+  oldLL = Model.cLL();
   while(iter < EM_ITER && conv == false){
     checkUserInterrupt();
     
@@ -85,44 +86,45 @@ List mmsbm_fit(const NumericMatrix& z_t,
     Model.updatePhi();
     
     
-    
     if(N_STATE > 1){
-      Model.updateKappa();
+      //Model.updateKappa();
     }
+
     
     
     //M-STEP
-    Model.getB(Old_B);
-    Model.getGamma(Old_Gamma);
-    Model.getBeta(Old_Beta);
-#pragma omp parallel sections
-{
-#pragma omp section
-{
-  Model.optim(true); //optimize alphaLB
-}
-#pragma omp section
-{
-  Model.optim(false); //optimize thetaLB
-}
-}
+    // Model.getB(Old_B);
+    // Model.getGamma(Old_Gamma);
+    // Model.getBeta(Old_Beta);
+// #pragma omp parallel sections
+// {
+// #pragma omp section
+// {
+////  Model.optim(true); //optimize alphaLB
+// }
+// #pragma omp section
+// {
+////  Model.optim(false); //optimize thetaLB
+// }
+// } 
+
   
     
     //Check convergence
     newLL = Model.cLL();
     
-    if(Model.checkConvChng(Old_Gamma.begin(), Old_Gamma.end(), 0, tol) &&
-       Model.checkConvChng(Old_B.begin(), Old_B.end(), 1, tol) &&
-       Model.checkConvChng(Old_Beta.begin(), Old_Beta.begin(), 2, tol)){
+    if(fabs((newLL-oldLL)/oldLL) < tol){
       conv = true;
+    } else {
+      oldLL = newLL;
     }
     if(verbose)
-      if(iter % 25 == 0)
-        Rprintf("LB %i: %f\n", iter, newLL);
+      if((iter+1) % 25 == 0)
+        Rprintf("LB %i: %f\n", iter + 1, newLL);
     
     ++iter;
   }
-  if(conv == false)
+  if((conv == false) & verbose)
     Rprintf("Warning: model did not converge after %i iterations.\n", iter);
   else if (verbose)
     Rprintf("done after %i iterations.\n", iter);
@@ -144,8 +146,8 @@ List mmsbm_fit(const NumericMatrix& z_t,
   res["TransitionKernel"] = A;
   res["MonadCoef"] = beta_res;
   res["Kappa"] = kappa_res;
-  res["n_states"] = as<int>(control["states"]);
-  res["n_blocks"] = as<int>(control["blocks"]);
+  res["n_states"] = N_STATE;
+  res["n_blocks"] = N_BLK;
   res["LowerBound"] = newLL;
   res["niter"] = iter;
   

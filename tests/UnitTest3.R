@@ -5,62 +5,93 @@
 
 library(NetMix)
 library(tidyverse)
+source("tests/NetGenerator2.R")
 source("tests/NetGenerator.R")
-#set.seed(831213)
+set.seed(831213)
+net3 <-  NetSim2(BLK = 3
+                 ,NODE = 100
+                 ,STATE = 2
+                 ,TIME = 10
+                 ,DIRECTED = FALSE
+                 ,N_PRED=c(1, 1)
+                 ,B = jitter(matrix(c(-5, rep(5, 3), -3, rep(5, 3), -1),
+                                    ncol=3))
+                 ,beta_arr = list(array(c(.5, .25,
+                                          .5, -1.25,
+                                          0.50, 2.25)*-1,
+                                        c(3, 2)),
+                                  array(c(1.5, .55,
+                                          .5, -1.25,
+                                          0.50, -1.25)*-1,
+                                        c(3, 2))),
+                 sVec = rep(c(1,2),c(5,5))
+                 ,gamma_vec = c(1.5))
+
 net3 <-  NetSim(BLK = 3
-                ,NODE = 200
+                ,NODE = 100
                 ,STATE = 2
-                ,TIME = 10 
+                ,TIME = 10
                 ,DIRECTED = TRUE
-                ,N_PRED=2
-                ,B_t = matrix(c(5, rep(-5, 3), -5, rep(-5, 3), 1), 
-                              ncol=3)*-1
-                ,beta_arr = array(c(matrix(c(c(0.25, 0.25, 0.25)*2, #Intercept
-                                             0.25, -1.25, 2.25,#Var1
-                                           0.25, -1.25, -1.25),#Var2
-                                           ncol=3, byrow = TRUE),
-                                  matrix(c(c(0.25, 0.25, 0.25)*2, #Intercept
-                                           1.25, -1.25, -2.25,#V1
-                                         -0.25, -1.25, 2.25),#Var2
-                                         ncol=3, byrow = TRUE)),c(3, 3, 2)),
+                ,N_PRED=c(1, 1)
+                ,B = jitter(matrix(c(-5, rep(5, 3), -3, rep(5, 3), -1),
+                                   ncol=3))
+                ,beta_arr = list(array(c(.5, .25,
+                                         .5, -1.25,
+                                         0.50, 2.25)*-1,
+                                       c(3, 2)),
+                                 array(c(1.5, .55,
+                                         .5, -1.25,
+                                         0.50, -1.25)*-1,
+                                       c(3, 2))),
                 sVec = rep(c(1,2),c(5,5))
-                ,gamma_vec = c(1.5, -1.3))
+                ,gamma_vec = c(1.5))
 
-real_phis3 <- t(do.call(rbind,net3$pi_vecs))
-colnames(real_phis3) <- with(subset(net3$monad.data), paste(node,year, sep="@"))
+real_phis3 <- t(net3$pi_vecs)
+colnames(real_phis3) <- with(subset(net3$monad.data), paste(node,time, sep="@"))
 
-net3.model <- mmsbm(formula.dyad = Y ~ V1 + V2,
-      formula.monad = ~ V1 + V2,
-      senderID = "sender",
-      receiverID = "receiver",
-      nodeID = "node",
-      timeID = "year",
-      data.dyad = net3$dyad.data,
-      data.monad = net3$monad.data,
-      n.blocks = net3$BLK,
-      n.hmmstates = net3$STATE,
-      directed = net3$DIRECTED,
-      mmsbm.control = list(mu_b = c(5,-5)*-1,
-                           var_b = c(1, 1),
-                           spectral = TRUE,
-                           #phi_init_t = real_phis3,
-                           em_iter = 500,
-                           conv_tol = 1e-3,
-                           threads = 24
-                           ))
+net3.model <- mmsbm(formula.dyad = Y ~  V1,
+                    formula.monad = ~ V1, ## Change this to V2 of using new simulaton code
+                    senderID = "node1",
+                    receiverID = "node2",
+                    #senderID = "sender",
+                    #receiverID = "receiver",
+                    nodeID = "node",
+                    timeID = "time",
+                    data.dyad = net3$dyad.data,
+                    data.monad = net3$monad.data,
+                    n.blocks = net3$BLK,
+                    n.hmmstates = net3$STATE,
+                    directed = net3$DIRECTED,
+                    mmsbm.control = list(mu_b = c(5,-5)*-1,
+                                         var_b = c(1, 1),
+                                         spectral = TRUE,
+                                         b_init_t = net3$B,
+                                         gamma_init = net3$gamma_mat,
+                                         phi_init_t = real_phis3,#[,(x*net3$NODE + 1):(x*net3$NODE + net3$NODE)],
+                                         #kappa_init_t = t(model.matrix(~-1+as.factor(net3$sVec))),
+                                         verbose=TRUE,
+                                         em_iter = 300,
+                                         conv_tol = 1e-4,
+                                         threads = 4
+                    ))
 
-loss.mat.net3 <- net3.model$MixedMembership %*% do.call(rbind,net3$pi_vecs)
-net3_order <- clue::solve_LSAP(t(loss.mat.net3), TRUE)
+loss.mat.net3 <- net3.model$MixedMembership %*% net3$pi_vecs
+
+net3_order <-  clue::solve_LSAP(t(loss.mat.net3), TRUE)
+
+
+
+
 pred_data_static <- data.frame(Network = rep(c("Network III"), each=net3$NODE*net3$BLK*net3$TIME),
-                               Group = factor(rep(c(1:3), each = net3$NODE, times = net3$TIME)),
-                               Truth = c(do.call(rbind,net3$pi_vecs)),
-                               Pred = c(c(t(net3.model$MixedMembership[net3_order,])))
-                               #Year = rep(1:net3$TIME, each=net3$NODE)
-                               )
-ggplot(pred_data_static, aes(x=Truth, y=Pred, color=Group, pch=Group))+
+                               Group = factor(rep(c(1:net3$BLK), each = net3$NODE, times = net3$TIME)),
+                               Year = rep(1:10, each=net3$NODE, times=net3$BLK),
+                               Truth = c(net3$pi_vecs),
+                               Pred = c(t(net3.model$MixedMembership[net3_order,])))
+
+ggplot(pred_data_static, aes(x=Truth, y=Pred, color=Group, pch=Group,alpha=Year))+
   scale_color_brewer(palette="Set1") + 
-  geom_point(alpha=0.7, size=2.5) + 
-  #facet_wrap(~Network) + 
+  geom_point(size=2.5) + 
+  facet_wrap(~Network) + 
   theme_bw() + 
   ylab("Estimate") +
   xlab("True mixed-membership")
@@ -76,8 +107,5 @@ net3$B
 ## Kappa
 t(net3.model$Kappa)
 net3$sVec
-
-##Gof
-#gof(net3.model)
 
 

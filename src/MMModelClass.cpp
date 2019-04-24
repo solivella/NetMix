@@ -27,10 +27,10 @@ MMModel::MMModel(const NumericMatrix& z_t,
                  const NumericMatrix& mu_b,
                  const NumericMatrix& var_b,
                  const NumericMatrix& phi_init,
-                 NumericMatrix& kappa_init_t,
-                 NumericMatrix& b_init_t,
-                 NumericVector& beta_init,
-                 NumericVector& gamma_init,
+                  NumericMatrix& kappa_init_t,
+                  NumericMatrix& b_init_t,
+                  NumericVector& beta_init_r,
+                  NumericVector& gamma_init_r,
                  List& control
 )
   :
@@ -66,8 +66,8 @@ MMModel::MMModel(const NumericMatrix& z_t,
   masktheta(N_B_PAR + N_DYAD_PRED, 1),
   theta_par({N_B_PAR + N_DYAD_PRED}, 0.0),
   e_wm({N_STATE}, 0.0),
-  gamma({N_DYAD_PRED}, gamma_init),
-  gamma_init({N_DYAD_PRED}, gamma_init),
+  gamma({N_DYAD_PRED}, gamma_init_r),
+  gamma_init({N_DYAD_PRED}, gamma_init_r),
   node_id_dyad({N_DYAD, 2}, node_id_dyad),
   par_ind({N_BLK, N_BLK}, 0),
   x_t({N_MONAD_PRED, N_NODE}, x_t),
@@ -83,8 +83,8 @@ MMModel::MMModel(const NumericMatrix& z_t,
   e_c_t({N_BLK, N_NODE}, 0.0),
   alpha({N_BLK, N_NODE, N_STATE}, 0.0),
   theta({N_BLK, N_BLK, N_DYAD}, 0.0),
-  beta({N_MONAD_PRED, N_BLK, N_STATE}, beta_init),
-  beta_init({N_MONAD_PRED, N_BLK, N_STATE}, beta_init),
+  beta({N_MONAD_PRED, N_BLK, N_STATE}, beta_init_r),
+  beta_init({N_MONAD_PRED, N_BLK, N_STATE}, beta_init_r),
   new_e_c_t(N_THREAD, Array<double>({N_BLK, N_NODE}, 0.0))
 {
   //Assign initial values to  W parameters
@@ -125,6 +125,7 @@ MMModel::MMModel(const NumericMatrix& z_t,
       } else {
         if(h >= g){
           par_ind(h, g) = ind;
+         //Rcpp::Rcout << ind << std::endl;
           ++ind;
         } else {
           par_ind(h, g) = par_ind(g, h);
@@ -139,11 +140,11 @@ MMModel::MMModel(const NumericMatrix& z_t,
       theta_par[par_ind(h, g)] = b_t(h, g);
     }
   }
+
   
   if(N_DYAD_PRED > 0)
     std::copy(gamma.begin(), gamma.end(), theta_par.begin() + N_B_PAR);
 
-  
   
   //Assign initial values to alpha and theta
   computeAlpha();
@@ -162,7 +163,7 @@ double MMModel::alphaLB()
 {
   computeAlpha();
   double res = 0.0, res_int = 0.0, alpha_row = 0.0, alpha_val = 0.0;
-#pragma omp parallel for firstprivate(alpha_row, alpha_val, res_int) reduction(+:res)
+//#pragma omp parallel for firstprivate(alpha_row, alpha_val, res_int) reduction(+:res)
   for(int m = 0; m < N_STATE; ++m){
     for(int p = 0; p < N_NODE; ++p){
       alpha_row = 0.0;
@@ -201,7 +202,7 @@ void MMModel::alphaGr(int N_PAR, double *gr)
     for(int g = 0; g < N_BLK; ++g){
       for(int x = 0; x < N_MONAD_PRED; ++x){
         res = 0.0;
-#pragma omp parallel for firstprivate(alpha_row) reduction(+:res)
+//#pragma omp parallel for firstprivate(alpha_row) reduction(+:res)
         for(int p = 0; p < N_NODE; ++p){
           alpha_row = 0.0;
           for(int h = 0; h < N_BLK; ++h){
@@ -260,7 +261,7 @@ double MMModel::thetaLB(bool entropy = false)
   computeTheta();
   
   double res = 0.0;
-#pragma omp parallel for reduction(+:res)
+//#pragma omp parallel for reduction(+:res)
   for(int d = 0; d < N_DYAD; ++d){
     for(int g = 0; g < N_BLK; ++g){
       if(entropy)
@@ -555,14 +556,14 @@ void MMModel::updatePhi()
   for(int thread = 0; thread < N_THREAD; ++thread){
     std::fill(new_e_c_t[thread].begin(), new_e_c_t[thread].end(), 0.0);
   }
-#pragma omp parallel
-{
+//#pragma omp parallel
+//{
   int thread = 0;
-#ifdef _OPENMP
-  thread = omp_get_thread_num();
-#endif
+//#ifdef _OPENMP
+//  thread = omp_get_thread_num();
+//#endif
   
-#pragma omp for
+//#pragma omp for
   for(int d = 0; d < N_DYAD; ++d){
     updatePhiInternal(d,
                       0,
@@ -579,12 +580,12 @@ void MMModel::updatePhi()
   }
   
   
-#pragma omp single
-{
+//#pragma omp single
+//{
   std::fill(e_c_t.begin(), e_c_t.end(), 0.0);
-}
+//}
 
-#pragma omp for collapse(2)
+//#pragma omp for collapse(2)
 for(int p = 0; p < N_NODE; ++p){
   for(int g = 0; g < N_BLK; ++g){
     for(int i = 0; i < N_THREAD; ++i){
@@ -593,7 +594,7 @@ for(int p = 0; p < N_NODE; ++p){
   }
 }
 }
-}
+//}
 
 /** 
  CONVERGENCE CHECKER

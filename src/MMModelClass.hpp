@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <Rcpp.h>
-#include "Aux.hpp"
+#include "HelperFuns.hpp"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -24,10 +24,10 @@ public:
 	  const Rcpp::NumericMatrix& mu_b,
 	  const Rcpp::NumericMatrix& var_b,
 	  const Rcpp::NumericMatrix& phi_init,
-	  Rcpp::NumericMatrix& kappa_init_t,
-	  Rcpp::NumericMatrix& b_init_t,
-	  Rcpp::NumericVector& beta_init,
-	  Rcpp::NumericVector& gamma_init,
+	   Rcpp::NumericMatrix& kappa_init_t,
+	   Rcpp::NumericMatrix& b_init_t,
+	   Rcpp::NumericVector& beta_init_r,
+	   Rcpp::NumericVector& gamma_init_r,
 	  Rcpp::List& control
 	  );
 
@@ -96,8 +96,8 @@ private:
 
   Array<double> theta_par,
     e_wm,
-    gamma,
-    gamma_init;
+    gamma;
+   Array<double> gamma_init;
 
   const Array<int> node_id_dyad; //matrix (column major)
   Array<int> par_ind;
@@ -117,8 +117,8 @@ private:
 
   Array<double> alpha, //3d array (column major)
     theta,
-    beta,
-    beta_init;
+    beta;
+   Array<double> beta_init;
 
   std::vector< Array<double> > new_e_c_t; //For reduce op.
 
