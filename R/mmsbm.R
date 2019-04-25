@@ -235,7 +235,8 @@ mmsbm <- function(formula.dyad,
   }
   n_dyad_pred <- ncol(Z)
   
-  nt_id <- cbind(.mapID(udntid, dntid[, 1]) - 1, .mapID(udntid, dntid[, 2]) - 1)
+  #nt_id <- cbind(.mapID(udntid, dntid[, 1]) - 1, .mapID(udntid, dntid[, 2]) - 1) # this was creating problems
+  nt_id <- cbind(.mapID(ntid, dntid[, 1]) - 1, .mapID(ntid, dntid[, 2]) - 1) # this works
   t_id_d <- .mapID(ut, mfd[["(tid)"]]) - 1
   t_id_n <- .mapID(ut, mfm[["(tid)"]]) - 1
   nodes_pp <- c(by(mfm, mfm[["(tid)"]], nrow))

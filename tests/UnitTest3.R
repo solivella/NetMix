@@ -7,15 +7,20 @@ library(NetMix)
 library(tidyverse)
 source("tests/NetGenerator2.R")
 source("tests/NetGenerator.R")
-set.seed(831213)
+
+
+BM <- jitter(matrix(c(-5, rep(5, 3), -3, rep(5, 3), -1),
+                    ncol=3))
+  
+  
+set.seed(831214)
 net3 <-  NetSim2(BLK = 3
                  ,NODE = 100
                  ,STATE = 2
                  ,TIME = 10
                  ,DIRECTED = FALSE
                  ,N_PRED=c(1, 1)
-                 ,B = jitter(matrix(c(-5, rep(5, 3), -3, rep(5, 3), -1),
-                                    ncol=3))
+                 ,B = BM
                  ,beta_arr = list(array(c(.5, .25,
                                           .5, -1.25,
                                           0.50, 2.25)*-1,
@@ -27,14 +32,13 @@ net3 <-  NetSim2(BLK = 3
                  sVec = rep(c(1,2),c(5,5))
                  ,gamma_vec = c(1.5))
 
-net3 <-  NetSim(BLK = 3
+net3b <-  NetSim(BLK = 3
                 ,NODE = 100
                 ,STATE = 2
                 ,TIME = 10
-                ,DIRECTED = TRUE
+                ,DIRECTED = FALSE
                 ,N_PRED=c(1, 1)
-                ,B = jitter(matrix(c(-5, rep(5, 3), -3, rep(5, 3), -1),
-                                   ncol=3))
+                ,B_t = t(BM)
                 ,beta_arr = list(array(c(.5, .25,
                                          .5, -1.25,
                                          0.50, 2.25)*-1,
@@ -42,12 +46,20 @@ net3 <-  NetSim(BLK = 3
                                  array(c(1.5, .55,
                                          .5, -1.25,
                                          0.50, -1.25)*-1,
-                                       c(3, 2))),
-                sVec = rep(c(1,2),c(5,5))
+                                       c(3, 2)))
+                ,sVec = rep(c(1,2),c(5,5))
                 ,gamma_vec = c(1.5))
+
+
+#net3 <- net3b
 
 real_phis3 <- t(net3$pi_vecs)
 colnames(real_phis3) <- with(subset(net3$monad.data), paste(node,time, sep="@"))
+
+net3$dyad.data2 <- net3$dyad.data[net3$dyad.data$node1 != net3$dyad.data$node2,]
+net3$dyad.data3 <- net3$dyad.data
+net3$dyad.data3$Y[net3$dyad.data3$node1 != net3$dyad.data3$node2] <- 0
+
 
 net3.model <- mmsbm(formula.dyad = Y ~  V1,
                     formula.monad = ~ V1, ## Change this to V2 of using new simulaton code
@@ -65,7 +77,7 @@ net3.model <- mmsbm(formula.dyad = Y ~  V1,
                     mmsbm.control = list(mu_b = c(5,-5)*-1,
                                          var_b = c(1, 1),
                                          spectral = TRUE,
-                                         b_init_t = net3$B,
+                                         b_init_t = t(net3$B),
                                          gamma_init = net3$gamma_mat,
                                          phi_init_t = real_phis3,#[,(x*net3$NODE + 1):(x*net3$NODE + net3$NODE)],
                                          #kappa_init_t = t(model.matrix(~-1+as.factor(net3$sVec))),

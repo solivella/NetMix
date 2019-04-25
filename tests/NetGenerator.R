@@ -62,7 +62,8 @@ NetSim <- function(BLK = 3,
       baseMatInd <- replicate(N_PRED[1], rnorm(NODE))
     }
     # baseMateInd <- scale(baseMatInd)
-    X <- lapply(1:TIME,function(x){cbind(1, apply(baseMatInd, 2, function(x)rnorm(length(x), x, 0.5)))})
+    # changed the below from rnorm(length(x), x, 0.5))
+    X <- lapply(1:TIME,function(x){cbind(1, apply(baseMatInd, 2, function(x)rnorm(length(x), 0, 2)))})
   }
   ## Simulate N_PRED dyadic covariates per dyad per time
   if(is.null(Z)){
@@ -73,7 +74,8 @@ NetSim <- function(BLK = 3,
         replicate(N_PRED[2], rnorm(NDYADS))
       }
     #baseMatDyad <- scale(baseMatDyad)
-    Z  <- lapply(1:TIME,function(x){apply(baseMatDyad, 2, function(x)rnorm(length(x), x, 0.5))})
+    # changed the below from rnorm(length(x), x, 0.5)
+    Z  <- lapply(1:TIME,function(x){apply(baseMatDyad, 2, function(x)rnorm(length(x), 1, 1))})
   }
   
   
