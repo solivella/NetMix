@@ -28,8 +28,8 @@ net3 <-  NetSim2(BLK = 3
                                   array(c(1.5, .55,
                                           .5, -1.25,
                                           0.50, -1.25)*-1,
-                                        c(3, 2))),
-                 sVec = rep(c(1,2),c(5,5))
+                                        c(3, 2)))
+                 ,sVec = rep(c(1,2),c(5,5))
                  ,gamma_vec = c(1.5))
 
 net3b <-  NetSim(BLK = 3
@@ -62,7 +62,7 @@ net3$dyad.data3$Y[net3$dyad.data3$node1 != net3$dyad.data3$node2] <- 0
 
 
 net3.model <- mmsbm(formula.dyad = Y ~  V1,
-                    formula.monad = ~ V1, ## Change this to V2 of using new simulaton code
+                    formula.monad = ~ V2, ## Change this to V2 of using new simulaton code
                     senderID = "node1",
                     receiverID = "node2",
                     #senderID = "sender",

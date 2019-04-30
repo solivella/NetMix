@@ -37,12 +37,13 @@ NetSim2 <- function(BLK = 4,
   }
   
   if(is.null(X)){
-    X <-  if(N_PRED[1] > 0){
-      rbind(rep(1, NODE*TIME), 
-               sapply(1:(NODE*TIME), function(x){
-                 rnorm(N_PRED[1], 0, 2)}))
-    } else {
-      matrix(1, nrow=1, ncol=NODE*TIME)
+    X <- matrix(1, nrow=1, ncol=NODE*TIME)
+    if(N_PRED[1] > 0){
+      t1 <- list(sapply(1:NODE, function(x){rnorm(N_PRED[1], 0, 2)}))
+      for(t in 2:TIME){
+        t1[[t]] <- t1[[t-1]] + rnorm(length(t1[[t-1]]), 0, 0.5)
+      }
+      X <- rbind(X, do.call(c, t1))
     }
     colnames(X) <- paste(rep(1:NODE, TIME), rep(1:TIME, each=NODE), sep="_")
   }
@@ -67,9 +68,13 @@ NetSim2 <- function(BLK = 4,
     if(DIRECTED){dy <- expand.grid(1:NODE, 1:NODE)}
     if(!DIRECTED){dy <- t(combn(1:NODE, 2))}
     Z <- do.call(rbind, replicate(TIME, dy, simplify=FALSE))
-    Z <- cbind(Z, rep(1:TIME, each = nrow(Z)/TIME))
+    Z <- cbind(Z, rep(1:TIME, each = nrow(Z)/TIME), matrix(NA, nrow(Z), N_PRED[2]))
     for(d in 1:N_PRED[2]){
-      Z <- cbind(Z, rnorm(nrow(Z), 1, 1))
+      t1 <- list(rnorm(nrow(Z)/TIME, 1, 1))
+      for(t in 2:TIME){
+        t1[[t]] <- t1[[t-1]] + rnorm(length(t1[[t-1]]), 0, 0.25)
+      }
+      Z[,d+3] <- do.call(c, t1)
     }
     colnames(Z) <- c("node1", "node2", "time", paste("V", 1:N_PRED[2], sep=""))
   }
