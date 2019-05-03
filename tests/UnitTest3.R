@@ -30,6 +30,7 @@ net3 <-  NetSim2(BLK = 3
                  ,gamma_vec = c(0.05)
 )
 
+
 real_phis3 <- t(net3$pi_vecs)
 colnames(real_phis3) <- with(subset(net3$monad.data), paste(node,time, sep="@"))
 
