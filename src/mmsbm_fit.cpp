@@ -1,4 +1,4 @@
-#include "mmsbm_fit.hpp"
+#include "MMModelClass.hpp"
 
 using Rcpp::NumericMatrix;
 using Rcpp::NumericVector;
@@ -29,10 +29,10 @@ List mmsbm_fit(const NumericMatrix& z_t,
 {
   //Obtain nr. of cores
   int N_THREADS = 1;
-#ifdef _OPENMP
-  int requested = as<int>(control["threads"]);
-  omp_set_num_threads(requested);
-  N_THREADS = requested;
+ #ifdef _OPENMP
+   int requested = as<int>(control["threads"]);
+   omp_set_num_threads(requested);
+   N_THREADS = requested;
 #endif
   
   //Create model instance
@@ -87,7 +87,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
     
     
     if(N_STATE > 1){
-      //Model.updateKappa();
+      Model.updateKappa();
     }
 
     
@@ -96,17 +96,17 @@ List mmsbm_fit(const NumericMatrix& z_t,
     // Model.getB(Old_B);
     // Model.getGamma(Old_Gamma);
     // Model.getBeta(Old_Beta);
-// #pragma omp parallel sections
-// {
-// #pragma omp section
-// {
-////  Model.optim(true); //optimize alphaLB
-// }
-// #pragma omp section
-// {
-////  Model.optim(false); //optimize thetaLB
-// }
-// } 
+#pragma omp parallel sections
+ {
+ #pragma omp section
+ {
+Model.optim_ours(true); //optimize alphaLB
+ }
+ #pragma omp section
+ {
+ Model.optim_ours(false); //optimize thetaLB
+ }
+  } 
 
   
     

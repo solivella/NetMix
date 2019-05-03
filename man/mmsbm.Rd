@@ -54,8 +54,11 @@ to 1 (i.e. no HMM).}
 
 \item{mmsbm.control}{A named list of optional algorithm control parameters.
 \describe{
-   \item{spectral}{Boolean. Type of initialization algorithm for mixed-membership vectors. If \code{TRUE},
-               use spectral clustering with degree correction; otherwise, use kmeans algorithm.}
+   \item{spectral}{Boolean. Type of initialization algorithm for mixed-membership vectors in static case. If \code{TRUE},
+               use spectral clustering with degree correction; otherwise, use kmeans algorithm}
+   \item{alpha}{Numeric positive value. Concentration parameter for collapsed Gibbs sampler to find initial
+                mixed-membership values in dynamic case. Defaults to 0.5}            
+   \item{seed}{RNG seed. Defaults to \code{NULL}, which does not seed the RNG}            
    \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3}
    \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3}
    \item{mu_b}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
@@ -65,14 +68,16 @@ to 1 (i.e. no HMM).}
    \item{var_beta}{Numeric positive value. (Gaussian) Prior variance of monadic coefficients. Defaults to 5.0.}
    \item{var_gamma}{Numeric positive value. (Gaussian) Prior variance of dyadic coefficients. Defaults to 5.0.}
    \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 10.3}
-   \item{phi_init}{Matrix, \code{n.blocks} by total number of nodes across years. Optional initial values for variational
+   \item{phi_init_t}{Matrix, \code{n.blocks} by total number of nodes across years. Optional initial values for variational
                   parameters for mixed-membership vectors. Column names must be of the form \code{nodeid\@year}
                   }
    \item{kappa_init_t}{Matrix, \code{n.hmmstates} by number of years. Optional initial values for variational 
                   parameters for state probabilities.}
    \item{b_init_t}{Matrix, \code{n.blocks} by \code{n.blocks}. Optional initial values for blockmodel.}
    \item{beta_init}{Array, predictors by \code{n.blocks} by \code{n.hmmstates}. Optional initial values for monadic coefficients.}
-   \item{gamma_init}{vector. Optional initial values for dyadic coefficients.}
+   \item{gamma_init}{Vector. Optional initial values for dyadic coefficients.}
+   \item{permute}{Boolean. Should all permutations be tested to realign initial block models in dynamic case? If \code{FALSE}, realignment is 
+                 done via faster graph matching algorithm, but may not be exact. Defaults to \code{TRUE}.}
    \item{threads}{Numeric integer. Number of available cores for paralellization. Defaults to 4}
    \item{conv_tol}{Numeric value. Absolute tolerance for VI convergence. Defaults to 1e-4}
    \item{verbose}{Boolean. Should extra information be printed as model iterates? Defaults to FALSE}

@@ -35,8 +35,10 @@
 #' @param missing Means of handling missing data. One of "indicator method" (default) or "listwise deletion".
 #' @param mmsbm.control A named list of optional algorithm control parameters.
 #'     \describe{
-#'        \item{spectral}{Boolean. Type of initialization algorithm for mixed-membership vectors. If \code{TRUE},
-#'                    use spectral clustering with degree correction; otherwise, use kmeans algorithm.}
+#'        \item{spectral}{Boolean. Type of initialization algorithm for mixed-membership vectors in static case. If \code{TRUE},
+#'                    use spectral clustering with degree correction; otherwise, use kmeans algorithm}
+#'        \item{alpha}{Numeric positive value. Concentration parameter for collapsed Gibbs sampler to find initial
+#'                     mixed-membership values in dynamic case. Defaults to 0.5}            
 #'        \item{seed}{RNG seed. Defaults to \code{NULL}, which does not seed the RNG}            
 #'        \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3}
 #'        \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3}
@@ -240,6 +242,7 @@ mmsbm <- function(formula.dyad,
   t_id_d <- .mapID(ut, mfd[["(tid)"]]) - 1
   t_id_n <- .mapID(ut, mfm[["(tid)"]]) - 1
   nodes_pp <- c(by(mfm, mfm[["(tid)"]], nrow))
+  dyads_pp <- c(by(mfd, mfd[["(tid)"]], nrow))
   
   ## Form default control list
   ctrl <- list(blocks = n.blocks,
@@ -252,6 +255,7 @@ mmsbm <- function(formula.dyad,
                beta_init = NULL,
                gamma_init = NULL,
                spectral = TRUE,
+               alpha = 0.5,
                seed = NULL,
                em_iter = 50,
                opt_iter = 10e3,
@@ -340,7 +344,7 @@ mmsbm <- function(formula.dyad,
   }
   
   ## Adjusted this for when edges are never formed for a given node/year
-  if(is.null(ctrl$phi_init_t)) {
+  if(is.null(ctrl$phi_init_t) & (periods == 1)) {
     phi_init_temp <- lapply(soc_mats,
                             function(mat){
                               if(directed){
@@ -388,9 +392,79 @@ mmsbm <- function(formula.dyad,
     
     ctrl$phi_init_t <- do.call(cbind, phi_init_temp)
     ctrl$phi_list <- phi_init_temp
-  } #else {
-  #ctrl$phi_init_t <- ctrl$phi_init_t[, monadic_order]
-  #}
+  } else if (is.null(ctrl$phi_init_t) & (periods > 1)){
+     temp_res <- vector("list", periods)
+     # mfd_list <- split(mfd, mfd[,c("(tid)")])
+     # mfm_list <- split(mfm, mfm[,c("(tid)")])
+      for(i in 1:periods){
+     #   temp_res[[i]] <- mmsbm(update(formula.dyad, .~1),
+     #                          formula.monad = ~ 1,
+     #                          senderID = "(sid)",
+     #                          receiverID = "(rid)",
+     #                          nodeID = "(nid)",
+     #                          timeID = "(tid)",
+     #                          data.dyad = mfd_list[[i]],
+     #                          data.monad = mfm_list[[i]][,c("(nid)", "(tid)")],
+     #                          n.blocks = n.blocks,
+     #                          n.hmmstates = 1,
+     #                          directed = directed,
+     #                          missing = missing,
+     #                          mmsbm.control = list(em_iter = ctrl$em_iter,
+     #                                               seed = ctrl$seed,
+     #                                               mu_b = ctrl$mu_b,
+     #                                               var_b = ctrl$var_b,
+     #                                               spectral = ctrl$spectral,
+     #                                               conv_tol = ctrl$conv_tol,
+     #                                               threads = ctrl$threads,
+     #                                               verbose = FALSE))
+     # }
+     
+      n_prior <- (dyads_pp[i] - nodes_pp[i]) * .01
+      a <- plogis(ctrl$mu_b) * n_prior
+      b <- n_prior - a
+
+      lda_beta_prior <- lapply(list(b,a),
+                               function(prior){
+                                 mat <- matrix(prior[2], n.blocks, n.blocks)
+                                 diag(mat) <- prior[1]
+                                 return(mat)
+                               })
+      ret <- lda::mmsb.collapsed.gibbs.sampler(network = soc_mats[[i]],
+                                               K = n.blocks,
+                                               num.iterations = 200L,
+                                               burnin = 150L,
+                                               alpha = ctrl$alpha,
+                                               beta.prior = lda_beta_prior)
+      BlockModel <- with(ret, blocks.pos / (blocks.pos + blocks.neg + 1))
+      MixedMembership <- prop.table(ret$document_expects, 2)
+      temp_res[[i]] <- list(prior = lda_beta_prior,
+                  BlockModel = BlockModel,
+                  MixedMembership = MixedMembership)
+    }
+     temp_res <- lapply(split(temp_res, state_init),
+                                function(mods){
+                                  target <- t(mods[[1]]$MixedMembership)
+                                  res <- lapply(mods,
+                                                function(mod, target_mat = target){
+                                                  cost_mat <- mod$MixedMembership %*% target_mat
+                                                  perm <- clue::solve_LSAP(t(cost_mat), TRUE)
+                                                  mod$MixedMembership <- mod$MixedMembership[perm,]
+                                                  mod$BlockModel <- mod$BlockModel[perm, perm]
+                                                  return(mod)
+                                                })
+                                  return(res)
+                                })
+     block_models <- lapply(temp_res, 
+                            function(mods){
+                              Reduce("+", Map(function(x)x$BlockModel, mods)) / length(mods)
+                            }) 
+    perms_temp <- .findPerm(block_models, perms = ctrl$permute)
+    phis_temp <- Map(function(x)x$MixedMembership, unlist(temp_res, recursive = FALSE))
+    ctrl$phi_init_t <- do.call(cbind,mapply(function(phi,perm){perm %*% phi},
+                                            phis_temp, perms_temp[state_init], SIMPLIFY = FALSE))
+    colnames(ctrl$phi_init_t) <- ntid
+    rownames(ctrl$phi_init_t) <- 1:n.blocks
+  }
   
   if(is.null(ctrl$gamma_init)){
     ctrl$gamma_init <- if(ncol(Z) > 0){
@@ -406,38 +480,7 @@ mmsbm <- function(formula.dyad,
   if(ncol(Z) == 0)
     Z <- matrix(0, nrow = nrow(Z), ncol = 1)
   
-  ## Estimate models for multi-year inits
-  if(periods > 1 & !is.null(ctrl$phi_list)){
-    mfd_list <- split(mfd, mfd[,c("(tid)")])
-    mfm_list <- split(mfm, mfm[,c("(tid)")])
-    temp_res <- lapply(1:periods, function(x){
-      ret <- mmsbm(update(formula.dyad, .~1),
-                   formula.monad = ~ 1,
-                   senderID = "(sid)",
-                   receiverID = "(rid)",
-                   nodeID = "(nid)",
-                   timeID = "(tid)",
-                   data.dyad = mfd_list[[x]],
-                   data.monad = mfm_list[[x]][,c("(nid)", "(tid)")],
-                   n.blocks = n.blocks,
-                   n.hmmstates = 1,
-                   directed = directed,
-                   missing = missing,
-                   mmsbm.control = list(em_iter = 5,
-                                        mu_b = ctrl$mu_b,
-                                        var_b = ctrl$var_b,
-                                        phi_init_t = ctrl$phi_list[[x]],
-                                        verbose = FALSE))
-      #print(Cstack_info())
-      # print(gc())
-      return(ret)
-    })
-    block_models <- Map(function(x)x$BlockModel, temp_res)
-    perms_temp <- .findPerm(block_models, perms = ctrl$permute)
-    phis_temp <- Map(function(x)x$MixedMembership, temp_res)
-    ctrl$phi_init_t <- do.call(cbind,mapply(function(phi,perm){perm %*% phi},
-                                            phis_temp, perms_temp, SIMPLIFY = FALSE))
-  }
+ 
   
   if(is.null(ctrl$b_init_t)){
     ctrl$b_init_t <- qlogis(approxB(Y, nt_id, ctrl$phi_init_t))

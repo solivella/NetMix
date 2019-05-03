@@ -163,7 +163,7 @@ double MMModel::alphaLB()
 {
   computeAlpha();
   double res = 0.0, res_int = 0.0, alpha_row = 0.0, alpha_val = 0.0;
-//#pragma omp parallel for firstprivate(alpha_row, alpha_val, res_int) reduction(+:res)
+#pragma omp parallel for firstprivate(alpha_row, alpha_val, res_int) reduction(+:res)
   for(int m = 0; m < N_STATE; ++m){
     for(int p = 0; p < N_NODE; ++p){
       alpha_row = 0.0;
@@ -202,7 +202,7 @@ void MMModel::alphaGr(int N_PAR, double *gr)
     for(int g = 0; g < N_BLK; ++g){
       for(int x = 0; x < N_MONAD_PRED; ++x){
         res = 0.0;
-//#pragma omp parallel for firstprivate(alpha_row) reduction(+:res)
+#pragma omp parallel for firstprivate(alpha_row) reduction(+:res)
         for(int p = 0; p < N_NODE; ++p){
           alpha_row = 0.0;
           for(int h = 0; h < N_BLK; ++h){
@@ -261,7 +261,7 @@ double MMModel::thetaLB(bool entropy = false)
   computeTheta();
   
   double res = 0.0;
-//#pragma omp parallel for reduction(+:res)
+#pragma omp parallel for reduction(+:res)
   for(int d = 0; d < N_DYAD; ++d){
     for(int g = 0; g < N_BLK; ++g){
       if(entropy)
@@ -389,7 +389,7 @@ double MMModel::cLL()
  BFGS OPTIMIZATION
  */
 
-void MMModel::optim(bool alpha)
+void MMModel::optim_ours(bool alpha)
 {
   if(alpha){
     std::copy(beta_init.begin(), beta_init.end(), beta.begin());
@@ -556,14 +556,14 @@ void MMModel::updatePhi()
   for(int thread = 0; thread < N_THREAD; ++thread){
     std::fill(new_e_c_t[thread].begin(), new_e_c_t[thread].end(), 0.0);
   }
-//#pragma omp parallel
-//{
+#pragma omp parallel
+{
   int thread = 0;
-//#ifdef _OPENMP
-//  thread = omp_get_thread_num();
-//#endif
+#ifdef _OPENMP
+  thread = omp_get_thread_num();
+#endif
   
-//#pragma omp for
+#pragma omp for
   for(int d = 0; d < N_DYAD; ++d){
     updatePhiInternal(d,
                       0,
@@ -580,12 +580,12 @@ void MMModel::updatePhi()
   }
   
   
-//#pragma omp single
-//{
+#pragma omp single
+{
   std::fill(e_c_t.begin(), e_c_t.end(), 0.0);
-//}
+}
 
-//#pragma omp for collapse(2)
+#pragma omp for collapse(2)
 for(int p = 0; p < N_NODE; ++p){
   for(int g = 0; g < N_BLK; ++g){
     for(int i = 0; i < N_THREAD; ++i){
@@ -594,7 +594,7 @@ for(int p = 0; p < N_NODE; ++p){
   }
 }
 }
-//}
+}
 
 /** 
  CONVERGENCE CHECKER

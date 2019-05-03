@@ -34,7 +34,7 @@ public:
 
   void updatePhi();
   void updateKappa();
-  void optim(bool);
+  void optim_ours(bool);
   double cLL();
 
 
