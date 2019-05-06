@@ -38,6 +38,7 @@ gof <- function (x, ...) {
 
 ## Permute blockmodels
 .findPerm <- function(block.list, target.mat=NULL, perms=TRUE){
+  require(Matrix)
   tar_nprov <- is.null(target.mat) 
   if(tar_nprov){
     target.mat <- block.list[[1]] 

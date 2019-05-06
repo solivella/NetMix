@@ -437,6 +437,7 @@ mmsbm <- function(formula.dyad,
                                                beta.prior = lda_beta_prior)
       BlockModel <- with(ret, blocks.pos / (blocks.pos + blocks.neg + 1))
       MixedMembership <- prop.table(ret$document_expects, 2)
+      colnames(MixedMembership) <- colnames(soc_mats[[i]])
       temp_res[[i]] <- list(prior = lda_beta_prior,
                   BlockModel = BlockModel,
                   MixedMembership = MixedMembership)
@@ -462,7 +463,7 @@ mmsbm <- function(formula.dyad,
     phis_temp <- Map(function(x)x$MixedMembership, unlist(temp_res, recursive = FALSE))
     ctrl$phi_init_t <- do.call(cbind,mapply(function(phi,perm){perm %*% phi},
                                             phis_temp, perms_temp[state_init], SIMPLIFY = FALSE))
-    colnames(ctrl$phi_init_t) <- ntid
+    #colnames(ctrl$phi_init_t) <- ntid
     rownames(ctrl$phi_init_t) <- 1:n.blocks
   }
   
@@ -493,11 +494,11 @@ mmsbm <- function(formula.dyad,
     ctrl$beta_init <- sapply(1:n.hmmstates,
                              function(m, dm, df, phi_i, states){
                                obsinm <- with(df, `(tid)` %in% unique(`(tid)`)[states == m])
-                               phi_inm <- c(sapply(length(all.nodes) * (which(states==m)-1) + 1, 
-                                                   function(x){seq(x, length.out=length(all.nodes))}))
-                               
-                               phi_temp <- .transf(t(phi_i[, phi_inm]))
-                               phi_temp <- phi_temp[rownames(phi_temp) %in% paste(df[,"(nid)"], df[,"(tid)"], sep="@"),]
+                               #phi_inm <- c(sapply(length(all.nodes) * (which(states==m)-1) + 1, 
+                               #                     function(x){seq(x, length.out=length(all.nodes))}))
+                               #phi_temp <- .transf(t(phi_i[, phi_inm])) 
+                               phi_temp <- .transf(t(phi_i))
+                               phi_temp <- phi_temp[rownames(phi_temp) %in% paste(df[obsinm,"(nid)"], df[obsinm,"(tid)"], sep="@"),] # added obsinm subset
                                X_sub <- dm[obsinm, , drop = FALSE]
                                lm.fit(X_sub, log(phi_temp))$coefficients
                              },
