@@ -494,10 +494,10 @@ mmsbm <- function(formula.dyad,
     temp_res <- lapply(split(temp_res, state_init),
                        function(mods){
                          target <- t(mods[[1]]$MixedMembership)
-                         rownames(target) <- sapply(strsplit(rownames(target), "@", fixed=TRUE), function(x)x[1])
+                         rownames(target) <- sapply(strsplit(rownames(target), "@", fixed = TRUE, useBytes = TRUE), function(x)x[1])
                          res <- lapply(mods,
                                        function(mod, target_mat = target){
-                                         split_names <- strsplit(colnames(mod$MixedMembership), "@", fixed=TRUE)
+                                         split_names <- strsplit(colnames(mod$MixedMembership), "@", fixed = TRUE, useBytes = TRUE)
                                          mod_names <-  sapply(split_names, function(x)x[1])
                                          mod_time <- split_names[[1]][2]
                                          shared_nodes <- intersect(mod_names,
