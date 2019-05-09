@@ -37,19 +37,21 @@ gof <- function (x, ...) {
 }
 
 ## Permute blockmodels
-.findPerm <- function(block.list, target.mat=NULL, perms=TRUE){
-  require(Matrix)
+.findPerm <- function(block.list, target.mat=NULL, use.perms=TRUE){
   tar_nprov <- is.null(target.mat) 
   if(tar_nprov){
     target.mat <- block.list[[1]] 
   }
   n <- ncol(target.mat)
-  if(perms){
+  if(use.perms){
+  require(Matrix, quietly = TRUE); require(gtools, quietly = TRUE) 
     all_perms <- gtools::permutations(n, n)
+  } else {
+    require(igraph, quietly = TRUE);
   }
   res <- lapply(seq_along(block.list),
                 function(x){
-                  if(perms){
+                  if(use.perms){
                     norms <- apply(all_perms, 1,
                                    function(p){
                                      base::norm(block.list[[x]][p, p]-target.mat, type="f")
@@ -68,6 +70,67 @@ gof <- function (x, ...) {
                   return(P)
                 })
   return(res)
+}
+
+.findPerm2 <- function(block.list, target.mat=NULL, use.perms=TRUE){
+  nblocks <- ncol(block.list[[1]])
+  if(use.perms){
+    require(Matrix, quietly = TRUE); require(gtools, quietly = TRUE)
+    all_perms <- gtools::permutations(nblocks, nblocks)
+    n.perms <- nrow(all_perms)
+    internal_loss <- vector("list", n.perms)
+  } else {
+    require(igraph, quietly = TRUE)
+  }
+  nsteps <- length(block.list)
+  for(i in 1:nsteps){
+    block.list[[i]] <- (block.list[[i]])
+  }
+  if(is.null(target.mat)){
+    target.mat <- Reduce("+", block.list)/length(block.list)
+    nulltarg <- TRUE 
+  } else {
+    nulltarg <- FALSE
+  }
+  new_loss <- sum(sapply(block.list, 
+                     function(mat, target = target.mat){
+                       base::norm(mat-target, type="o")
+                       #sum(block.list[[i]] * log(block.list[[i]]/target.mat))
+                     }))
+  delta <- 1e6
+  iter <- 1
+  perms <- vector("list", nsteps)
+  losses <- vector("list", nsteps)
+  while((iter < 100) & (delta > 1e-2)){
+    old_loss <- new_loss
+    ## step 1
+    if(nulltarg){
+      target.mat <- Reduce("+", block.list)/length(block.list)
+    }
+    ## step 2
+    old.list <- block.list
+    for(i in 1:nsteps){
+      if(use.perms){
+        norms <- apply(all_perms, 1,
+                       function(p){
+                         base::norm(block.list[[i]][p, p]-target.mat, type="o")
+                         #sum(block.list[[i]][p, p] * log(block.list[[i]][p, p]/target.mat))
+                       })
+        perms[[i]] <- as.matrix(as(all_perms[which.min(norms),], "pMatrix"))
+      } else {
+        perms[[i]] <- as.matrix(igraph::match_vertices(block.list[[i]], target.mat, m = 0, start = diag(nblocks), 100)$P)
+      }
+      block.list[[i]] <- t(perms[[i]]) %*% block.list[[i]] %*% perms[[i]]
+      losses[[i]] <- base::norm(block.list[[i]] - target.mat, type="o")
+      #losses[[i]] <- sum(block.list[[i]] * log(block.list[[i]]/target.mat))
+    }
+    ## compute loss and delta
+    new_loss <- Reduce("+", losses)
+    delta <- abs((new_loss - old_loss)/old_loss)
+    print(delta)
+    iter <- iter + 1
+  }
+  return(perms)
 }
 
 

@@ -62,8 +62,8 @@ List mmsbm_fit(const NumericMatrix& z_t,
     N_MONAD_PRED = x_t.nrow(),
     N_STATE = as<int>(control["states"]);
   
-  int TOT_BETA = N_MONAD_PRED * N_BLK * N_STATE,
-    TOT_B = N_BLK * N_BLK;
+  //int TOT_BETA = N_MONAD_PRED * N_BLK * N_STATE,
+  //  TOT_B = N_BLK * N_BLK;
   
   bool conv = false,
     verbose = as<bool>(control["verbose"]);

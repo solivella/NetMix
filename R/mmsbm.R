@@ -99,6 +99,42 @@ mmsbm <- function(formula.dyad,
                   directed = TRUE,
                   missing="indicator method",
                   mmsbm.control = list()){
+  
+  ## Form default control list
+  ctrl <- list(blocks = n.blocks,
+               states = n.hmmstates,
+               times = 1,
+               directed = directed,
+               phi_init_t = NULL,
+               kappa_init_t = NULL,
+               b_init_t = NULL,
+               beta_init = NULL,
+               gamma_init = NULL,
+               spectral = TRUE,
+               alpha = 0.5,
+               seed = NULL,
+               em_iter = 50,
+               opt_iter = 10e3,
+               mu_b = c(1.0, 0.0),
+               var_b = c(1.0, 1.0),
+               var_beta = 1.0,
+               var_gamma = 1.0,
+               eta = 1.3,
+               permute = TRUE,
+               threads = 1,
+               conv_tol = 1e-2,
+               verbose = FALSE)
+  ctrl[names(mmsbm.control)] <- mmsbm.control
+  if(!is.null(ctrl$seed)) set.seed(ctrl$seed)
+  mu_b <- var_b <- array(NA, c(n.blocks, n.blocks))
+  diag(mu_b) <- ctrl[["mu_b"]][1]
+  mu_b[upper.tri(mu_b)|lower.tri(mu_b)] <- ctrl[["mu_b"]][2]
+  diag(var_b) <- ctrl[["var_b"]][1]
+  var_b[upper.tri(var_b)|lower.tri(var_b)] <- ctrl[["var_b"]][2]
+  
+  if(ctrl$verbose)
+    cat("Pre-processing data...\n")
+  
   stopifnot(class(formula.dyad) == "formula",
             class(formula.monad) == "formula",
             is.data.frame(data.dyad))
@@ -193,11 +229,12 @@ mmsbm <- function(formula.dyad,
   
   ut <- unique(mfd[["(tid)"]])
   periods <- length(ut)
+  if(periods > 1){
+    ctrl$times <- periods
+  }
   dntid <- cbind(do.call(paste, c(mfd[c("(sid)","(tid)")], sep = "@")),
                  do.call(paste, c(mfd[c("(rid)","(tid)")], sep = "@")))
-  udntid <- unique(c(dntid))
   udnid <- unique(unlist(mfd[c("(sid)","(rid)")]))
-  
   if(is.null(data.monad)){
     data.monad <- data.frame(nid = rep(udnid, periods))
     nodeID <- "nid"
@@ -208,16 +245,17 @@ mmsbm <- function(formula.dyad,
                                    drop.unused.levels = TRUE,
                                    tid = as.name(timeID),
                                    nid = as.name(nodeID)))
-  #monadic_order <- with(mfm, order(`(tid)`, `(nid)`)) 
-  #mfm <- mfm[monadic_order, ]
   ntid <- do.call(paste, c(mfm[c("(nid)","(tid)")], sep="@"))
-  mfm <- mfm[ntid %in% unique(c(dntid)), ]
-  data.monad <- data.monad[ntid %in% unique(c(dntid)), ]
-  #monadic_order <- with(mfm, order(`(tid)`, `(nid)`)) 
-  
-  if(!all(udntid %in% ntid))
+  if(!all(dntid %in% ntid))
     stop("Nodes in dyadic dataset missing from monadic dataset. Are node and time identifiers identical in data.dyad and data.monad?")
-  
+  match_ids <- ntid %in% dntid
+  if(any(!match_ids)){
+    if(ctrl$verbose){
+      cat("\tSome nodes in data.monad not present in data.dyad; dropping them.\n")
+    }
+    mfm <- mfm[match_ids, ]
+    ntid <- do.call(paste, c(mfm[c("(nid)","(tid)")], sep="@"))
+  }
   
   Y <- model.response(mfd)
   X <- scale(model.matrix(terms(mfm), mfm))
@@ -237,50 +275,48 @@ mmsbm <- function(formula.dyad,
   }
   n_dyad_pred <- ncol(Z)
   
-  #nt_id <- cbind(.mapID(udntid, dntid[, 1]) - 1, .mapID(udntid, dntid[, 2]) - 1) # this was creating problems
-  nt_id <- cbind(.mapID(ntid, dntid[, 1]) - 1, .mapID(ntid, dntid[, 2]) - 1) # this works
-  t_id_d <- .mapID(ut, mfd[["(tid)"]]) - 1
-  t_id_n <- .mapID(ut, mfm[["(tid)"]]) - 1
+  nt_id <- cbind(match(dntid[,1], ntid) - 1, match(dntid[,2], ntid) - 1)
+  t_id_d <- match(mfd[["(tid)"]], ut) - 1
+  t_id_n <- match(mfm[["(tid)"]], ut) - 1
   nodes_pp <- c(by(mfm, mfm[["(tid)"]], nrow))
   dyads_pp <- c(by(mfd, mfd[["(tid)"]], nrow))
-  
-  ## Form default control list
-  ctrl <- list(blocks = n.blocks,
-               states = n.hmmstates,
-               times = periods,
-               directed = directed,
-               phi_init_t = NULL,
-               kappa_init_t = NULL,
-               b_init_t = NULL,
-               beta_init = NULL,
-               gamma_init = NULL,
-               spectral = TRUE,
-               alpha = 0.5,
-               seed = NULL,
-               em_iter = 50,
-               opt_iter = 10e3,
-               mu_b = c(1.0, 0.0),
-               var_b = c(1.0, 1.0),
-               var_beta = 1.0,
-               var_gamma = 1.0,
-               eta = 1.3,
-               permute = TRUE,
-               threads = 1,
-               conv_tol = 1e-2,
-               verbose = FALSE)
-  ctrl[names(mmsbm.control)] <- mmsbm.control
-  if(!is.null(ctrl$seed)) set.seed(ctrl$seed)
-  mu_b <- var_b <- array(NA, c(n.blocks, n.blocks))
-  diag(mu_b) <- ctrl[["mu_b"]][1]
-  mu_b[upper.tri(mu_b)|lower.tri(mu_b)] <- ctrl[["mu_b"]][2]
-  diag(var_b) <- ctrl[["var_b"]][1]
-  var_b[upper.tri(var_b)|lower.tri(var_b)] <- ctrl[["var_b"]][2]
   
   
   
   ## Create initial values
   if(ctrl$verbose)
     cat("Obtaining initial values...\n")
+  # dyads <- split.data.frame(dntid, mfd[, "(tid)"])
+  # edges <- split(Y, mfd[, "(tid)"])
+  
+  
+  # soc_mats <- Map(function(dyad_mat, edge_vec){
+  #   nodes <- unique(c(dyad_mat))
+  #   nnode <- length(nodes)
+  #   adj_mat <- matrix(NA, 
+  #                     nnode,
+  #                     nnode,
+  #                     dimnames = list(nodes,
+  #                                     nodes))
+  #   adj_mat[dyad_mat] <- edge_vec
+  #   if(!directed){
+  #     adj_mat[dyad_mat[,c(2,1)]] <- edge_vec
+  #   }
+  #   obs_prop <- mean(adj_mat, na.rm = TRUE)
+  #   if(anyNA(adj_mat)){
+  #     if(is.nan(obs_prop)){
+  #       obs_prop <- 0.01
+  #     }
+  #     adj_mat[is.na(adj_mat)] <- rbinom(sum(is.na(adj_mat)), 1, obs_prop)
+  #   }
+  #   diag(adj_mat) <- 0
+  #   if(!directed){
+  #     mat_ind <- which(upper.tri(adj_mat), arr.ind = TRUE)
+  #     adj_mat[mat_ind[,c(2,1)]] <- adj_mat[upper.tri(adj_mat)]
+  #   }
+  #   return(adj_mat)
+  # }, dyads, edges)
+  
   all.nodes <- unique(unlist(mfd[,c("(sid)","(rid)")]))
   node.cols <- which(names(mfd)%in%c("(sid)","(rid)", "(tid)"))
   dyads <- split.data.frame(mfd[,c(node.cols, 1)], mfd[, "(tid)"])
@@ -314,31 +350,30 @@ mmsbm <- function(formula.dyad,
                        return(adj_mat)
                      })
   
-  td_id <- cbind(mfd[,"(tid)"],paste(mfd[,"(sid)"],mfd[,"(rid)"], sep = "->"))
-  dyad_time <- matrix(NA, periods, length(unique(td_id[,2])),
-                      dimnames = list(ut,
-                                      unique(td_id[,2])))
-  dyad_time[td_id] <- Y
-  if(any(is.na(dyad_time))){
-    dyad_time <- apply(dyad_time, 2, function(x){
-      x[is.na(x)] <- rbinom(sum(is.na(x)), 1, mean(x, na.rm=TRUE))
-      return(x)
-    })
-  }
   
   if(is.null(ctrl$kappa_init_t)){
     if((periods > 1) & (n.hmmstates > 1)){
-      state_internal <- fitted(kmeans(dyad_time,
-                                      n.hmmstates,
-                                      nstart = 15), "classes")
-      kappa_internal <- model.matrix(~ as.factor(state_internal) - 1)
+      td_id <- cbind(mfd[,"(tid)"],paste(mfd[,"(sid)"],mfd[,"(rid)"], sep = "->"))
+      dyad_time <- matrix(NA, periods, length(unique(td_id[,2])),
+                          dimnames = list(ut,
+                                          unique(td_id[,2])))
+      dyad_time[td_id] <- Y
+      state_init <- cluster::clara(dyad_time,
+                                   n.hmmstates,
+                                   samples = 10,
+                                   sampsize = min(nrow(dyad_time), 100 + 2 * n.hmmstates),
+                                   rngR = TRUE,
+                                   correct.d = TRUE)$clustering
+      kappa_internal <- model.matrix(~ as.factor(state_init) - 1)
       kappa_internal <- .transf(kappa_internal)
       ctrl$kappa_init_t <- t(kappa_internal)
     } else {
       ctrl$kappa_init_t <- t(matrix(1, nrow = periods))
+      state_init <- apply(ctrl$kappa_init_t, 2, which.max)
     }
+  } else {
+    state_init <- apply(ctrl$kappa_init_t, 2, which.max)
   } 
-  state_init <- apply(ctrl$kappa_init_t, 2, which.max)
   if(n.hmmstates==1){
     names(state_init) = 1
   }
@@ -348,77 +383,76 @@ mmsbm <- function(formula.dyad,
     phi_init_temp <- lapply(soc_mats,
                             function(mat){
                               if(directed){
-                                D_o <- diag(1/sqrt(rowSums(mat)))
-                                D_o[D_o==Inf] <- 1 # check
-                                D_i <- diag(1/sqrt(colSums(mat)))
-                                D_i[D_i==Inf] <- 1 # check
-                                U <- D_o %*% mat %*% D_i %*% t(mat) %*% D_o +
-                                  D_i %*% t(mat) %*% D_o %*% mat %*% D_i
+                                D_o <- 1/sqrt(rowSums(mat) + 1)
+                                D_i <- 1/sqrt(colSums(mat) + 1)
+                                C_o <- t(D_o * mat)
+                                C_i <- t(D_i * t(mat))
+                                U <- t(C_o * D_i) %*% C_o +
+                                  t(C_i * D_o) %*% C_i
                               } else {
-                                degs <- rowSums(mat)
-                                max_d <- max(degs)
-                                D <- 1 / sqrt(degs)
+                                D <- 1/sqrt(rowSums(mat) + 1)
                                 U <- t(D * mat) * D
                               }
                               if(ctrl$spectral) {
                                 n_elem <- n.blocks + 1
                                 res <- RSpectra::eigs_sym(U, n_elem)
-                                # div <- res$vectors[,1] # check
-                                # div[div==0] <- -1e-6 # check
-                                # target <- res$vectors[,2:n_elem]/div # check
                                 eta <- res$vectors[,1:n_elem] %*% diag(res$values[1:n_elem])
-                                target <- eta[,2:n_elem] / eta[,1]
-                                sig <- 1 - res$values[n_elem] / res$values[n.blocks]
-                                if ( sig > 0.1 ){
+                                target <- eta[,2:n_elem] / (eta[,1] + 1e-8)
+                                sig <- 1 - res$values[n_elem] / (res$values[n.blocks])
+                                sig <- ifelse(is.finite(sig), sig, 0)
+                                if(sig > 0.1){
                                   target <- target[,1:(n_elem - 2)]
                                 }
                               } else {
                                 target <- U
                               }
-                              clust_internal <- fitted(kmeans(target,
-                                                              n.blocks,
-                                                              nstart = 50), "classes")
+                              # clust_internal <- fitted(kmeans(target,
+                              #                                 n.blocks,
+                              #                                 algorithm = "Lloyd",
+                              #                                 nstart = 10), "classes")
+                              clust_internal <- cluster::clara(target,
+                                                               n.blocks,
+                                                               samples = 10,
+                                                               sampsize = min(nrow(target), 100 + 2 * n.blocks),
+                                                               rngR = TRUE,
+                                                               correct.d = TRUE)$clustering
+                                                              
                               phi_internal <- model.matrix(~ as.factor(clust_internal) - 1)
                               phi_internal <- .transf(phi_internal)
                               rownames(phi_internal) <- rownames(mat)
                               colnames(phi_internal) <- 1:n.blocks
                               t(phi_internal)
                             })
-    dyad_internal <- mapply(function(mat1, mat2)
-    {
-      cbind(match(paste(mat1[,2],"@",mat1[,1], sep=""), colnames(mat2)) - 1,
-            match(paste(mat1[,3],"@",mat1[,1], sep=""), colnames(mat2)) - 1) 
-    }, dyads, phi_init_temp, SIMPLIFY = FALSE)
-    
     ctrl$phi_init_t <- do.call(cbind, phi_init_temp)
     ctrl$phi_list <- phi_init_temp
   } else if (is.null(ctrl$phi_init_t) & (periods > 1)){
-     temp_res <- vector("list", periods)
-     # mfd_list <- split(mfd, mfd[,c("(tid)")])
-     # mfm_list <- split(mfm, mfm[,c("(tid)")])
-      for(i in 1:periods){
-     #   temp_res[[i]] <- mmsbm(update(formula.dyad, .~1),
-     #                          formula.monad = ~ 1,
-     #                          senderID = "(sid)",
-     #                          receiverID = "(rid)",
-     #                          nodeID = "(nid)",
-     #                          timeID = "(tid)",
-     #                          data.dyad = mfd_list[[i]],
-     #                          data.monad = mfm_list[[i]][,c("(nid)", "(tid)")],
-     #                          n.blocks = n.blocks,
-     #                          n.hmmstates = 1,
-     #                          directed = directed,
-     #                          missing = missing,
-     #                          mmsbm.control = list(em_iter = ctrl$em_iter,
-     #                                               seed = ctrl$seed,
-     #                                               mu_b = ctrl$mu_b,
-     #                                               var_b = ctrl$var_b,
-     #                                               spectral = ctrl$spectral,
-     #                                               conv_tol = ctrl$conv_tol,
-     #                                               threads = ctrl$threads,
-     #                                               verbose = FALSE))
-     # }
-     
+    temp_res <- vector("list", periods)
+    mfd_list <- split(mfd, mfd[,c("(tid)")])
+    mfm_list <- split(mfm, mfm[,c("(tid)")])
+    for(i in 1:periods){
+    #  print(i)
+    #   temp_res[[i]] <- mmsbm(update(formula.dyad, .~1),
+    #                          formula.monad = ~ 1,
+    #                          senderID = "(sid)",
+    #                          receiverID = "(rid)",
+    #                          nodeID = "(nid)",
+    #                          timeID = "(tid)",
+    #                          data.dyad = mfd_list[[i]],
+    #                          data.monad = mfm_list[[i]][,c("(nid)", "(tid)")],
+    #                          n.blocks = n.blocks,
+    #                          n.hmmstates = 1,
+    #                          directed = directed,
+    #                          missing = missing,
+    #                          mmsbm.control = list(em_iter = ctrl$em_iter,
+    #                                               seed = ctrl$seed,
+    #                                               mu_b = ctrl$mu_b,
+    #                                               var_b = ctrl$var_b,
+    #                                               spectral = ctrl$spectral,
+    #                                               conv_tol = ctrl$conv_tol,
+    #                                               threads = ctrl$threads,
+    #                                               verbose = FALSE))
+    # }
+    
       n_prior <- (dyads_pp[i] - nodes_pp[i]) * .01
       a <- plogis(ctrl$mu_b) * n_prior
       b <- n_prior - a
@@ -438,74 +472,69 @@ mmsbm <- function(formula.dyad,
       BlockModel <- with(ret, blocks.pos / (blocks.pos + blocks.neg + 1))
       MixedMembership <- prop.table(ret$document_expects, 2)
       colnames(MixedMembership) <- colnames(soc_mats[[i]])
-      temp_res[[i]] <- list(prior = lda_beta_prior,
-                  BlockModel = BlockModel,
-                  MixedMembership = MixedMembership)
+      temp_res[[i]] <- list(BlockModel = BlockModel,
+                            MixedMembership = MixedMembership)
     }
-     temp_res <- lapply(split(temp_res, state_init),
-                                function(mods){
-                                  target <- t(mods[[1]]$MixedMembership)
-                                  res <- lapply(mods,
-                                                function(mod, target_mat = target){
-                                                  cost_mat <- mod$MixedMembership %*% target_mat
-                                                  perm <- clue::solve_LSAP(t(cost_mat), TRUE)
-                                                  mod$MixedMembership <- mod$MixedMembership[perm,]
-                                                  mod$BlockModel <- mod$BlockModel[perm, perm]
-                                                  return(mod)
-                                                })
-                                  return(res)
-                                })
-     block_models <- lapply(temp_res, 
-                            function(mods){
-                              Reduce("+", Map(function(x)x$BlockModel, mods)) / length(mods)
-                            }) 
-    perms_temp <- .findPerm(block_models, perms = ctrl$permute)
+    temp_res <- lapply(split(temp_res, state_init),
+                       function(mods){
+                         target <- t(mods[[1]]$MixedMembership)
+                         res <- lapply(mods,
+                                       function(mod, target_mat = target){
+                                         cost_mat <- mod$MixedMembership %*% target_mat
+                                         perm <- clue::solve_LSAP(t(cost_mat), TRUE)
+                                         mod$MixedMembership <- mod$MixedMembership[perm,]
+                                         mod$BlockModel <- mod$BlockModel[perm, perm]
+                                         return(mod)
+                                       })
+                         return(res)
+                       })
+    block_models <- lapply(temp_res, 
+                           function(mods){
+                             Reduce("+", Map(function(x)x$BlockModel, mods)) / length(mods)
+                           }) 
+    perms_temp <- .findPerm(block_models, use.perms = ctrl$permute)
     phis_temp <- Map(function(x)x$MixedMembership, unlist(temp_res, recursive = FALSE))
     ctrl$phi_init_t <- do.call(cbind,mapply(function(phi,perm){perm %*% phi},
                                             phis_temp, perms_temp[state_init], SIMPLIFY = FALSE))
-    #colnames(ctrl$phi_init_t) <- ntid
     rownames(ctrl$phi_init_t) <- 1:n.blocks
   }
   
   if(is.null(ctrl$gamma_init)){
-    ctrl$gamma_init <- if(ncol(Z) > 0){
-      coef(glm(Y ~ Z - 1, family = binomial()))
+    if(ncol(Z) > 0){
+      nsamp <- ifelse(nrow(Z) > 100e3, 100e3, nrow(Z))
+      ind_dyad <- sample(1:nrow(Z), nsamp)
+      ctrl$gamma_init <- coef(glm(Y[ind_dyad] ~ Z[ind_dyad,] - 1, family = binomial()))
     } else {
-      0
+      ctrl$gamma_init <- 0
     }
   }
-  if(any(is.na(ctrl$gamma_init))){
-    stop("Nearly singular design matrix; check dyadic predictors.")
-  }
-  
   if(ncol(Z) == 0)
     Z <- matrix(0, nrow = nrow(Z), ncol = 1)
+  if(anyNA(ctrl$gamma_init)){
+    stop("Singular design matrix; check dyadic predictors.")
+  }
   
- 
+  
+  
   
   if(is.null(ctrl$b_init_t)){
     ctrl$b_init_t <- qlogis(approxB(Y, nt_id, ctrl$phi_init_t))
     if(any(is.infinite(ctrl$b_init_t))){
       which.inf <- which(is.infinite(ctrl$b_init_t))
-      ctrl$b_init_t[which.inf] <- -25
+      ctrl$b_init_t[which.inf] <- ifelse(ctrl$b_init_t[which.inf] > 0, 25, -25) 
     }
   }
   if(is.null(ctrl$beta_init)){
-    ctrl$beta_init <- sapply(1:n.hmmstates,
-                             function(m, dm, df, phi_i, states){
-                               obsinm <- with(df, `(tid)` %in% unique(`(tid)`)[states == m])
-                               #phi_inm <- c(sapply(length(all.nodes) * (which(states==m)-1) + 1, 
-                               #                     function(x){seq(x, length.out=length(all.nodes))}))
-                               #phi_temp <- .transf(t(phi_i[, phi_inm])) 
-                               phi_temp <- .transf(t(phi_i))
-                               phi_temp <- phi_temp[rownames(phi_temp) %in% paste(df[obsinm,"(nid)"], df[obsinm,"(tid)"], sep="@"),] # added obsinm subset
-                               X_sub <- dm[obsinm, , drop = FALSE]
-                               lm.fit(X_sub, log(phi_temp))$coefficients
-                             },
-                             dm = X, df = mfm, phi_i = ctrl$phi_init_t, states = state_init,
-                             simplify = "array")
+    X_state <- split.data.frame(X, state_init[t_id_n + 1])
+    phi_state <- split.data.frame(t(ctrl$phi_init_t), state_init[t_id_n + 1])
+    ctrl$beta_init <- mapply(function(X_sub, phi_sub){
+      phi_temp <- .transf(phi_sub)
+      lm.fit(X_sub, log(phi_temp))$coefficients
+    },
+    X_state, phi_state,
+    SIMPLIFY = "array")
   }
-  if(any(is.na(ctrl$beta_init))){
+  if(anyNA(ctrl$beta_init)){
     stop("Nearly singular design matrix; check monadic predictors.")
   }
   ## Estimate model

@@ -556,45 +556,41 @@ void MMModel::updatePhi()
   for(int thread = 0; thread < N_THREAD; ++thread){
     std::fill(new_e_c_t[thread].begin(), new_e_c_t[thread].end(), 0.0);
   }
-#pragma omp parallel
-{
-  int thread = 0;
-#ifdef _OPENMP
-  thread = omp_get_thread_num();
-#endif
   
-#pragma omp for
+#pragma omp parallel for
   for(int d = 0; d < N_DYAD; ++d){
+    int thread = 0;
+#ifdef _OPENMP
+    thread = omp_get_thread_num();
+#endif
     updatePhiInternal(d,
                       0,
-                      &send_phi(0, d),
-                      &rec_phi(0, d),
-                      &new_e_c_t[thread](0, node_id_dyad(d, 0))
+                      &(send_phi(0, d)),
+                      &(rec_phi(0, d)),
+                      &(new_e_c_t[thread](0, node_id_dyad(d, 0)))
     );
     updatePhiInternal(d,
                       1,
-                      &rec_phi(0, d),
-                      &send_phi(0, d),
-                      &new_e_c_t[thread](0, node_id_dyad(d, 1))
+                      &(rec_phi(0, d)),
+                      &(send_phi(0, d)),
+                      &(new_e_c_t[thread](0, node_id_dyad(d, 1)))
     );
   }
   
   
-#pragma omp single
-{
+  
   std::fill(e_c_t.begin(), e_c_t.end(), 0.0);
-}
-
-#pragma omp for collapse(2)
-for(int p = 0; p < N_NODE; ++p){
-  for(int g = 0; g < N_BLK; ++g){
-    for(int i = 0; i < N_THREAD; ++i){
-      e_c_t(g, p) += (new_e_c_t[i])(g, p);
+  
+#pragma omp parallel for collapse(2)
+  for(int p = 0; p < N_NODE; ++p){
+    for(int g = 0; g < N_BLK; ++g){
+      for(int i = 0; i < N_THREAD; ++i){
+        e_c_t(g, p) += (new_e_c_t[i])(g, p);
+      }
     }
   }
 }
-}
-}
+
 
 /** 
  CONVERGENCE CHECKER
