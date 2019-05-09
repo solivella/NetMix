@@ -11,17 +11,17 @@
 #'     names of nodal atrributes found in \code{data.monad}.  
 #' @param senderID Character string. Quoted name of the variable in \code{data.dyad} identifying 
 #'     the sender node. For undirected networks, the variable simply contains name of first node 
-#'     in dyad.
+#'     in dyad. Cannot contain special charecter "`@`". 
 #' @param receiverID Character string. Quoted name of the variable in \code{data.dyad} identifying 
 #'     the receiver node. For undirected networks, the variable simply contains name of second node 
-#'     in dyad.
+#'     in dyad. Cannot contain special charecter "`@`".
 #' @param nodeID Character string. Quoted name of the variable in \code{data.monad} identifying 
 #'     a node in either \code{data.dyad[,senderID]} or \code{data.dyad[,senderID]}. If not \code{NULL},
 #'     every node \code{data.dyad[,senderID]} or \code{data.dyad[,senderID]} must be present in 
-#'     \code{data.monad[,nodeID]}.
+#'     \code{data.monad[,nodeID]}. Cannot contain special charecter "`@`".
 #' @param timeID Character string. Quoted name of the variable in both \code{data.dyad} and
 #'     \code{data.monad} indicating the time in which network (and correspding nodal atrributes)
-#'     were observed. The variable itself must be composed of integers.
+#'     were observed. The variable itself must be composed of integers. Cannot contain special charecter "`@`".
 #' @param data.dyad Data frame. Sociomatrix in ``long'' (i.e. dyadic) format. Must contain at
 #'    least three variables: the sender identifier (or identifier of the first node in an undirected networks dyad),
 #'    the receiver identifier (or identifier of the second node in an undirected network dyad), and the value
@@ -35,10 +35,13 @@
 #' @param missing Means of handling missing data. One of "indicator method" (default) or "listwise deletion".
 #' @param mmsbm.control A named list of optional algorithm control parameters.
 #'     \describe{
-#'        \item{spectral}{Boolean. Type of initialization algorithm for mixed-membership vectors in static case. If \code{TRUE},
+#'        \item{spectral}{Boolean. Type of initialization algorithm for mixed-membership vectors in static case. If \code{TRUE} (default),
 #'                    use spectral clustering with degree correction; otherwise, use kmeans algorithm}
+#'        \item{init.dyn.gibbs}{Boolean. Should a collapsed Gibbs sampler of non-regression mmsbm be used to initialize
+#'                    each time period? Setting to \code{TRUE} will be result in faster estimation that is very sensitive to
+#'                    choice of alpha (see below)}            
 #'        \item{alpha}{Numeric positive value. Concentration parameter for collapsed Gibbs sampler to find initial
-#'                     mixed-membership values in dynamic case. Defaults to 0.5}            
+#'                     mixed-membership values in dynamic case when \code{init.dyn.gibbs=TRUE}. Defaults to 0.5}            
 #'        \item{seed}{RNG seed. Defaults to \code{NULL}, which does not seed the RNG}            
 #'        \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3}
 #'        \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3}
@@ -113,6 +116,7 @@ mmsbm <- function(formula.dyad,
                spectral = TRUE,
                alpha = 0.5,
                seed = NULL,
+               init.dyn.gibbs = TRUE,
                em_iter = 50,
                opt_iter = 10e3,
                mu_b = c(1.0, 0.0),
@@ -286,69 +290,69 @@ mmsbm <- function(formula.dyad,
   ## Create initial values
   if(ctrl$verbose)
     cat("Obtaining initial values...\n")
-  # dyads <- split.data.frame(dntid, mfd[, "(tid)"])
-  # edges <- split(Y, mfd[, "(tid)"])
-  
-  
-  # soc_mats <- Map(function(dyad_mat, edge_vec){
-  #   nodes <- unique(c(dyad_mat))
-  #   nnode <- length(nodes)
-  #   adj_mat <- matrix(NA, 
-  #                     nnode,
-  #                     nnode,
-  #                     dimnames = list(nodes,
-  #                                     nodes))
-  #   adj_mat[dyad_mat] <- edge_vec
-  #   if(!directed){
-  #     adj_mat[dyad_mat[,c(2,1)]] <- edge_vec
-  #   }
-  #   obs_prop <- mean(adj_mat, na.rm = TRUE)
-  #   if(anyNA(adj_mat)){
-  #     if(is.nan(obs_prop)){
-  #       obs_prop <- 0.01
-  #     }
-  #     adj_mat[is.na(adj_mat)] <- rbinom(sum(is.na(adj_mat)), 1, obs_prop)
-  #   }
-  #   diag(adj_mat) <- 0
-  #   if(!directed){
-  #     mat_ind <- which(upper.tri(adj_mat), arr.ind = TRUE)
-  #     adj_mat[mat_ind[,c(2,1)]] <- adj_mat[upper.tri(adj_mat)]
-  #   }
-  #   return(adj_mat)
-  # }, dyads, edges)
-  
-  all.nodes <- unique(unlist(mfd[,c("(sid)","(rid)")]))
-  node.cols <- which(names(mfd)%in%c("(sid)","(rid)", "(tid)"))
-  dyads <- split.data.frame(mfd[,c(node.cols, 1)], mfd[, "(tid)"])
+  dyads <- split.data.frame(dntid, mfd[, "(tid)"])
   edges <- split(Y, mfd[, "(tid)"])
-  
-  soc_mats <- lapply(dyads,
-                     function(dyad_df, 
-                              nnode = length(all.nodes),
-                              nodes = all.nodes)
-                     {
-                       indeces <- as.matrix(dyad_df[,c("(sid)","(rid)")])
-                       time_ind <- unique(dyad_df[,"(tid)"]) 
-                       adj_mat <-  matrix(NA, 
-                                          nnode,
-                                          nnode,
-                                          dimnames = list(nodes,
-                                                          nodes))
-                       adj_mat[indeces] <- dyad_df[,4] # out of bounds
-                       if(!directed){
-                         adj_mat[indeces[,c(2,1)]] <- dyad_df[,4]
-                       }
-                       diag(adj_mat) <- 0
-                       adj_mat[is.na(adj_mat)] <- sample(0:1, sum(is.na(adj_mat)), replace = TRUE)
-                       if(!directed){
-                         mat_ind <- which(upper.tri(adj_mat), arr.ind = TRUE)
-                         adj_mat[mat_ind[,c(2,1)]] <- adj_mat[upper.tri(adj_mat)]
-                       }
-                       node_names <- paste(nodes, "@", time_ind, sep="")
-                       dimnames(adj_mat) <- list(node_names,
-                                                 node_names)
-                       return(adj_mat)
-                     })
+
+
+  soc_mats <- Map(function(dyad_mat, edge_vec){
+    nodes <- unique(c(dyad_mat))
+    nnode <- length(nodes)
+    adj_mat <- matrix(NA,
+                      nnode,
+                      nnode,
+                      dimnames = list(nodes,
+                                      nodes))
+    adj_mat[dyad_mat] <- edge_vec
+    if(!directed){
+      adj_mat[dyad_mat[,c(2,1)]] <- edge_vec
+    }
+    obs_prop <- mean(adj_mat, na.rm = TRUE)
+    if(anyNA(adj_mat)){
+      if(is.nan(obs_prop)){
+        obs_prop <- 0.01
+      }
+      adj_mat[is.na(adj_mat)] <- rbinom(sum(is.na(adj_mat)), 1, obs_prop)
+    }
+    diag(adj_mat) <- 0
+    if(!directed){
+      mat_ind <- which(upper.tri(adj_mat), arr.ind = TRUE)
+      adj_mat[mat_ind[,c(2,1)]] <- adj_mat[upper.tri(adj_mat)]
+    }
+    return(adj_mat)
+  }, dyads, edges)
+
+  # all.nodes <- unique(unlist(mfd[,c("(sid)","(rid)")]))
+  # node.cols <- which(names(mfd)%in%c("(sid)","(rid)", "(tid)"))
+  # dyads <- split.data.frame(mfd[,c(node.cols, 1)], mfd[, "(tid)"])
+  # edges <- split(Y, mfd[, "(tid)"])
+  # 
+  # soc_mats <- lapply(dyads,
+  #                    function(dyad_df, 
+  #                             nnode = length(all.nodes),
+  #                             nodes = all.nodes)
+  #                    {
+  #                      indeces <- as.matrix(dyad_df[,c("(sid)","(rid)")])
+  #                      time_ind <- unique(dyad_df[,"(tid)"]) 
+  #                      adj_mat <-  matrix(NA, 
+  #                                         nnode,
+  #                                         nnode,
+  #                                         dimnames = list(nodes,
+  #                                                         nodes))
+  #                      adj_mat[indeces] <- dyad_df[,4] # out of bounds
+  #                      if(!directed){
+  #                        adj_mat[indeces[,c(2,1)]] <- dyad_df[,4]
+  #                      }
+  #                      diag(adj_mat) <- 0
+  #                      adj_mat[is.na(adj_mat)] <- sample(0:1, sum(is.na(adj_mat)), replace = TRUE)
+  #                      if(!directed){
+  #                        mat_ind <- which(upper.tri(adj_mat), arr.ind = TRUE)
+  #                        adj_mat[mat_ind[,c(2,1)]] <- adj_mat[upper.tri(adj_mat)]
+  #                      }
+  #                      node_names <- paste(nodes, "@", time_ind, sep="")
+  #                      dimnames(adj_mat) <- list(node_names,
+  #                                                node_names)
+  #                      return(adj_mat)
+  #                    })
   
   
   if(is.null(ctrl$kappa_init_t)){
@@ -358,12 +362,21 @@ mmsbm <- function(formula.dyad,
                           dimnames = list(ut,
                                           unique(td_id[,2])))
       dyad_time[td_id] <- Y
-      state_init <- cluster::clara(dyad_time,
-                                   n.hmmstates,
-                                   samples = 10,
-                                   sampsize = min(nrow(dyad_time), 100 + 2 * n.hmmstates),
-                                   rngR = TRUE,
-                                   correct.d = TRUE)$clustering
+      if(any(is.na(dyad_time))){
+        dyad_time <- apply(dyad_time, 2, function(x){
+          x[is.na(x)] <- rbinom(sum(is.na(x)), 1, mean(x, na.rm=TRUE))
+          return(x)
+        })
+      }
+      state_init <- fitted(kmeans(dyad_time,
+                                  n.hmmstates,
+                                  nstart = 15), "classes")
+      # state_init <- cluster::clara(dyad_time,
+      #                              n.hmmstates,
+      #                              samples = 15,
+      #                              sampsize = min(nrow(dyad_time), 100 + 2 * n.hmmstates),
+      #                              rngR = TRUE,
+      #                              correct.d = TRUE)$clustering
       kappa_internal <- model.matrix(~ as.factor(state_init) - 1)
       kappa_internal <- .transf(kappa_internal)
       ctrl$kappa_init_t <- t(kappa_internal)
@@ -406,17 +419,19 @@ mmsbm <- function(formula.dyad,
                               } else {
                                 target <- U
                               }
-                              # clust_internal <- fitted(kmeans(target,
-                              #                                 n.blocks,
-                              #                                 algorithm = "Lloyd",
-                              #                                 nstart = 10), "classes")
-                              clust_internal <- cluster::clara(target,
-                                                               n.blocks,
-                                                               samples = 10,
-                                                               sampsize = min(nrow(target), 100 + 2 * n.blocks),
-                                                               rngR = TRUE,
-                                                               correct.d = TRUE)$clustering
-                                                              
+                              init_c <- sample(1:nrow(target), n.blocks, replace = FALSE)
+                              clust_internal <- fitted(kmeans(target,
+                                                              n.blocks,
+                                                              centers = target[init_c,],
+                                                              #algorithm = "Lloyd",
+                                                              nstart = 10), "classes")
+                              # clust_internal <- cluster::clara(target,
+                              #                                  n.blocks,
+                              #                                  samples = 10,
+                              #                                  sampsize = min(nrow(target), 100 + 2 * n.blocks),
+                              #                                  rngR = TRUE,
+                              #                                  correct.d = TRUE)$clustering
+                              
                               phi_internal <- model.matrix(~ as.factor(clust_internal) - 1)
                               phi_internal <- .transf(phi_internal)
                               rownames(phi_internal) <- rownames(mat)
@@ -430,57 +445,65 @@ mmsbm <- function(formula.dyad,
     mfd_list <- split(mfd, mfd[,c("(tid)")])
     mfm_list <- split(mfm, mfm[,c("(tid)")])
     for(i in 1:periods){
-    #  print(i)
-    #   temp_res[[i]] <- mmsbm(update(formula.dyad, .~1),
-    #                          formula.monad = ~ 1,
-    #                          senderID = "(sid)",
-    #                          receiverID = "(rid)",
-    #                          nodeID = "(nid)",
-    #                          timeID = "(tid)",
-    #                          data.dyad = mfd_list[[i]],
-    #                          data.monad = mfm_list[[i]][,c("(nid)", "(tid)")],
-    #                          n.blocks = n.blocks,
-    #                          n.hmmstates = 1,
-    #                          directed = directed,
-    #                          missing = missing,
-    #                          mmsbm.control = list(em_iter = ctrl$em_iter,
-    #                                               seed = ctrl$seed,
-    #                                               mu_b = ctrl$mu_b,
-    #                                               var_b = ctrl$var_b,
-    #                                               spectral = ctrl$spectral,
-    #                                               conv_tol = ctrl$conv_tol,
-    #                                               threads = ctrl$threads,
-    #                                               verbose = FALSE))
-    # }
-    
-      n_prior <- (dyads_pp[i] - nodes_pp[i]) * .01
-      a <- plogis(ctrl$mu_b) * n_prior
-      b <- n_prior - a
-
-      lda_beta_prior <- lapply(list(b,a),
-                               function(prior){
-                                 mat <- matrix(prior[2], n.blocks, n.blocks)
-                                 diag(mat) <- prior[1]
-                                 return(mat)
-                               })
-      ret <- lda::mmsb.collapsed.gibbs.sampler(network = soc_mats[[i]],
-                                               K = n.blocks,
-                                               num.iterations = 200L,
-                                               burnin = 150L,
-                                               alpha = ctrl$alpha,
-                                               beta.prior = lda_beta_prior)
-      BlockModel <- with(ret, blocks.pos / (blocks.pos + blocks.neg + 1))
-      MixedMembership <- prop.table(ret$document_expects, 2)
-      colnames(MixedMembership) <- colnames(soc_mats[[i]])
-      temp_res[[i]] <- list(BlockModel = BlockModel,
-                            MixedMembership = MixedMembership)
+      if (ctrl$init.dyn.gibbs) {
+        n_prior <- (dyads_pp[i] - nodes_pp[i]) * .05
+        a <- plogis(ctrl$mu_b) * n_prior
+        b <- n_prior - a
+        lda_beta_prior <- lapply(list(b,a),
+                                 function(prior){
+                                   mat <- matrix(prior[2], n.blocks, n.blocks)
+                                   diag(mat) <- prior[1]
+                                   return(mat)
+                                 })
+        ret <- lda::mmsb.collapsed.gibbs.sampler(network = soc_mats[[i]],
+                                                 K = n.blocks,
+                                                 num.iterations = 100L,
+                                                 burnin = 50L,
+                                                 alpha = ctrl$alpha,
+                                                 beta.prior = lda_beta_prior)
+        BlockModel <- with(ret, blocks.pos / (blocks.pos + blocks.neg + 1))
+        MixedMembership <- prop.table(ret$document_expects, 2)
+        colnames(MixedMembership) <- colnames(soc_mats[[i]])
+        temp_res[[i]] <- list(BlockModel = BlockModel,
+                              MixedMembership = MixedMembership)
+        
+        
+      } else {
+        temp_res[[i]] <- mmsbm(update(formula.dyad, .~1),
+                               formula.monad = ~ 1,
+                               senderID = "(sid)",
+                               receiverID = "(rid)",
+                               nodeID = "(nid)",
+                               timeID = "(tid)",
+                               data.dyad = mfd_list[[i]],
+                               data.monad = mfm_list[[i]][,c("(nid)", "(tid)")],
+                               n.blocks = n.blocks,
+                               n.hmmstates = 1,
+                               directed = directed,
+                               missing = missing,
+                               mmsbm.control = list(em_iter = ctrl$em_iter,
+                                                    seed = ctrl$seed,
+                                                    mu_b = ctrl$mu_b,
+                                                    var_b = ctrl$var_b,
+                                                    spectral = ctrl$spectral,
+                                                    conv_tol = ctrl$conv_tol,
+                                                    threads = ctrl$threads,
+                                                    verbose = FALSE))
+      }
     }
     temp_res <- lapply(split(temp_res, state_init),
                        function(mods){
                          target <- t(mods[[1]]$MixedMembership)
+                         rownames(target) <- sapply(strsplit(rownames(target), "@", fixed=TRUE), function(x)x[1])
                          res <- lapply(mods,
                                        function(mod, target_mat = target){
-                                         cost_mat <- mod$MixedMembership %*% target_mat
+                                         split_names <- strsplit(colnames(mod$MixedMembership), "@", fixed=TRUE)
+                                         mod_names <-  sapply(split_names, function(x)x[1])
+                                         mod_time <- split_names[[1]][2]
+                                         shared_nodes <- intersect(mod_names,
+                                                                   rownames(target_mat))
+                                         shared_nodes_mod <- paste(shared_nodes, mod_time, sep="@")
+                                         cost_mat <- mod$MixedMembership[,shared_nodes_mod] %*% target_mat[shared_nodes,]
                                          perm <- clue::solve_LSAP(t(cost_mat), TRUE)
                                          mod$MixedMembership <- mod$MixedMembership[perm,]
                                          mod$BlockModel <- mod$BlockModel[perm, perm]

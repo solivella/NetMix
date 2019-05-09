@@ -434,7 +434,6 @@ void MMModel::alphaGrW(int n, double *par, double *gr, void *ex)
 void MMModel::updateKappa()
 {
   Rcpp::checkUserInterrupt();
-  
   std::vector<double> kappa_vec(N_STATE);
   double res, log_denom;
   for(int t = 1; t < N_TIME; ++t){
