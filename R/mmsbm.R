@@ -516,9 +516,10 @@ mmsbm <- function(formula.dyad,
                              Reduce("+", Map(function(x)x$BlockModel, mods)) / length(mods)
                            }) 
     perms_temp <- .findPerm(block_models, use.perms = ctrl$permute)
-    phis_temp <- Map(function(x)x$MixedMembership, unlist(temp_res, recursive = FALSE))
+    phis_temp <- Map(function(x)x$MixedMembership, unlist(temp_res, recursive = FALSE)) 
+    phi.ord <- as.numeric(lapply(phis_temp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get temporal order
     ctrl$phi_init_t <- do.call(cbind,mapply(function(phi,perm){perm %*% phi},
-                                            phis_temp, perms_temp[state_init], SIMPLIFY = FALSE))
+                                            phis_temp[order(phi.ord)], perms_temp[state_init], SIMPLIFY = FALSE)) 
     rownames(ctrl$phi_init_t) <- 1:n.blocks
   }
   
