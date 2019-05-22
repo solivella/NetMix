@@ -12,7 +12,7 @@ using Rcpp::as;
 // [[Rcpp::export]]
 List mmsbm_fit(const NumericMatrix& z_t,
                const NumericMatrix& x_t,
-               const IntegerVector& y,
+               const NumericVector& y,
                const IntegerVector& time_id_dyad,
                const IntegerVector& time_id_node,
                const IntegerVector& nodes_per_period,
@@ -30,10 +30,10 @@ List mmsbm_fit(const NumericMatrix& z_t,
   //Obtain nr. of cores
   int N_THREADS = 1;
  #ifdef _OPENMP
-   int requested = as<int>(control["threads"]);
-   omp_set_num_threads(requested);
-   N_THREADS = requested;
+   omp_set_num_threads(as<int>(control["threads"]));
+   N_THREADS = as<int>(control["threads"]);
 #endif
+  
   
   //Create model instance
   MMModel Model(z_t,
@@ -75,9 +75,6 @@ List mmsbm_fit(const NumericMatrix& z_t,
   // Old_Gamma(N_DYAD_PRED),
   // Old_Beta(TOT_BETA);
   
-  if(verbose){
-    Rprintf("Estimating model...\n");
-  }
   oldLL = Model.cLL();
   while(iter < EM_ITER && conv == false){
     checkUserInterrupt();
@@ -125,9 +122,8 @@ Model.optim_ours(true); //optimize alphaLB
     ++iter;
   }
   if((conv == false) & verbose)
-    Rprintf("Warning: model did not converge after %i iterations.\n", iter);
-  else if (verbose)
-    Rprintf("done after %i iterations.\n", iter);
+    Rprintf("\tWarning: model did not converge after %i iterations.\n", iter);
+  
   
   
   //Form return objects

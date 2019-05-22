@@ -31,14 +31,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // mmsbm_fit
-List mmsbm_fit(const NumericMatrix& z_t, const NumericMatrix& x_t, const IntegerVector& y, const IntegerVector& time_id_dyad, const IntegerVector& time_id_node, const IntegerVector& nodes_per_period, const IntegerMatrix& node_id_dyad, const NumericMatrix& mu_b, const NumericMatrix& var_b, const NumericMatrix& phi_init, NumericMatrix& kappa_init_t, NumericMatrix& b_init_t, NumericVector& beta_init, NumericVector& gamma_init, List control);
+List mmsbm_fit(const NumericMatrix& z_t, const NumericMatrix& x_t, const NumericVector& y, const IntegerVector& time_id_dyad, const IntegerVector& time_id_node, const IntegerVector& nodes_per_period, const IntegerMatrix& node_id_dyad, const NumericMatrix& mu_b, const NumericMatrix& var_b, const NumericMatrix& phi_init, NumericMatrix& kappa_init_t, NumericMatrix& b_init_t, NumericVector& beta_init, NumericVector& gamma_init, List control);
 RcppExport SEXP _NetMix_mmsbm_fit(SEXP z_tSEXP, SEXP x_tSEXP, SEXP ySEXP, SEXP time_id_dyadSEXP, SEXP time_id_nodeSEXP, SEXP nodes_per_periodSEXP, SEXP node_id_dyadSEXP, SEXP mu_bSEXP, SEXP var_bSEXP, SEXP phi_initSEXP, SEXP kappa_init_tSEXP, SEXP b_init_tSEXP, SEXP beta_initSEXP, SEXP gamma_initSEXP, SEXP controlSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericMatrix& >::type z_t(z_tSEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type x_t(x_tSEXP);
-    Rcpp::traits::input_parameter< const IntegerVector& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const IntegerVector& >::type time_id_dyad(time_id_dyadSEXP);
     Rcpp::traits::input_parameter< const IntegerVector& >::type time_id_node(time_id_nodeSEXP);
     Rcpp::traits::input_parameter< const IntegerVector& >::type nodes_per_period(nodes_per_periodSEXP);
