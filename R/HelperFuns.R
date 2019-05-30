@@ -163,9 +163,10 @@ cluster.mems <- function(fm, t=unique(fm$dyadic.data$`(tid)`), n=10, demean=FALS
 
 
 
-cluster.time.node <- function(fm){
+cluster.time.node <- function(fm, node=NULL){
   require(ggplot2)
-  for(i in unique(fm$monadic.data[,"(nid)"])){
+  if(is.null(node)){node <- unique(fm$monadic.data[,"(nid)"])}
+  for(i in node){
     avgmem <- lapply(1:nrow(fm$MixedMembership), function(x){fm$MixedMembership[x,which(fm$monadic.data[,"(nid)"]==i)]})
     pds <- as.character(fm$monadic.data[fm$monadic.data[,"(nid)"]==i, "(tid)"])
     avgmem <- as.data.frame(cbind(rep(pds, nrow(fm$MixedMembership)),
