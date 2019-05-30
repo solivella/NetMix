@@ -87,6 +87,7 @@ predict.mmsbm <- function(fm,
       new_kappa <- fm$Kappa[,ncol(fm$Kappa)] %*% .mpower(fm$TransitionKernel, forecast)
       p <- .e.pi(alpha, new_kappa)
     } else {
+      if(!(tid %in% colnames(monad))){tid <- "(tid)"}
       p <- .e.pi(alpha, fm$Kappa[,as.character(monad[,tid])])
     }
   }

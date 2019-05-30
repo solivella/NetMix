@@ -163,7 +163,7 @@ mmsbm <- function(formula.dyad,
   if(missing=="indicator method"){
     # dyadic dataset
     if(length(all.vars(formula.dyad[[3]]))){
-      miss.d <- apply(data.dyad[,all.vars(formula.dyad[[3]]), drop = FALSE], 2, function(x){length(na.omit(x))}) < nrow(data.dyad)
+      miss.d <- apply(as.matrix(data.dyad[,all.vars(formula.dyad[[3]]), drop = FALSE]), 2, function(x){length(na.omit(x))}) < nrow(data.dyad)
       md <- names(miss.d[miss.d])
       if(length(md)>0){
         m.ind <- apply(as.data.frame(data.dyad[,md]), 2, function(x){
@@ -201,12 +201,12 @@ mmsbm <- function(formula.dyad,
   }
   if(missing=="listwise deletion"){
     if(length(all.vars(formula.dyad[[3]]))){
-      mdyad <- apply(data.dyad[,all.vars(formula.dyad[[3]])], 1, function(x){!any(is.na(x))})
+      mdyad <- apply(as.matrix(data.dyad[,all.vars(formula.dyad[[3]])]), 1, function(x){!any(is.na(x))})
     } else {
       mdyad <- TRUE
     }
     if(length(all.vars(formula.monad[[2]]))){
-      mmonad <- apply(data.monad[,all.vars(formula.monad[[2]])], 1, function(x){!any(is.na(x))})
+      mmonad <- apply(as.matrix(data.monad[,all.vars(formula.monad[[2]])]), 1, function(x){!any(is.na(x))})
     } else {
       mmonad <- TRUE
     }
@@ -290,10 +290,9 @@ mmsbm <- function(formula.dyad,
   ## Create initial values
   if(ctrl$verbose)
     cat("Obtaining initial values...\n")
+  
   dyads <- split.data.frame(dntid, mfd[, "(tid)"])
   edges <- split(Y, mfd[, "(tid)"])
-
-
   soc_mats <- Map(function(dyad_mat, edge_vec){
     nodes <- unique(c(dyad_mat))
     nnode <- length(nodes)
@@ -321,12 +320,11 @@ mmsbm <- function(formula.dyad,
     return(adj_mat)
   }, dyads, edges)
 
-  # all.nodes <- unique(unlist(mfd[,c("(sid)","(rid)")]))
-  # node.cols <- which(names(mfd)%in%c("(sid)","(rid)", "(tid)"))
-  # dyads <- split.data.frame(mfd[,c(node.cols, 1)], mfd[, "(tid)"])
-  # edges <- split(Y, mfd[, "(tid)"])
-  # 
-  # soc_mats <- lapply(dyads,
+   #all.nodes <- unique(unlist(mfd[,c("(sid)","(rid)")]))
+   #node.cols <- which(names(mfd)%in%c("(sid)","(rid)", "(tid)"))
+   #dyads <- split.data.frame(mfd[,c(node.cols, 1)], mfd[, "(tid)"])
+   #edges <- split(Y, mfd[, "(tid)"])
+   #soc_mats <- lapply(dyads,
   #                    function(dyad_df, 
   #                             nnode = length(all.nodes),
   #                             nodes = all.nodes)
@@ -338,12 +336,12 @@ mmsbm <- function(formula.dyad,
   #                                         nnode,
   #                                         dimnames = list(nodes,
   #                                                         nodes))
-  #                      adj_mat[indeces] <- dyad_df[,4] # out of bounds
+  #                      adj_mat[indeces] <- dyad_df[,4] 
   #                      if(!directed){
   #                        adj_mat[indeces[,c(2,1)]] <- dyad_df[,4]
   #                      }
   #                      diag(adj_mat) <- 0
-  #                      adj_mat[is.na(adj_mat)] <- sample(0:1, sum(is.na(adj_mat)), replace = TRUE)
+  #                      adj_mat[is.na(adj_mat)] <- rbinom(sum(is.na(adj_mat)), 1, prob=mean(mfd[,1], na.rm=T))
   #                      if(!directed){
   #                        mat_ind <- which(upper.tri(adj_mat), arr.ind = TRUE)
   #                        adj_mat[mat_ind[,c(2,1)]] <- adj_mat[upper.tri(adj_mat)]
@@ -363,10 +361,10 @@ mmsbm <- function(formula.dyad,
                                           unique(td_id[,2])))
       dyad_time[td_id] <- Y
       if(any(is.na(dyad_time))){
-        dyad_time <- t(apply(dyad_time, 1, function(x){
+        dyad_time <- apply(dyad_time, 2, function(x){
           x[is.na(x)] <- rbinom(sum(is.na(x)), 1, mean(x, na.rm=TRUE))
           return(x)
-        }))
+        })
       }
       state_init <- fitted(kmeans(dyad_time,
                                   n.hmmstates,
