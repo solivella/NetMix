@@ -18,7 +18,7 @@ using R::digamma;
 
 MMModel::MMModel(const NumericMatrix& z_t,
                  const NumericMatrix& x_t,
-                 const NumericVector& y,
+                 const IntegerVector& y,
                  const int N_THREAD,
                  const IntegerVector& time_id_dyad,
                  const IntegerVector& time_id_node,
@@ -57,7 +57,6 @@ MMModel::MMModel(const NumericMatrix& z_t,
   m_failTheta(0),
   verbose(as<bool>(control["verbose"])),
   directed(as<bool>(control["directed"])),
-  LRHMM(as<bool>(control["lr_hmm"])), 
   y({N_DYAD}, y),
   time_id_dyad({N_DYAD}, time_id_dyad),
   time_id_node({N_NODE},time_id_node),
@@ -93,9 +92,6 @@ MMModel::MMModel(const NumericMatrix& z_t,
     for(int m = 0; m < N_STATE; ++m){
       e_wm[m] += kappa_t(m, t - 1);
       for(int n = 0; n < N_STATE; ++n){
-        if(LRHMM && ((n > m) || (m > (n + 1)))){
-          continue;
-        }
         e_wmn_t(n, m) += kappa_t(m, t - 1) * kappa_t(n, t);
       }
     }
@@ -273,8 +269,8 @@ double MMModel::thetaLB(bool entropy = false)
           rec_phi(g, d) * log(rec_phi(g, d));
       for(int h = 0; h < N_BLK; ++h){
         res += send_phi(g, d) * rec_phi(h, d)
-        * (y[d] * log(theta(h, g, d))
-             +(1.0 - y[d]) * log(1.0 - theta(h, g, d)));
+        * (y[d] ? log(theta(h, g, d))
+             : log(1.0 - theta(h, g, d)));
         
       }
     }
@@ -380,9 +376,6 @@ double MMModel::cLL()
     for(int m = 0; m < N_STATE; ++m){
       res -= lgamma(double(N_STATE) * eta + e_wm[m]);
       for(int n = 0; n < N_STATE; ++n){
-        if(LRHMM && ((n > m) || (m > (n + 1)))){
-          continue;
-        }
         res += log(eta + e_wmn_t(n, m));
       }
       //Entropy for kappa
@@ -463,27 +456,18 @@ void MMModel::updateKappa()
         
         for(int n = 0; n < N_STATE; ++n){
           if(m != n){
-            if(LRHMM && ((n > m) || (m > (n + 1)))){
-              continue;
-            }
             e_wmn_t(n, m) -= kappa_t(m, t) * kappa_t(n, t + 1);
+            
             res += kappa_t(n, t + 1) * log(eta + e_wmn_t(n, m));
-          }
-        }
-        for(int n = 0; n < N_STATE; ++n){
-          if(m != n){
-            if(LRHMM && ((m > n) || (n > (m + 1)))){
-              continue;
-            }
+            
             e_wmn_t(m, n) -= kappa_t(m, t) * kappa_t(n, t - 1);
+            
             res += kappa_t(n, t - 1) * log(eta + e_wmn_t(m, n));
+            
           }
         }
       } else { // t = T
         for(int n = 0; n < N_STATE; ++n){
-          if(LRHMM && ((m > n) || (n > (m + 1)))){
-            continue;
-          }
           e_wmn_t(m, n) -= kappa_t(m, t) * kappa_t(n, t - 1);
           res += kappa_t(n, t - 1) * log(eta + e_wmn_t(m, n));
         }
@@ -504,25 +488,12 @@ void MMModel::updateKappa()
         e_wmn_t(m, m) += kappa_t(m, t) * (kappa_t(m, t + 1) + kappa_t(m, t - 1));
         for(int n = 0; n < N_STATE; ++n){
           if(m != n){
-            if(LRHMM && ((n > m) || (m > (n + 1)))){
-              continue;
-            }
             e_wmn_t(n, m) += kappa_t(m, t) * kappa_t(n, t + 1);
-          }
-        }
-        for(int n = 0; n < N_STATE; ++n){
-          if(m != n){
-            if(LRHMM && ((m > n) || (n > (m + 1)))){
-              continue;
-            }
             e_wmn_t(m, n) += kappa_t(m, t) * kappa_t(n, t - 1);
           }
         }
       } else { // t = T
         for(int n = 0; n < N_STATE; ++n){
-          if(LRHMM && ((m > n) || (n > (m + 1)))){
-            continue;
-          }
           e_wmn_t(m, n) += kappa_t(m, t) * kappa_t(n, t - 1);
         }
       }
@@ -538,13 +509,11 @@ void MMModel::updateKappa()
 void MMModel::updatePhiInternal(int dyad, int rec,
                                 double *phi,
                                 double *phi_o,
-                                double *new_c,
-                                int *err
+                                double *new_c
 )
 {
   
-  int t = time_id_dyad[dyad];
-  double edge = y[dyad];
+  int t = time_id_dyad[dyad], edge = y[dyad];
   int incr1 = rec ? 1 : N_BLK;
   int incr2 = rec ? N_BLK : 1;
   int node = node_id_dyad(dyad, rec);
@@ -560,11 +529,14 @@ void MMModel::updatePhiInternal(int dyad, int rec,
     
     te = theta_temp;
     for(int h = 0; h < N_BLK; ++h, te+=incr2){
-      res += phi_o[h] * (edge * log(*te) + (1.0 - edge) * log(1.0 - *te));
+      res += phi_o[h] * (edge ? log(*te) : log(1.0 - *te));
     }
+    
+    
+    
     phi[g] = exp(res);
     if(ISNAN(phi[g])){
-      *err = 1;
+      stop("Phi value became NAN.");
     }
     total += phi[g];
   }
@@ -583,7 +555,7 @@ void MMModel::updatePhi()
   for(int thread = 0; thread < N_THREAD; ++thread){
     std::fill(new_e_c_t[thread].begin(), new_e_c_t[thread].end(), 0.0);
   }
-  int err = 0;
+  
 #pragma omp parallel for
   for(int d = 0; d < N_DYAD; ++d){
     int thread = 0;
@@ -594,21 +566,16 @@ void MMModel::updatePhi()
                       0,
                       &(send_phi(0, d)),
                       &(rec_phi(0, d)),
-                      &(new_e_c_t[thread](0, node_id_dyad(d, 0))),
-                      &err
+                      &(new_e_c_t[thread](0, node_id_dyad(d, 0)))
     );
     updatePhiInternal(d,
                       1,
                       &(rec_phi(0, d)),
                       &(send_phi(0, d)),
-                      &(new_e_c_t[thread](0, node_id_dyad(d, 1))),
-                      &err
+                      &(new_e_c_t[thread](0, node_id_dyad(d, 1)))
     );
   }
   
-  if(err){
-    stop("Phi value became NaN");
-  }
   
   
   std::fill(e_c_t.begin(), e_c_t.end(), 0.0);
@@ -735,12 +702,12 @@ NumericMatrix MMModel::getWmn()
   NumericMatrix res(N_STATE, N_STATE);
   if(N_TIME > 1 & N_STATE > 1){
     double row_total;
-    for(int r = 0; r < N_STATE; ++r){
+    for(int c = 0; c < N_STATE; ++c){
       row_total = 0.0;
-      for(int c = 0; c < N_STATE; ++c){
+      for(int r = 0; r < N_STATE; ++r){
         row_total += e_wmn_t(r, c);
       }
-      for(int c = 0; c < N_STATE; ++c){
+      for(int r = 0; r < N_STATE; ++r){
         res(r, c) = e_wmn_t(r, c) / row_total;
       }
     }

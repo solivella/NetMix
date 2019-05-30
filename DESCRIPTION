@@ -1,8 +1,8 @@
 Package: NetMix
 Type: Package
 Title: Dynamic mixed-membership network regression model
-Version: 0.6.4
-Date: 2019-05-22
+Version: 0.6.3
+Date: 2019-05-09
 Encoding: UTF-8
 Author: Kosuke Imai [aut, cre],
 	Tyler Pratt [aut, cre],

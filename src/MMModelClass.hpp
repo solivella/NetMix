@@ -15,7 +15,7 @@ class MMModel
 public:
   MMModel(const Rcpp::NumericMatrix& z_t,
 	  const Rcpp::NumericMatrix& x_t,
-	  const Rcpp::NumericVector& y,
+	  const Rcpp::IntegerVector& y,
 	  const int N_THREAD,
 	  const Rcpp::IntegerVector& time_id_dyad,
 	  const Rcpp::IntegerVector& time_id_node,
@@ -83,10 +83,9 @@ private:
 
 
   bool verbose,
-    directed,
-  LRHMM;
-  const Array<double> y;
-  const Array<int>  //vectors
+    directed;
+
+  const Array<int> y, //vectors
     time_id_dyad,
     time_id_node,
     n_nodes_time;
@@ -139,8 +138,7 @@ private:
 			 int,
 			 double*,
 			 double*,
-			 double*,
-			 int*);
+			 double*);
 
 };
 
