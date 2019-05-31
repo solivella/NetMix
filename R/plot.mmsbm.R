@@ -7,13 +7,13 @@
 #' group by group edge formation probabilities as a network graph.  "\code{membership}" plots average membership in
 #' each latent group by time period. "\code{effect}" provides a series of plots showing the estimated effect 
 #' of a shfit in monadic covariate values.
-#' @param FX with type = "effect"; a list resulting from a call to \code{covFX}.
+#' @param FX with \code{type == "effect"}; a list resulting from a call to \code{covFX}.
 #'
 
 
 plot.mmsbm <- function(fm, type="blockmodel", FX=NULL){ # network graph showing B-matrix
   if(type=="blockmodel"){
-    mode <- ifelse(fm$call$directed, "directed", "undirected")
+    mode <- ifelse(eval(fm$call$directed), "directed", "undirected")
     require("igraph", quietly=TRUE)
     block.G <- graph.adjacency(exp(fm$BlockModel) / (1 + exp(fm$BlockModel)), mode=mode, weighted=TRUE)
     e.weight <- E(block.G)$weight*100
