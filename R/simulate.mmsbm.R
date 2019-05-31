@@ -1,3 +1,15 @@
+#' Simulate a complete sociomatrix from an \code{mmsbm} object
+#'
+#' The function generates one sample network from the posterior predictive of the model represented by a fitted \code{mmsbm} object.
+#'
+#' @param fm An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.
+#' @param new.data.dyad An optional \code{data.frame} object. If not \code{NULL}, use these 
+#'                      dyadic predictor values instead of those used to fit the original model.
+#' @param new.data.monad An optional \code{data.frame} object. See \code{new.data.dyad}. 
+#' @param parametric_mm Boolean. Should the variational posterior be used for sampling the mixed-memberships (\code{FALSE}), 
+#'                      or should the mixed-meberships be formed using the parameters in the monadic regression equation (\code{TRUE})?
+#'                      Defaults to \code{FALSE}. If \code{is.null(new.data.monad)=FALSE}, setting this to \code{FALSE} will produce an error.  
+#'
 simulate.mmsbm <- function(fm, 
                            new.data.dyad = NULL,
                            new.data.monad  = NULL, 

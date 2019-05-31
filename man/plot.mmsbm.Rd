@@ -14,7 +14,7 @@ group by group edge formation probabilities as a network graph.  "\code{membersh
 each latent group by time period. "\code{effect}" provides a series of plots showing the estimated effect 
 of a shfit in monadic covariate values.}
 
-\item{FX}{with type = "effect"; a list resulting from a call to \code{covFX}.}
+\item{FX}{with \code{type == "effect"}; a list resulting from a call to \code{covFX}.}
 }
 \description{
 The function provides a variety of plotting options for a fitted \code{mmsbm} object.

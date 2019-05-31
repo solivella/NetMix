@@ -4,7 +4,8 @@
 \alias{head.mmsbm}
 \title{Identify nodes with most frequent membership in latent groups}
 \usage{
-\method{head}{mmsbm}(fm, n = 10, t = NULL, node = TRUE)
+\method{head}{mmsbm}(fm, n = 10, t = NULL, node = TRUE,
+  t.correct = FALSE)
 }
 \arguments{
 \item{fm}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.}
@@ -14,6 +15,8 @@
 \item{t}{optional vector of time periods to be used for assessing latent group membership.}
 
 \item{node}{logical; indicates whether latent group memberships should be averaged at the node level.  If FALSE, the function returns the node-time period units with highest estimated membership in each latent group.}
+
+\item{t.correct}{logical; indicates whether latent group memberships should be corrected for temporal trends.  If TRUE, the function returns the node-time period units with highest estimated membership in each latent group.}
 }
 \value{
 List of length \code{n.groups}.  Each entry contains a sorted vector of average latent membership probabilities of length \code{n}.

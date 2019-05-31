@@ -20,20 +20,20 @@ names of nodal atrributes found in \code{data.monad}.}
 
 \item{senderID}{Character string. Quoted name of the variable in \code{data.dyad} identifying 
 the sender node. For undirected networks, the variable simply contains name of first node 
-in dyad.}
+in dyad. Cannot contain special charecter "`@`".}
 
 \item{receiverID}{Character string. Quoted name of the variable in \code{data.dyad} identifying 
 the receiver node. For undirected networks, the variable simply contains name of second node 
-in dyad.}
+in dyad. Cannot contain special charecter "`@`".}
 
 \item{nodeID}{Character string. Quoted name of the variable in \code{data.monad} identifying 
 a node in either \code{data.dyad[,senderID]} or \code{data.dyad[,senderID]}. If not \code{NULL},
 every node \code{data.dyad[,senderID]} or \code{data.dyad[,senderID]} must be present in 
-\code{data.monad[,nodeID]}.}
+\code{data.monad[,nodeID]}. Cannot contain special charecter "`@`".}
 
 \item{timeID}{Character string. Quoted name of the variable in both \code{data.dyad} and
 \code{data.monad} indicating the time in which network (and correspding nodal atrributes)
-were observed. The variable itself must be composed of integers.}
+were observed. The variable itself must be composed of integers. Cannot contain special charecter "`@`".}
 
 \item{data.dyad}{Data frame. Sociomatrix in ``long'' (i.e. dyadic) format. Must contain at
 least three variables: the sender identifier (or identifier of the first node in an undirected networks dyad),
@@ -54,10 +54,13 @@ to 1 (i.e. no HMM).}
 
 \item{mmsbm.control}{A named list of optional algorithm control parameters.
 \describe{
-   \item{spectral}{Boolean. Type of initialization algorithm for mixed-membership vectors in static case. If \code{TRUE},
+   \item{spectral}{Boolean. Type of initialization algorithm for mixed-membership vectors in static case. If \code{TRUE} (default),
                use spectral clustering with degree correction; otherwise, use kmeans algorithm}
+   \item{init.dyn.gibbs}{Boolean. Should a collapsed Gibbs sampler of non-regression mmsbm be used to initialize
+               each time period? Setting to \code{TRUE} will be result in faster estimation that is very sensitive to
+               choice of alpha (see below)}            
    \item{alpha}{Numeric positive value. Concentration parameter for collapsed Gibbs sampler to find initial
-                mixed-membership values in dynamic case. Defaults to 0.5}            
+                mixed-membership values in dynamic case when \code{init.dyn.gibbs=TRUE}. Defaults to 0.5}            
    \item{seed}{RNG seed. Defaults to \code{NULL}, which does not seed the RNG}            
    \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3}
    \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3}
