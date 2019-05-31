@@ -134,11 +134,11 @@ private:
   void thetaGr(int, double*);
   static void thetaGrW(int, double*, double*, void*);
 
-  void updatePhiInternal(int,
-			 int,
-			 double*,
-			 double*,
-			 double*);
+  void updatePhiInternal(int dyad, int rec,
+                         double *phi,
+                         double *phi_o,
+                         double *new_c,
+                         int *err);
 
 };
 

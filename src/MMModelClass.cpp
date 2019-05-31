@@ -509,11 +509,13 @@ void MMModel::updateKappa()
 void MMModel::updatePhiInternal(int dyad, int rec,
                                 double *phi,
                                 double *phi_o,
-                                double *new_c
+                                double *new_c,
+                                int *err
 )
 {
   
-  int t = time_id_dyad[dyad], edge = y[dyad];
+  int t = time_id_dyad[dyad];
+  double edge = y[dyad];
   int incr1 = rec ? 1 : N_BLK;
   int incr2 = rec ? N_BLK : 1;
   int node = node_id_dyad(dyad, rec);
@@ -529,14 +531,11 @@ void MMModel::updatePhiInternal(int dyad, int rec,
     
     te = theta_temp;
     for(int h = 0; h < N_BLK; ++h, te+=incr2){
-      res += phi_o[h] * (edge ? log(*te) : log(1.0 - *te));
+      res += phi_o[h] * (edge * log(*te) + (1.0 - edge) * log(1.0 - *te));
     }
-    
-    
-    
     phi[g] = exp(res);
     if(ISNAN(phi[g])){
-      stop("Phi value became NAN.");
+      *err = 1;
     }
     total += phi[g];
   }
@@ -555,7 +554,7 @@ void MMModel::updatePhi()
   for(int thread = 0; thread < N_THREAD; ++thread){
     std::fill(new_e_c_t[thread].begin(), new_e_c_t[thread].end(), 0.0);
   }
-  
+  int err = 0;
 #pragma omp parallel for
   for(int d = 0; d < N_DYAD; ++d){
     int thread = 0;
@@ -566,16 +565,21 @@ void MMModel::updatePhi()
                       0,
                       &(send_phi(0, d)),
                       &(rec_phi(0, d)),
-                      &(new_e_c_t[thread](0, node_id_dyad(d, 0)))
+                      &(new_e_c_t[thread](0, node_id_dyad(d, 0))),
+                      &err
     );
     updatePhiInternal(d,
                       1,
                       &(rec_phi(0, d)),
                       &(send_phi(0, d)),
-                      &(new_e_c_t[thread](0, node_id_dyad(d, 1)))
+                      &(new_e_c_t[thread](0, node_id_dyad(d, 1))),
+                      &err
     );
   }
   
+  if(err){
+    stop("Phi value became NaN");
+  }
   
   
   std::fill(e_c_t.begin(), e_c_t.end(), 0.0);
@@ -589,7 +593,6 @@ void MMModel::updatePhi()
     }
   }
 }
-
 
 /** 
  CONVERGENCE CHECKER
