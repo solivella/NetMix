@@ -620,6 +620,9 @@ mmsbm <- function(formula.dyad,
   ## Include node id's
   fit$NodeIndex <- nt_id
   
+  ## Include indicator for directed/undirected
+  fit$directed <- directed
+  
   ## Include original call
   fit$call <- match.call()
   
