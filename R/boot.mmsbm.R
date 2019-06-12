@@ -13,56 +13,62 @@
 
 
 boot.mmsbm <- function(fm, iter, parallel=TRUE){ 
-  BootResClass <- function(res1=NULL,res2=NULL, res3=NULL){
-    me <- list(res1 = res1,
-               res2 = res2)
+  BootResClass <- function(monadic=NULL,dyadic=NULL){
+    me <- list(monadic = monadic,
+               dyadic = dyadic)
     class(me) <- append(class(me),"multiResultClass")
     return(me)
   }
+  
   ctrl <- eval(fm$call$mmsbm.control)
   ctrl$phi_init_t <- fm$MixedMembership
   
+  result <- vector("list", iter) 
   if(parallel){
     require(foreach)
     require(doMC)
     registerDoMC(parallel::detectCores()/2)
     boot.res <- foreach(1:iter) %dopar% {
-      fm$dyadic.data$sim <- predict(fm, type="response", posterior.pi=T) 
+      fm$dyadic.data$sim <- simulate(fm) 
       fit <- mmsbm(formula.dyad = update.formula(fm$call[[2]], sim ~ .), 
                    formula.monad = as.formula(fm$call[[3]]),
                    senderID = "(sid)", receiverID = "(rid)",
                    timeID = "(tid)", nodeID = "(nid)",
                    data.dyad=fm$dyadic.data, data.monad=fm$monadic.data,
-                   n.blocks = fm$call$n.groups, 
-                   n.hmmstates = fm$call$n.hmmstates,
-                   directed=fm$call$directed,
+                   n.blocks = fm$n_blocks, 
+                   n.hmmstates = fm$n_states,
+                   directed=fm$directed,
                    mmsbm.control = ctrl)
       perm.vecs <- clue::solve_LSAP(log(fit$MixedMembership) %*% log(t(fm$MixedMembership)), maximum=T)
       kap.vecs <- clue::solve_LSAP(log(fit$Kappa) %*% log(t(fm$Kappa)), maximum=T)
       result <- BootResClass()
-      result$res1 <- fit$MonadCoef[,perm.vecs,kap.vecs]
-      result$res2 <- fit$DyadCoef
+      result[[i]]
+      result$monadic <- fit$MonadCoef[,perm.vecs,kap.vecs]
+      result$dyadic <- fit$DyadCoef
       return(result)
     }
+    return(boot.res)
   }
   
-  for(i in 1:iter){
-    fm$dyadic.data$sim <- predict(fm, type="response", posterior.pi=T) 
-    fit <- mmsbm(formula.dyad = update.formula(fm$call[[2]], sim ~ .), 
+  if(!parallel){
+    for(i in 1:iter){
+      fm$dyadic.data$sim <- simulate(fm) 
+      fit <- mmsbm(formula.dyad = update.formula(fm$call[[2]], sim ~ .), 
                  formula.monad = as.formula(fm$call[[3]]),
                  senderID = "(sid)", receiverID = "(rid)",
                  timeID = "(tid)", nodeID = "(nid)",
                  data.dyad=fm$dyadic.data, data.monad=fm$monadic.data,
-                 n.blocks = fm$call$n.groups, 
-                 n.hmmstates = fm$call$n.hmmstates,
-                 directed=fm$call$directed,
+                 n.blocks = fm$n_blocks, 
+                 n.hmmstates = fm$n_states,
+                 directed=fm$directed,
                  mmsbm.control = ctrl)
-    perm.vecs <- clue::solve_LSAP(log(fit$MixedMembership) %*% log(t(fm$MixedMembership)), maximum=T)
-    kap.vecs <- clue::solve_LSAP(log(fit$Kappa) %*% log(t(fm$Kappa)), maximum=T)
-    
-    result <- BootResClass()
-    result$res1 <- fit$MonadCoef[,perm.vecs,kap.vecs]
-    result$res2 <- fit$DyadCoef
+      perm.vecs <- clue::solve_LSAP(log(fit$MixedMembership) %*% log(t(fm$MixedMembership)), maximum=T)
+      kap.vecs <- clue::solve_LSAP(log(fit$Kappa) %*% log(t(fm$Kappa)), maximum=T)
+      result <- BootResClass()
+      result$monadic <- fit$MonadCoef[,perm.vecs,kap.vecs]
+      result$dyadic <- fit$DyadCoef
+      return(result)
+    }
     return(result)
   }
 }

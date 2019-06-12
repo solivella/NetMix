@@ -119,7 +119,8 @@ gof.mmsbm <- function(fm,
   alpha <- (1 - level)/2 
   sim_stats <- mapply(function(x, y){
                        if(is.list(x)){
-                         x <- do.call(.cbind.fill, x)
+                         require(rowr)
+                         x <- do.call(cbind.fill, x)
                        }
                        x[is.na(x)] <- 0  
                        res <- as.data.frame(t(apply(x, 1, quantile, probs = c(alpha, 0.5, level + alpha), na.rm=TRUE)))

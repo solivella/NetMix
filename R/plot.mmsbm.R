@@ -38,9 +38,10 @@ plot.mmsbm <- function(fm, type="blockmodel", FX=NULL){ # network graph showing 
     if(class(avgmems$Avg.Membership) == "factor"){avgmems$Avg.Membership <- as.numeric(as.character(avgmems$Avg.Membership))}
     if(class(avgmems$Time) == "factor"){avgmems$Time <- as.numeric(as.character(avgmems$Time))}
     require(ggplot2)
-    ggplot() + ggtitle("Average Group Membership Over Time") + theme(plot.title = element_text(hjust = 0.5)) +
-      geom_area(aes(y = Avg.Membership, x = Time, fill=Group), data = avgmems,
+    p <- ggplot() + ggtitle("Average Group Membership Over Time") + theme(plot.title = element_text(hjust = 0.5)) +
+          geom_area(aes(y = Avg.Membership, x = Time, fill=Group), data = avgmems,
                 stat="identity", position="stack")  + guides(fill=guide_legend(title="Group"))
+    print(p)
   }
   
   if(type=="effect"){
@@ -56,12 +57,24 @@ plot.mmsbm <- function(fm, type="blockmodel", FX=NULL){ # network graph showing 
     nodenames <- names(sort(table(fm$monadic.data[,"(nid)"]), decreasing=T))
     nodes <- sort(FX[[3]])[names(sort(FX[[3]])) %in% nodenames]
     plot(1, type="n", xlab="Node-Level Estimated Effect", ylab="", 
-         xlim=c(min(nodes), max(nodes) + sd(nodes)),
+         xlim=c(min(nodes), max(nodes) + max(nchar(names(nodes)))/20),
          ylim = c(0, length(nodes)), yaxt="n")
     for(i in 1:length(nodes)){
       points(nodes[i],i, pch=19)
       text(nodes[i],i, names(nodes)[i], pos=4, cex=0.7)
     }
+  }
+  
+  if(type=="hmm"){
+    hms <- as.data.frame(do.call(rbind, lapply(1:nrow(fm$Kappa), function(x){
+      cbind(1:ncol(fm$Kappa), fm$Kappa[x,], x)
+      })))
+    colnames(hms) <- c("Time", "Kappa", "State")
+    require(ggplot2)
+    p <- ggplot() + ggtitle("Hidden Markov State") + theme(plot.title = element_text(hjust = 0.5)) +
+      geom_area(aes(y = Kappa, x = Time, fill=factor(State)), data = hms,
+                stat="identity", position="stack")  + guides(fill=guide_legend(title="State"))
+    print(p)
   }
 }
 

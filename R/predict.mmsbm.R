@@ -14,7 +14,7 @@
 #'  
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
-#' @example tests/Examples/MIDColdWar.R
+#' 
 #' 
 predict.mmsbm <- function(fm, 
                           new.data.dyad = NULL,
