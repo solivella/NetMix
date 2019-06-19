@@ -319,38 +319,6 @@ mmsbm <- function(formula.dyad,
     }
     return(adj_mat)
   }, dyads, edges)
-
-   #all.nodes <- unique(unlist(mfd[,c("(sid)","(rid)")]))
-   #node.cols <- which(names(mfd)%in%c("(sid)","(rid)", "(tid)"))
-   #dyads <- split.data.frame(mfd[,c(node.cols, 1)], mfd[, "(tid)"])
-   #edges <- split(Y, mfd[, "(tid)"])
-   #soc_mats <- lapply(dyads,
-  #                    function(dyad_df, 
-  #                             nnode = length(all.nodes),
-  #                             nodes = all.nodes)
-  #                    {
-  #                      indeces <- as.matrix(dyad_df[,c("(sid)","(rid)")])
-  #                      time_ind <- unique(dyad_df[,"(tid)"]) 
-  #                      adj_mat <-  matrix(NA, 
-  #                                         nnode,
-  #                                         nnode,
-  #                                         dimnames = list(nodes,
-  #                                                         nodes))
-  #                      adj_mat[indeces] <- dyad_df[,4] 
-  #                      if(!directed){
-  #                        adj_mat[indeces[,c(2,1)]] <- dyad_df[,4]
-  #                      }
-  #                      diag(adj_mat) <- 0
-  #                      adj_mat[is.na(adj_mat)] <- rbinom(sum(is.na(adj_mat)), 1, prob=mean(mfd[,1], na.rm=T))
-  #                      if(!directed){
-  #                        mat_ind <- which(upper.tri(adj_mat), arr.ind = TRUE)
-  #                        adj_mat[mat_ind[,c(2,1)]] <- adj_mat[upper.tri(adj_mat)]
-  #                      }
-  #                      node_names <- paste(nodes, "@", time_ind, sep="")
-  #                      dimnames(adj_mat) <- list(node_names,
-  #                                                node_names)
-  #                      return(adj_mat)
-  #                    })
   
   
   if(is.null(ctrl$kappa_init_t)){
@@ -369,12 +337,6 @@ mmsbm <- function(formula.dyad,
       state_init <- fitted(kmeans(dyad_time,
                                   n.hmmstates,
                                   nstart = 15), "classes")
-      # state_init <- cluster::clara(dyad_time,
-      #                              n.hmmstates,
-      #                              samples = 15,
-      #                              sampsize = min(nrow(dyad_time), 100 + 2 * n.hmmstates),
-      #                              rngR = TRUE,
-      #                              correct.d = TRUE)$clustering
       kappa_internal <- model.matrix(~ as.factor(state_init) - 1)
       kappa_internal <- .transf(kappa_internal)
       ctrl$kappa_init_t <- t(kappa_internal)
@@ -421,14 +383,7 @@ mmsbm <- function(formula.dyad,
                               clust_internal <- fitted(kmeans(target,
                                                               n.blocks,
                                                               centers = target[init_c,],
-                                                              #algorithm = "Lloyd",
                                                               nstart = 10), "classes")
-                              # clust_internal <- cluster::clara(target,
-                              #                                  n.blocks,
-                              #                                  samples = 10,
-                              #                                  sampsize = min(nrow(target), 100 + 2 * n.blocks),
-                              #                                  rngR = TRUE,
-                              #                                  correct.d = TRUE)$clustering
                               
                               phi_internal <- model.matrix(~ as.factor(clust_internal) - 1)
                               phi_internal <- .transf(phi_internal)
@@ -466,28 +421,7 @@ mmsbm <- function(formula.dyad,
                               MixedMembership = MixedMembership)
         
         
-      } else {
-        temp_res[[i]] <- mmsbm(update(formula.dyad, .~1),
-                               formula.monad = ~ 1,
-                               senderID = "(sid)",
-                               receiverID = "(rid)",
-                               nodeID = "(nid)",
-                               timeID = "(tid)",
-                               data.dyad = mfd_list[[i]],
-                               data.monad = mfm_list[[i]][,c("(nid)", "(tid)")],
-                               n.blocks = n.blocks,
-                               n.hmmstates = 1,
-                               directed = directed,
-                               missing = missing,
-                               mmsbm.control = list(em_iter = ctrl$em_iter,
-                                                    seed = ctrl$seed,
-                                                    mu_b = ctrl$mu_b,
-                                                    var_b = ctrl$var_b,
-                                                    spectral = ctrl$spectral,
-                                                    conv_tol = ctrl$conv_tol,
-                                                    threads = ctrl$threads,
-                                                    verbose = FALSE))
-      }
+      } 
     }
     temp_res <- lapply(split(temp_res, state_init),
                        function(mods){
@@ -520,12 +454,11 @@ mmsbm <- function(formula.dyad,
                                             phis_temp[order(phi.ord)], perms_temp[state_init], SIMPLIFY = FALSE)) 
     rownames(ctrl$phi_init_t) <- 1:n.blocks
   }
-  
   if(is.null(ctrl$gamma_init)){
     if(ncol(Z) > 0){
-      nsamp <- ifelse(nrow(Z) > 100e3, 100e3, nrow(Z))
+      nsamp <- ifelse(nrow(Z) > 1e5, 1e5, nrow(Z))
       ind_dyad <- sample(1:nrow(Z), nsamp)
-      ctrl$gamma_init <- coef(glm(Y[ind_dyad] ~ Z[ind_dyad,] - 1, family = binomial()))
+      ctrl$gamma_init <- coef(glm.fit(Z[ind_dyad,],Y[ind_dyad], family = binomial()))
     } else {
       ctrl$gamma_init <- 0
     }
@@ -535,7 +468,7 @@ mmsbm <- function(formula.dyad,
   if(anyNA(ctrl$gamma_init)){
     stop("Singular design matrix; check dyadic predictors.")
   }
-  
+
   
   
   
@@ -625,6 +558,7 @@ mmsbm <- function(formula.dyad,
   
   ## Include original call
   fit$call <- match.call()
+  fit$forms <- mget(formalArgs(sys.function()))
   
   ##Assign class for methods
   class(fit) <- "mmsbm"

@@ -28,14 +28,14 @@ predict.mmsbm <- function(fm,
     stop("Must use parametric mixed-membership terms when forecasting.")
   }
   if(!is.null(new.data.dyad)){
-    sid <- fm$call$senderID
-    rid <- fm$call$receiverID
+    sid <- fm$forms$senderID
+    rid <- fm$forms$receiverID
     dyad <- new.data.dyad
-    if(is.null(fm$call$timeID)){
+    if(is.null(fm$forms$timeID)){
       tid <- "(tid)"
       dyad[,tid] <- 1
     } else {
-      tid <- fm$call$timeID
+      tid <- fm$forms$timeID
     }
   } else {
     sid <- "(sid)"
@@ -43,9 +43,9 @@ predict.mmsbm <- function(fm,
     tid <- "(tid)"
     dyad <- fm$dyadic.data
   }
-  dform <- fm$call$formula.dyad
+  dform <- fm$forms$formula.dyad
   if(any(grepl("missing", names(fm$DyadCoef)))){
-    dform <- update(as.formula(fm$call$formula.dyad), 
+    dform <- update(as.formula(fm$forms$formula.dyad), 
                     paste(c("~ .", names(fm$DyadCoef)[grep("missing", 
                                     names(fm$DyadCoef))]), collapse=" + "))
   }
@@ -54,13 +54,13 @@ predict.mmsbm <- function(fm,
     fm$DyadCoef <- as.vector(0)
   }
   if(!is.null(new.data.monad)){
-    nid <- ifelse(fm$call$nodeID %in% colnames(new.data.monad), fm$call$nodeID, "(nid)")
+    nid <- ifelse(fm$forms$nodeID %in% colnames(new.data.monad), fm$forms$nodeID, "(nid)")
     monad <- new.data.monad
-    if(is.null(fm$call$timeID)){
+    if(is.null(fm$forms$timeID)){
       tid <- "(tid)"
       monad[,tid] <- 1
     } else {
-      tid <- fm$call$timeID
+      tid <- fm$forms$timeID
     }
   } else {
     nid <- "(nid)"
@@ -68,16 +68,16 @@ predict.mmsbm <- function(fm,
     monad <- fm$monadic.data
   }
   n_blk <- fm$n_blocks
-  mform <- fm$call$formula.monad
+  mform <- fm$forms$formula.monad
   if(any(grepl("missing", rownames(fm$MonadCoef)))){
-    mform <- update(as.formula(fm$call$formula.monad), 
+    mform <- update(as.formula(fm$forms$formula.monad), 
                     paste(c("~ .", rownames(fm$MonadCoef)[grep("missing", 
                                       rownames(fm$MonadCoef))]), collapse=" + "))
   }
   if(!parametric_mm){
     p <- fm$MixedMembership
   } else {
-    if(is.null(fm$call$formula.monad)){
+    if(is.null(fm$forms$formula.monad)){
       X_m <- model.matrix(~ 1, data = monad)
     } else {
       X_m <- model.matrix(eval(mform), monad)

@@ -16,14 +16,14 @@ simulate.mmsbm <- function(fm,
                            parametric_mm = FALSE)
 {
   if(!is.null(new.data.dyad)){
-    sid <- fm$call$senderID
-    rid <- fm$call$receiverID
+    sid <- fm$forms$senderID
+    rid <- fm$forms$receiverID
     dyad <- new.data.dyad
-    if(is.null(fm$call$timeID)){
+    if(is.null(fm$forms$timeID)){
       tid <- "(tid)"
       dyad[,tid] <- 1
     } else {
-      tid <- fm$call$timeID
+      tid <- fm$forms$timeID
     }
   } else {
     sid <- "(sid)"
@@ -32,13 +32,13 @@ simulate.mmsbm <- function(fm,
     dyad <- fm$dyadic.data
   }
   if(!is.null(new.data.monad)){
-    nid <- fm$call$nodeID
+    nid <- fm$forms$nodeID
     monad <- new.data.monad
-    if(is.null(fm$call$timeID)){
+    if(is.null(fm$forms$timeID)){
       tid <- "(tid)"
       monad[,tid] <- 1
     } else {
-      tid <- fm$call$timeID
+      tid <- fm$forms$timeID
     }
   } else {
     nid <- "(nid)"
@@ -48,12 +48,11 @@ simulate.mmsbm <- function(fm,
   if(! (tid %in% c(names(dyad), names(monad)))){
     stop("Dynamic model estimated, but no timeID provided in new data.")
   }
-  
-  X_d <- model.matrix(eval(fm$call$formula.dyad), dyad)
-  if(is.null(fm$call$formula.monad)){
+  X_d <- model.matrix(fm$forms$formula.dyad, dyad)
+  if(is.null(fm$forms$formula.monad)){
     X_m <- model.matrix(~ 1, data = monad)
   } else {
-    X_m <- model.matrix(eval(fm$call$formula.monad), monad)
+    X_m <- model.matrix(fm$forms$formula.monad, monad)
   }
   if(length(fm$DyadCoef)==0){
     fm$DyadCoef <- as.vector(0)
@@ -94,14 +93,21 @@ simulate.mmsbm <- function(fm,
   } else {
     p <- fm$MixedMembership
   }
+
   z <- getZ(p[,s_ind])
   w <- getZ(p[,r_ind])
-  eta_dyad <- X_d %*% fm$DyadCoef
-  for(a in 1:n_blk){ 
+
+  dcoef <- fm$DyadCoef
+ # cat("Address of dcoef: ",pryr::address(dcoef),"\n")
+  #cat("Address of fm$DyadCoef: ",pryr::address(fm$DyadCoef),"\n")
+  eta_dyad <- X_d %*% dcoef
+  for(a in 1:n_blk){
     for(b in 1:n_blk){
       eta_dyad <- eta_dyad + (z[a,]*w[b,]*fm$BlockModel[a,b])
     }
   }
+
   probs <- plogis(eta_dyad)
-  return(rbinom(length(probs), 1, probs))
+  res <- rbinom(length(probs), 1, probs)
+  return(res)
 }
