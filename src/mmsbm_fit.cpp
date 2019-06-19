@@ -20,19 +20,21 @@ List mmsbm_fit(const NumericMatrix& z_t,
                const NumericMatrix& mu_b,
                const NumericMatrix& var_b,
                const NumericMatrix& phi_init,
-                NumericMatrix& kappa_init_t,
-                NumericMatrix& b_init_t,
-                NumericVector& beta_init,
-                NumericVector& gamma_init,
+               NumericMatrix& kappa_init_t,
+               NumericMatrix& b_init_t,
+               NumericVector& beta_init,
+               NumericVector& gamma_init,
                List control
 )
 {
   //Obtain nr. of cores
   int N_THREADS = 1;
- #ifdef _OPENMP
-   int requested = as<int>(control["threads"]);
-   omp_set_num_threads(requested);
-   N_THREADS = requested;
+  int requested = as<int>(control["threads"]);
+#ifdef _OPENMP
+{
+    omp_set_num_threads(requested);
+    N_THREADS = requested;
+}    
 #endif
   
   //Create model instance
@@ -67,7 +69,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
   
   bool conv = false,
     verbose = as<bool>(control["verbose"]);
-
+  
   double newLL, oldLL,
   tol = as<double>(control["conv_tol"]);
   
@@ -89,26 +91,26 @@ List mmsbm_fit(const NumericMatrix& z_t,
     if(N_STATE > 1){
       Model.updateKappa();
     }
-
+    
     
     
     //M-STEP
     // Model.getB(Old_B);
     // Model.getGamma(Old_Gamma);
     // Model.getBeta(Old_Beta);
-//#pragma omp parallel sections
-// {
-// #pragma omp section
-// {
-Model.optim_ours(true); //optimize alphaLB
-// }
-// #pragma omp section
-// {
- Model.optim_ours(false); //optimize thetaLB
-// }
-//  } 
-
-  
+    //#pragma omp parallel sections
+    // {
+    // #pragma omp section
+    // {
+    Model.optim_ours(true); //optimize alphaLB
+    // }
+    // #pragma omp section
+    // {
+    Model.optim_ours(false); //optimize thetaLB
+    // }
+    //  } 
+    
+    
     
     //Check convergence
     newLL = Model.cLL();
@@ -121,8 +123,8 @@ Model.optim_ours(true); //optimize alphaLB
     if(verbose)
       if((iter+1) % 25 == 0)
         Rprintf("LB %i: %f\n", iter + 1, newLL);
-    
-    ++iter;
+      
+      ++iter;
   }
   if((conv == false) & verbose)
     Rprintf("Warning: model did not converge after %i iterations.\n", iter);

@@ -163,7 +163,9 @@ double MMModel::alphaLB()
 {
   computeAlpha();
   double res = 0.0, res_int = 0.0, alpha_row = 0.0, alpha_val = 0.0;
+#ifdef _OPENMP
 #pragma omp parallel for firstprivate(alpha_row, alpha_val, res_int) reduction(+:res)
+#endif
   for(int m = 0; m < N_STATE; ++m){
     for(int p = 0; p < N_NODE; ++p){
       alpha_row = 0.0;
@@ -202,7 +204,9 @@ void MMModel::alphaGr(int N_PAR, double *gr)
     for(int g = 0; g < N_BLK; ++g){
       for(int x = 0; x < N_MONAD_PRED; ++x){
         res = 0.0;
+#ifdef _OPENMP        
 #pragma omp parallel for firstprivate(alpha_row) reduction(+:res)
+#endif
         for(int p = 0; p < N_NODE; ++p){
           alpha_row = 0.0;
           for(int h = 0; h < N_BLK; ++h){
@@ -261,7 +265,9 @@ double MMModel::thetaLB(bool entropy = false)
   computeTheta();
   
   double res = 0.0;
+#ifdef _OPENMP
 #pragma omp parallel for reduction(+:res)
+#endif
   for(int d = 0; d < N_DYAD; ++d){
     for(int g = 0; g < N_BLK; ++g){
       if(entropy)
@@ -555,7 +561,9 @@ void MMModel::updatePhi()
     std::fill(new_e_c_t[thread].begin(), new_e_c_t[thread].end(), 0.0);
   }
   int err = 0;
+#ifdef _OPENMP  
 #pragma omp parallel for
+#endif
   for(int d = 0; d < N_DYAD; ++d){
     int thread = 0;
 #ifdef _OPENMP
@@ -583,8 +591,9 @@ void MMModel::updatePhi()
   
   
   std::fill(e_c_t.begin(), e_c_t.end(), 0.0);
-  
+#ifdef _OPENMP
 #pragma omp parallel for collapse(2)
+#endif
   for(int p = 0; p < N_NODE; ++p){
     for(int g = 0; g < N_BLK; ++g){
       for(int i = 0; i < N_THREAD; ++i){
