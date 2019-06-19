@@ -4,7 +4,7 @@
 #'
 #' @param fm An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.
 #' @param type character string denoting the type of plot. The default, "\code{blockmodel}," plots the estimated matrix of 
-#' group by group edge formation probabilities as a network graph.  "\code{membership}" plots average membership in
+#' group by group edge formation probabilities as a tile plot, with tiles proportional to group sizes.  "\code{membership}" plots average membership in
 #' each latent group by time period. "\code{effect}" provides a series of plots showing the estimated effect 
 #' of a shfit in monadic covariate values.
 #' @param FX with \code{type == "effect"}; a list resulting from a call to \code{covFX}.
@@ -13,20 +13,44 @@
 
 plot.mmsbm <- function(fm, type="blockmodel", FX=NULL){ # network graph showing B-matrix
   if(type=="blockmodel"){
-    mode <- ifelse(eval(fm$call$directed), "directed", "undirected")
-    require("igraph", quietly=TRUE)
-    block.G <- graph.adjacency(exp(fm$BlockModel) / (1 + exp(fm$BlockModel)), mode=mode, weighted=TRUE)
-    e.weight <- E(block.G)$weight*100
-    if(any(e.weight < 0.1)){
-      e.weight <- e.weight*2
+    mode <- ifelse(eval(fm$forms$directed), "directed", "undirected")
+    # require("igraph", quietly=TRUE)
+    # block.G <- graph.adjacency(exp(fm$BlockModel) / (1 + exp(fm$BlockModel)), mode=mode, weighted=TRUE)
+    # e.weight <- E(block.G)$weight*100
+    # if(any(e.weight < 0.1)){
+    #   e.weight <- e.weight*2
+    # }
+    # if(any(e.weight > 18)){
+    #   e.weight[e.weight > 18] <- 18}
+    v.size <- rowMeans(fm$MixedMembership)
+    # plot(block.G, main = "Edge Formation across Clusters",
+    #     edge.width=e.weight, vertex.size=v.size,
+    #     layout = layout_in_circle)
+    
+    bm <- fm$BlockModel
+    if(mode!="directed") {
+      bm[upper.tri(bm)] <- NA
     }
-    if(any(e.weight > 18)){
-      e.weight[e.weight > 18] <- 18}
-    v.size <- rowMeans(fm$MixedMembership)*100
-    plot(block.G, main = "Edge Formation across Clusters",
-        edge.width=e.weight, vertex.size=v.size,
-        layout = layout_in_circle)
+    
+    dm <- data.frame(Sender = rep(rownames(fm$BlockModel), times = fm$n_blocks),
+                     Receiver = rep(colnames(fm$BlockModel), each = fm$n_blocks),
+                     Val = plogis(c(bm)),
+                     Height = rep(v.size*(fm$n_blocks-0.35), fm$n_blocks),
+                     Width = rep(v.size*(fm$n_blocks-0.35), each=fm$n_blocks))
+    
+    dm <- dm[complete.cases(dm),]
+    
+    dm$Sender  <- factor(dm$Sender, levels=rev(rownames(fm$BlockModel)))
+    
+    require(ggplot2)
+    p <- ggplot(aes(y = Sender, x = Receiver, fill=Val, width=Width, height=Height), data = dm) + ggtitle("Edge Formation Between Blocs") + theme(plot.title = element_text(hjust = 0.5)) +
+      geom_tile(color = "white") + theme_bw()+
+      scale_size(guide='none') +
+      scale_fill_gradient2(low = "#deebf7", mid = "#9ecae1", high = "#3182bd",
+                           midpoint = 0.5, limit = c(0,1), name="Edge\nProbability")
+    print(p)
   }
+  
   
   if(type=="membership"){
     avgmems <- lapply(1:nrow(fm$MixedMembership), function(x){
