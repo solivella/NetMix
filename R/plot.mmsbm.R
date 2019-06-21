@@ -81,7 +81,7 @@ plot.mmsbm <- function(fm, type="blockmodel", FX=NULL){ # network graph showing 
     nodenames <- names(sort(table(fm$monadic.data[,"(nid)"]), decreasing=T))
     nodes <- sort(FX[[3]])[names(sort(FX[[3]])) %in% nodenames]
     plot(1, type="n", xlab="Node-Level Estimated Effect", ylab="", 
-         xlim=c(min(nodes), max(nodes) + max(nchar(names(nodes)))/20),
+         xlim=c(min(nodes), max(nodes) + 0.001),
          ylim = c(0, length(nodes)), yaxt="n")
     for(i in 1:length(nodes)){
       points(nodes[i],i, pch=19)
