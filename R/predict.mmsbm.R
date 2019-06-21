@@ -88,15 +88,24 @@ predict.mmsbm <- function(fm,
       p <- .e.pi(alpha, new_kappa)
     } else {
       if(!(tid %in% colnames(monad))){tid <- "(tid)"}
-      p <- .e.pi(alpha, fm$Kappa[,as.character(monad[,tid])])
+      pind <- lapply(alpha,
+                     function(x){
+                       apply(x, 2,
+                             function(alpha){
+                               prop.table(rgamma(n_blk, alpha, 1))
+                             }
+                       )})
+      p <- .e.pi(pind, fm$Kappa[,as.character(monad[,tid])])
     }
   }
   eta_dyad <- X_d %*% as.matrix(fm$DyadCoef)
   s_ind <- match(dyad[,sid], monad[,nid])
   r_ind <- match(dyad[,rid], monad[,nid])
+  z <- getZ(p[,s_ind])
+  w <- getZ(p[,r_ind])
   for(a in 1:n_blk){ 
     for(b in 1:n_blk){
-      eta_dyad <- eta_dyad + (p[a,s_ind]*p[b,r_ind]*fm$BlockModel[a,b])
+      eta_dyad <- eta_dyad + (z[a,]*w[b,]*fm$BlockModel[a,b])
     }
   }
   if(type=="link"){
