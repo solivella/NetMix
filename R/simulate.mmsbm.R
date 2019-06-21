@@ -68,7 +68,7 @@ simulate.mmsbm <- function(fm,
   states <- as.matrix(sapply(unique_t,
                    function(x){
                      if(x %in% colnames(fm$Kappa)){
-                       return(rmultinom(1, 1, fm$Kappa[,x]))
+                       return(rmultinom(1, 1, fm$Kappa[,as.character(x)]))
                      } else {
                        last_kappa <- fm$Kappa[,ncol(fm$Kappa)]
                        steps <- x - as.numeric(colnames(fm$Kappa)[ncol(fm$Kappa)])
