@@ -199,7 +199,7 @@ double MMModel::alphaLB()
 void MMModel::alphaGr(int N_PAR, double *gr)
 {
   //computeAlpha();
-  double res=0.0, alpha_row=0.0, prior_gr=0.0, sd_beta = sqrt(var_beta);;
+  double res=0.0, alpha_row=0.0, prior_gr=0.0;
   for(int m = 0; m < N_STATE; ++m){
     for(int g = 0; g < N_BLK; ++g){
       for(int x = 0; x < N_MONAD_PRED; ++x){
@@ -216,7 +216,7 @@ void MMModel::alphaGr(int N_PAR, double *gr)
                     + R::digamma(alpha(g, p, m) + e_c_t(g, p)) - R::digamma(alpha(g, p, m)))
             * kappa_t(m,  time_id_node[p]) * alpha(g, p, m) * x_t(x, p);
         }
-        prior_gr =  x > 0 ? beta(x, g, m) / sd_beta : 0.0;
+        prior_gr =  x > 0 ? beta(x, g, m) / var_beta : 0.0;
         gr[x + N_MONAD_PRED * (g + N_BLK * m)] = -(res - prior_gr);
       }
     }
@@ -305,7 +305,6 @@ double MMModel::thetaLB(bool entropy = false)
  */
 void MMModel::thetaGr(int N_PAR, double *gr)
 {
-  double sd_gamma = sqrt(var_gamma);
   double res_local, res = 0.0;
   for(int i = 0; i < N_PAR; ++i)
     gr[i] = 0.0;
@@ -331,7 +330,7 @@ void MMModel::thetaGr(int N_PAR, double *gr)
     }
   }
   for(int z = 0; z < N_DYAD_PRED; ++z){
-    gr[N_B_PAR + z] += gamma[z] / sd_gamma;
+    gr[N_B_PAR + z] += gamma[z] / var_gamma;
   }
   for(int g = 0; g < N_BLK; ++g){
     for(int h = 0; h < N_BLK; ++h){
@@ -339,7 +338,7 @@ void MMModel::thetaGr(int N_PAR, double *gr)
         continue;
       }
       npar = par_ind(h, g);
-      gr[npar] += (b_t(h, g) - mu_b_t(h, g)) / sqrt(var_b_t(h, g));
+      gr[npar] += (b_t(h, g) - mu_b_t(h, g)) / var_b_t(h, g);
     }
   }
   for(int i = 0; i < N_PAR; ++i)
