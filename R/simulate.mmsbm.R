@@ -97,10 +97,7 @@ simulate.mmsbm <- function(fm,
   z <- getZ(p[,s_ind])
   w <- getZ(p[,r_ind])
 
-  dcoef <- fm$DyadCoef
- # cat("Address of dcoef: ",pryr::address(dcoef),"\n")
-  #cat("Address of fm$DyadCoef: ",pryr::address(fm$DyadCoef),"\n")
-  eta_dyad <- X_d %*% dcoef
+  eta_dyad <- X_d %*% fm$DyadCoef
   for(a in 1:n_blk){
     for(b in 1:n_blk){
       eta_dyad <- eta_dyad + (z[a,]*w[b,]*fm$BlockModel[a,b])
