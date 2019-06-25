@@ -152,7 +152,7 @@ logit.roc <- prediction(predictions=c(pred.logit), labels=MID_dyad2b$MID_onset_D
 logit.roc2 <- performance(logit.roc, measure="tpr", x.measure="fpr")
 
 
-pdf("ROC_onset.pdf", width=7, height=7)
+pdf("ROC_onsetIS.pdf", width=7, height=7)
 par(mfrow=c(1,1))
 plot(unlist(attributes(MID.roc2)["x.values"]), 
      unlist(attributes(MID.roc2)["y.values"]),
@@ -208,21 +208,10 @@ MID.monad.new <- MID_monad[as.numeric(paste(MID_monad$year)) %in% 2009:2010,]
 MID.monad.new$polity_missing <- ifelse(is.na(MID.monad.new$polity), 1, 0)
 MID.monad.new$polity[is.na(MID.monad.new$polity)] <- 0
 
-MID.monad.new2 <- MID_monad[MID_monad$year == 2008,]
-MID.monad.new2$polity_missing <- ifelse(is.na(MID.monad.new2$polity), 1, 0)
-MID.monad.new2$polity[is.na(MID.monad.new2$polity)] <- 0
-MID_dyad.new2 <- MID_dyad2b[MID_dyad2b$year==2008,]
-
-MMSB.predictOOS <- predict(MID_onset_2008, new.data.dyad=MID_dyad.new2, 
-                           new.data.monad=MID.monad.new2, type="response",
+MMSB.predictOOS <- predict(MID_onset_2008, new.data.dyad=MID.new, 
+                           new.data.monad=MID.monad.new, type="response",
                            parametric_mm = TRUE, forecast=TRUE)
 logit.predictOOS <- predict(logit.2008, newdata=MID.new, type="response")
-
-mean(predict(MID_onset_2008, new.data.dyad=MID_dyad.new2, new.data.monad=MID.monad.new2, type="response"))
-mean(predict(MID_onset_2008, new.data.dyad=MID_dyad.new2, new.data.monad=MID.monad.new2, type="response", parametric_mm=TRUE))
-mean(predict(MID_onset_2008, new.data.dyad=MID_dyad.new2, new.data.monad=MID.monad.new2, type="response", parametric_mm=TRUE, forecast=TRUE))
-
-
 
 library(ROCR)
 MMSB.roc <- prediction(predictions=c(MMSB.predictOOS), labels=MID.new$MID_onset_DY)
@@ -247,6 +236,147 @@ legend(x=0.7, y=0.2, legend=c("hmmsb","logit"),
        col=c("black", "red"), lty=1, lwd=2)
 dev.off()
 
+## An alternative way: simulate peaceyrs
+set.seed(999)
+MID_onset_2008b <- mmsbm(formula.dyad = MID_onset_DY ~ IGOmems_joint + 
+                           ally + contiguity + dist + peaceyrs + 
+                           spline1 + spline2 + spline3,
+                         formula.monad =  ~ polity + logNMC, 
+                         data.dyad = MID.sub, data.monad = MID.monad.sub,
+                         senderID = "country1", receiverID = "country2", 
+                         nodeID = "country", 
+                         timeID = "year",
+                         n.blocks = 6, 
+                         n.hmmstates = 2,
+                         directed=FALSE,
+                         mmsbm.control = list(verbose = TRUE,
+                                              em_iter = 500,
+                                              mu_b = c(-5, 5),
+                                              conv_tol = 1e-4,
+                                              threads = parallel::detectCores())
+)
 
+MID.new2 <- MID.new
+MID.2009 <- MID.new[MID.new$year==2009,]
+MID.monad.2009 <- MID.monad.new[MID.monad.new$year==2009,]
+predict9 <- rbinom(nrow(MID.2009), 1, predict(MID_onset_2008b, new.data.dyad=MID.2009, 
+                    new.data.monad=MID.monad.2009, type="response",
+                    parametric_mm = TRUE, forecast=TRUE))
+new.conf <- MID.2009$dyadID[predict9==1]
+MID.new2$peaceyrs[MID.new2$year==2010] <- MID.new2$peaceyrs[MID.new2$year==2009] + 1
+MID.new2$peaceyrs[MID.new2$year==2010 & MID.new2$dyadID %in% new.conf] <- 0
+
+library(splines)
+splines <- bs(MID.new2$peaceyrs)
+MID.new2[,c("spline1", "spline2", "spline3")] <- splines
+
+MMSB.predictOOS2 <- predict(MID_onset_2008b, new.data.dyad=MID.new2, 
+                            new.data.monad=MID.monad.new, type="response",
+                            parametric_mm = TRUE, forecast=TRUE)
+
+logit.2008b <- glm(MID_onset_DY ~ IGOmems_joint + ally + contiguity + dist + 
+                    dem + aut + cinc_ratio + 
+                    IGOmems_joint_missing + dist_missing +  
+                    polity_missing + peaceyrs + spline1 + 
+                    spline2 + spline3,
+                  data = MID_dyad2b, family = binomial(link = "logit"))
+MID.2009 <- MID.new[MID.new$year==2009,]
+logit.2009 <- predict(logit.2008b, newdata=MID.2009, type="response")
+predict9 <- rbinom(nrow(MID.2009), 1, logit.2009)
+new.conf <- MID.2009$dyadID[predict9==1]
+MID.new2$peaceyrs[MID.new2$year==2010] <- MID.new2$peaceyrs[MID.new2$year==2009] + 1
+MID.new2$peaceyrs[MID.new2$year==2010 & MID.new2$dyadID %in% new.conf] <- 0
+
+library(splines)
+splines <- bs(MID.new2$peaceyrs)
+MID.new2[,c("spline1", "spline2", "spline3")] <- splines
+
+logit.predictOOS2 <- predict(logit.2008b, newdata=MID.new2, type="response")
+
+MMSB.rocb <- prediction(predictions=c(MMSB.predictOOS2), labels=MID.new2$MID_onset_DY)
+MMSB.roc2b <- performance(MMSB.rocb, measure="tpr", x.measure="fpr")
+
+logit.rocb <- prediction(predictions=c(logit.predictOOS2), labels=MID.new2$MID_onset_DY)
+logit.roc2b <- performance(logit.rocb, measure="tpr", x.measure="fpr")
+
+pdf("ROC_onsetOOS2.pdf", height=8, width=8)
+par(mfrow=c(1,1))
+plot(unlist(attributes(MMSB.roc2b)["x.values"]), 
+     unlist(attributes(MMSB.roc2b)["y.values"]),
+     type="l",
+     xlab="False Positive Rate",
+     ylab="True Positive Rate", lwd=2)
+lines(unlist(attributes(logit.roc2b)["x.values"]),
+      unlist(attributes(logit.roc2b)["y.values"]),
+      type="l",
+      col="red", lwd=2)
+lines(c(0, 1), c(0,1), lty=2)
+legend(x=0.7, y=0.2, legend=c("hmmsb","logit"),
+       col=c("black", "red"), lty=1, lwd=2)
+dev.off()
+
+
+
+
+## Compare out of sample logit for different numbers of groups
+
+load("~/Dropbox/MIDS_o.Rdata")
+MID.2009 <- MID.new[MID.new$year==2009,]
+MID.monad.2009 <- MID.monad.new[MID.monad.new$year==2009,]
+predict9s <- as.data.frame(matrix(nrow=nrow(MID.2009), ncol=6))
+colnames(predict9s) <- paste("group", 2:7, sep="")
+
+predict9s$group2 <- rbinom(nrow(MID.2009), 1, predict(MID_onset_2_2o, new.data.dyad=MID.2009, 
+                      new.data.monad=MID.monad.2009, type="response", parametric_mm = TRUE, forecast=TRUE))
+predict9s$group3 <- rbinom(nrow(MID.2009), 1, predict(MID_onset_3_2o, new.data.dyad=MID.2009, 
+                                                    new.data.monad=MID.monad.2009, type="response", parametric_mm = TRUE, forecast=TRUE))
+predict9s$group4 <- rbinom(nrow(MID.2009), 1, predict(MID_onset_4_2o, new.data.dyad=MID.2009, 
+                                                      new.data.monad=MID.monad.2009, type="response", parametric_mm = TRUE, forecast=TRUE))
+predict9s$group5 <- rbinom(nrow(MID.2009), 1, predict(MID_onset_5_2o, new.data.dyad=MID.2009, 
+                                                      new.data.monad=MID.monad.2009, type="response", parametric_mm = TRUE, forecast=TRUE))
+predict9s$group6 <- rbinom(nrow(MID.2009), 1, predict(MID_onset_6_2o, new.data.dyad=MID.2009, 
+                                                      new.data.monad=MID.monad.2009, type="response", parametric_mm = TRUE, forecast=TRUE))
+predict9s$group7 <- rbinom(nrow(MID.2009), 1, predict(MID_onset_7_2o, new.data.dyad=MID.2009, 
+                                                      new.data.monad=MID.monad.2009, type="response", parametric_mm = TRUE, forecast=TRUE))
+colMeans(predict9s)
+
+MID.new2 <- MID.new
+predict.groups <- as.data.frame(matrix(nrow=nrow(MID.new), ncol=6))
+colnames(predict.groups) <- paste("group", 2:7, sep="")
+for(i in 2:7){
+  confID <- MID.2009$dyadID[which(predict9s[,paste("group", i, sep="")]==1)]
+  MID.new2$peaceyrs[MID.new2$year==2010] <- MID.new2$peaceyrs[MID.new2$year==2009] + 1
+  MID.new2$peaceyrs[MID.new2$year==2010 & MID.new2$dyadID %in% confID] <- 0
+  splines <- bs(MID.new2$peaceyrs)
+  MID.new2[,c("spline1", "spline2", "spline3")] <- splines
+  mod <- eval(parse(text = paste("MID_onset_", i, "_2o", sep="")))
+  predict.groups[,paste("group", i, sep="")] <- predict(mod, new.data.dyad=MID.new2, new.data.monad=MID.monad.new, 
+                                                        type="response", parametric_mm = TRUE, forecast=TRUE)
+}
+
+roc2 <- prediction(predictions=c(predict.groups[,1]), labels=MID.new2$MID_onset_DY)
+roc3 <- prediction(predictions=c(predict.groups[,2]), labels=MID.new2$MID_onset_DY)
+roc4 <- prediction(predictions=c(predict.groups[,3]), labels=MID.new2$MID_onset_DY)
+roc5 <- prediction(predictions=c(predict.groups[,4]), labels=MID.new2$MID_onset_DY)
+roc6 <- prediction(predictions=c(predict.groups[,5]), labels=MID.new2$MID_onset_DY)
+roc7 <- prediction(predictions=c(predict.groups[,6]), labels=MID.new2$MID_onset_DY)
+
+performance(roc2, measure = "auc")@y.values
+performance(roc3, measure = "auc")@y.values
+performance(roc4, measure = "auc")@y.values
+performance(roc5, measure = "auc")@y.values
+performance(roc6, measure = "auc")@y.values
+performance(roc7, measure = "auc")@y.values
+
+pdf("~/Documents/Netmix/tests/LatentGroups_AUC.pdf", height=6, width=6)
+plot(2:7, c(performance(roc2, measure = "auc")@y.values,
+            performance(roc3, measure = "auc")@y.values,
+            performance(roc4, measure = "auc")@y.values,
+            performance(roc5, measure = "auc")@y.values,
+            performance(roc6, measure = "auc")@y.values,
+            performance(roc7, measure = "auc")@y.values),
+     ylab="Area under ROC Curve", xlab="Number of Latent Groups",
+     ylim=c(0.95, 0.99), xlim=c(1.5, 7.5))
+dev.off()
 
 
