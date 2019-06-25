@@ -2,20 +2,30 @@
 % Please edit documentation in R/boot.mmsbm.R
 \name{boot.mmsbm}
 \alias{boot.mmsbm}
-\title{Parametric bootstrap for the dynMMSBM}
+\title{Parametric bootstrap for the dynamic mixed-membership SBM}
 \usage{
-boot.mmsbm(fm, iter, parallel = TRUE)
+boot.mmsbm(fm, iter, level = 0.9, full_obj = FALSE, parallel = TRUE)
 }
 \arguments{
 \item{fm}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.}
 
 \item{iter}{number of bootstrap iterations}
 
+\item{level}{signficance level for bootstrap confidence intervals}
+
+\item{full_obj}{logical; return full \code{mmsbm} objects, or bootstrapped CI for regression coefficients?}
+
 \item{parallel}{logical; indicates whether the bootstrap iterations should be run in parallel}
 }
 \value{
-List of length \code{iter}.  Each entry contains a list of monadic and dyadic coefficient estimates from the parametric bootstrap.
+If \code{full_obj=TRUE}, list of length \code{iter}. Each entry contains an object of class \code{mmsbm}. If \code{full_obj=FALSE}, a named list:
+\describe{
+      \item{MonadCoef}{List with as many elements as there are HMM states in \code{fm}. Each list is an array with as many rows as there are monadic predictors,
+      and two columns (an upper and lower bound for the corresponding CI)}
+      \item{DyadCoef}{Array with as many rows as there are dyadic predictors,
+      and two columns (an upper and lower bound for the corresponding CI)}
+    }
 }
 \description{
-The function performs a parametric bootstrap procedure to obtain uncertainty estimates for dynMMSBM coefficients.
+The function performs a parametric bootstrap procedure on \code{mmsbm} models.
 }

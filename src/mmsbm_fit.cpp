@@ -64,19 +64,12 @@ List mmsbm_fit(const NumericMatrix& z_t,
     N_MONAD_PRED = x_t.nrow(),
     N_STATE = as<int>(control["states"]);
   
-  //int TOT_BETA = N_MONAD_PRED * N_BLK * N_STATE,
-  //  TOT_B = N_BLK * N_BLK;
-  
   bool conv = false,
     verbose = as<bool>(control["verbose"]);
   
   double newLL, oldLL,
   tol = as<double>(control["conv_tol"]);
-  
-  // NumericVector Old_B(TOT_B),
-  // Old_Gamma(N_DYAD_PRED),
-  // Old_Beta(TOT_BETA);
-  
+
   if(verbose){
     Rprintf("Estimating model...\n");
   }
@@ -95,20 +88,10 @@ List mmsbm_fit(const NumericMatrix& z_t,
     
     
     //M-STEP
-    // Model.getB(Old_B);
-    // Model.getGamma(Old_Gamma);
-    // Model.getBeta(Old_Beta);
-    //#pragma omp parallel sections
-    // {
-    // #pragma omp section
-    // {
     Model.optim_ours(true); //optimize alphaLB
-    // }
-    // #pragma omp section
-    // {
+
     Model.optim_ours(false); //optimize thetaLB
-    // }
-    //  } 
+
     
     
     
@@ -122,7 +105,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
     }
     if(verbose)
       if((iter+1) % 25 == 0)
-        Rprintf("LB %i: %f\n", iter + 1, newLL);
+        Rprintf("LB %i: %f\n", iter + 1, -newLL);
       
       ++iter;
   }

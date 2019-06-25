@@ -1,6 +1,5 @@
 #include "HelperFuns.hpp"
 
-
 // [[Rcpp::export]]
 Rcpp::NumericMatrix approxB(Rcpp::NumericVector y,
                             Rcpp::IntegerMatrix d_id,
@@ -29,7 +28,7 @@ Rcpp::NumericMatrix approxB(Rcpp::NumericVector y,
   return B_t;
 }
 
-//[[Rcpp::export]]
+//[[Rcpp::export(.getZ)]]
 Rcpp::IntegerMatrix getZ(Rcpp::NumericMatrix pmat)
 {
   int NROW = pmat.nrow();

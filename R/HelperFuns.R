@@ -44,7 +44,7 @@ gof <- function (x, ...) {
   }
   n <- ncol(target.mat)
   if(use.perms){
-  require(Matrix, quietly = TRUE); require(gtools, quietly = TRUE) 
+    require(Matrix, quietly = TRUE); require(gtools, quietly = TRUE) 
     all_perms <- gtools::permutations(n, n)
   } else {
     require(igraph, quietly = TRUE);
@@ -59,10 +59,10 @@ gof <- function (x, ...) {
                     P <- as.matrix(as(all_perms[which.min(norms),], "pMatrix"))
                   } else {
                     P <- as.matrix(igraph::match_vertices(plogis(block.list[[x]]),
-                                                plogis(target.mat),
-                                                m = 0,
-                                                start = diag(ncol(block.list[[x]])),
-                                                iteration = 10)$P)
+                                                          plogis(target.mat),
+                                                          m = 0,
+                                                          start = diag(ncol(block.list[[x]])),
+                                                          iteration = 10)$P)
                   }
                   if(tar_nprov){
                     target.mat <<- t(P) %*% block.list[[x]] %*% P
@@ -93,10 +93,10 @@ gof <- function (x, ...) {
     nulltarg <- FALSE
   }
   new_loss <- sum(sapply(block.list, 
-                     function(mat, target = target.mat){
-                       base::norm(mat-target, type="o")
-                       #sum(block.list[[i]] * log(block.list[[i]]/target.mat))
-                     }))
+                         function(mat, target = target.mat){
+                           base::norm(mat-target, type="o")
+                           #sum(block.list[[i]] * log(block.list[[i]]/target.mat))
+                         }))
   delta <- 1e6
   iter <- 1
   perms <- vector("list", nsteps)
@@ -132,8 +132,6 @@ gof <- function (x, ...) {
   }
   return(perms)
 }
-
-
 
 .transf <- function(mat){
   (mat * (nrow(mat) - 1) + 1/ncol(mat))/nrow(mat)
@@ -267,11 +265,11 @@ degree.dist <- function(fm, Y){
     return(pi_l[[1]])
   } else {
     n_states <- nrow(kappa)
-    pi.states <- lapply(1:nrow(kappa),
+    pi.states <- lapply(1:n_states,
                         function(m){
-                          pi_l[[m]] * kappa[m,]
+                          pi_l[[m]] * rep(kappa[m,], each=nrow(pi_l[[m]])) 
                         })
-    return(Reduce("+", pi_l))
+    return(Reduce("+", pi.states))
   }
 }
 

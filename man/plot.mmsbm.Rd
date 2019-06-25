@@ -10,7 +10,7 @@
 \item{fm}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.}
 
 \item{type}{character string denoting the type of plot. The default, "\code{blockmodel}," plots the estimated matrix of 
-group by group edge formation probabilities as a network graph.  "\code{membership}" plots average membership in
+group by group edge formation probabilities as a tile plot, with tiles proportional to group sizes.  "\code{membership}" plots average membership in
 each latent group by time period. "\code{effect}" provides a series of plots showing the estimated effect 
 of a shfit in monadic covariate values.}
 

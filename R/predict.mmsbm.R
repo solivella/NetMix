@@ -6,7 +6,7 @@
 #' @param fm Object of class \code{mmsbm}.
 #' @param new.data.dyad An optional \code{data.frame} object. 
 #' @param new.data.monad An optional \code{data.frame} object. 
-#' @param forecast Boolean. Defaults to FALSE.
+#' @param forecast Boolean. Should prediction forcast one step into the future? Defaults to FALSE.
 #' @param type Character string. The default is to use the linear predictor of edges. The alternative
 #'     "response" returns predicted probabilities.    
 #'     
@@ -85,29 +85,27 @@ predict.mmsbm <- function(fm,
     alpha <- .pi.hat(X_m, fm$MonadCoef)
     if(forecast){
       new_kappa <- fm$Kappa[,ncol(fm$Kappa)] %*% .mpower(fm$TransitionKernel, forecast)
-      p <- .e.pi(alpha, new_kappa)
+      p <- .e.pi(lapply(alpha, function(x)prop.table(x, 2)),
+                 new_kappa)
     } else {
       if(!(tid %in% colnames(monad))){tid <- "(tid)"}
-      pind <- lapply(alpha,
-                     function(x){
-                       apply(x, 2,
-                             function(alpha){
-                               prop.table(rgamma(n_blk, alpha, 1))
-                             }
-                       )})
-      p <- .e.pi(pind, fm$Kappa[,as.character(monad[,tid])])
+      p <- .e.pi(lapply(alpha, function(x)prop.table(x, 2)),
+                 fm$Kappa[,as.character(monad[,tid])])
     }
   }
-  eta_dyad <- X_d %*% as.matrix(fm$DyadCoef)
-  s_ind <- match(dyad[,sid], monad[,nid])
-  r_ind <- match(dyad[,rid], monad[,nid])
-  z <- getZ(p[,s_ind])
-  w <- getZ(p[,r_ind])
-  for(a in 1:n_blk){ 
-    for(b in 1:n_blk){
-      eta_dyad <- eta_dyad + (z[a,]*w[b,]*fm$BlockModel[a,b])
-    }
+  
+  s_ind <- match(paste(dyad[,sid],dyad[,tid],sep="@"), 
+                 paste(monad[,nid],monad[,tid],sep="@"))
+  r_ind <- match(paste(dyad[,rid],dyad[,tid],sep="@"), 
+                 paste(monad[,nid],monad[,tid],sep="@"))
+  pi_s <- p[,s_ind]
+  pi_r <- p[,r_ind]
+  n_dyad <- nrow(X_d)
+  eta_dyad <- array(0.0, n_dyad)
+  for(i in 1:n_dyad){ 
+      eta_dyad[i] <- pi_s[,i] %*% fm$BlockModel %*% pi_r[,i]
   }
+  eta_dyad <- eta_dyad + c(X_d %*% (fm$DyadCoef))
   if(type=="link"){
     return(c(eta_dyad))
   } else {

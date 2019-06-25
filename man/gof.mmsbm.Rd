@@ -4,8 +4,8 @@
 \alias{gof.mmsbm}
 \title{Plot posterior predictive checks using structural network charactericts}
 \usage{
-\method{gof}{mmsbm}(fm, gof_stat = c("Geodesics", "3-Motifs", "Indegree",
-  "Outdegree"), level = 0.99, samples = 50, new.data.dyad = NULL,
+\method{gof}{mmsbm}(fm, gof_stat = c("Geodesics", "Degree"),
+  level = 0.95, samples = 50, new.data.dyad = NULL,
   new.data.monad = NULL, parametric_mm = FALSE)
 }
 \arguments{
@@ -30,7 +30,8 @@ The function generates a variety of plots that serve as posterior predictive che
 \details{
 Goodness of fit of network models has typically been established by evaluating how the structural characteristics of predicted networks 
 compare to those of the observed network. When estimated in a Bayesian framework, this approach is equivalent to 
-conducting posterior preditive checks on these structural quantities of interest.
+conducting posterior preditive checks on these structural quantities of interest. When \code{new.data.dyad} and/or \code{new.data.monad} are
+passed that are different from those used in estimation, this is equivalent to conducting posterior predictive checks out-of-sample.
 
 The set of structural features used to determine goodness of fit is somewhat arbitrary, and chosen mostly to incorporate various 
 first order, second order, and (to the extent possible) third-order characteristics of the network. "Geodesics" focuses on the distribution over 

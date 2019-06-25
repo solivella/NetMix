@@ -5,7 +5,7 @@ approxB <- function(y, d_id, pi_mat) {
     .Call('_NetMix_approxB', PACKAGE = 'NetMix', y, d_id, pi_mat)
 }
 
-getZ <- function(pmat) {
+.getZ <- function(pmat) {
     .Call('_NetMix_getZ', PACKAGE = 'NetMix', pmat)
 }
 

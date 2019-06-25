@@ -10,6 +10,10 @@
 #'                      or should the mixed-meberships be formed using the parameters in the monadic regression equation (\code{TRUE})?
 #'                      Defaults to \code{FALSE}. If \code{is.null(new.data.monad)=FALSE}, setting this to \code{FALSE} will produce an error.  
 #'
+#' @return If \code{new.data.dyad = NULL}, vector of length \code{nrow(fm$dyadic.data)}. Else, vector of length \code{nrow(new.data.dyad)}.
+#'
+#' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
+
 simulate.mmsbm <- function(fm, 
                            new.data.dyad = NULL,
                            new.data.monad  = NULL, 
@@ -59,10 +63,12 @@ simulate.mmsbm <- function(fm,
   } else {
     fm$DyadCoef <- c(0, fm$DyadCoef)
   }
-  s_ind <- match(dyad[,sid], monad[,nid])
-  r_ind <- match(dyad[,rid], monad[,nid])
-  t_ind <- match(dyad[,tid], monad[,tid])
+  s_ind <- match(paste(dyad[,sid],dyad[,tid],sep="@"), 
+                 paste(monad[,nid],monad[,tid],sep="@"))
+  r_ind <- match(paste(dyad[,rid],dyad[,tid],sep="@"), 
+                 paste(monad[,nid],monad[,tid],sep="@"))
   n_blk <- fm$n_blocks
+  n_dyad <- nrow(X_d)
   
   unique_t <- unique(monad[,tid])
   states <- as.matrix(sapply(unique_t,
@@ -78,7 +84,7 @@ simulate.mmsbm <- function(fm,
                        new_kappa <- last_kappa %*% .mpower(fm$TransitionKernel, steps)
                        return(rmultinom(1, 1, new_kappa))
                      }}))
-  names(states) <- unique_t
+  colnames(states) <- unique_t
   states_ind <- states[,match(monad[,tid], colnames(fm$Kappa))]
   if(parametric_mm){
     a <- .pi.hat(X_m, fm$MonadCoef)
@@ -86,7 +92,8 @@ simulate.mmsbm <- function(fm,
                    function(x){
                      apply(x, 2,
                            function(alpha){
-                             prop.table(rgamma(n_blk, alpha, 1))
+                             res <- rgamma(n_blk, alpha, 1)
+                             res/sum(res)
                            }
                      )})
     p <- .e.pi(pind, states_ind)
@@ -94,15 +101,14 @@ simulate.mmsbm <- function(fm,
     p <- fm$MixedMembership
   }
 
-  z <- getZ(p[,s_ind])
-  w <- getZ(p[,r_ind])
+  z <- .getZ(p[,s_ind])
+  w <- .getZ(p[,r_ind])
 
-  eta_dyad <- X_d %*% fm$DyadCoef
-  for(a in 1:n_blk){
-    for(b in 1:n_blk){
-      eta_dyad <- eta_dyad + (z[a,]*w[b,]*fm$BlockModel[a,b])
-    }
+  eta_dyad <- array(0.0, n_dyad) 
+  for(i in 1:n_dyad){ 
+    eta_dyad[i] <- z[,i] %*% fm$BlockModel %*% w[,i]
   }
+  eta_dyad <- eta_dyad + c(X_d %*% (fm$DyadCoef))
 
   probs <- plogis(eta_dyad)
   res <- rbinom(length(probs), 1, probs)
