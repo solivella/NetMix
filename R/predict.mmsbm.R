@@ -84,9 +84,17 @@ predict.mmsbm <- function(fm,
     }
     alpha <- .pi.hat(X_m, fm$MonadCoef)
     if(forecast){
-      new_kappa <- fm$Kappa[,ncol(fm$Kappa)] %*% .mpower(fm$TransitionKernel, forecast)
+      ts <- unique(monad[,tid])
+      new_kappa <- as.matrix(fm$Kappa[,ncol(fm$Kappa)] %*% .mpower(fm$TransitionKernel, forecast))
+      new_kappa1 <- matrix(new_kappa, nrow=ncol(new_kappa), ncol=nrow(monad[monad[,tid]==ts[1],]),byrow=FALSE)
+      if(length(ts) > 1){
+        for(t in 2:length(ts)){
+          new_kappa <- rbind(new_kappa, new_kappa[t-1,] %*% .mpower(fm$TransitionKernel, forecast))
+          new_kappa1 <- cbind(new_kappa1, matrix(new_kappa[t,], nrow=ncol(new_kappa), ncol=nrow(monad[monad[,tid]==ts[t],]),byrow=FALSE))
+        }
+      }
       p <- .e.pi(lapply(alpha, function(x)prop.table(x, 2)),
-                 matrix(new_kappa, nrow=length(new_kappa), ncol=nrow(monad),byrow=FALSE))
+                 new_kappa1)
     } else {
       if(!(tid %in% colnames(monad))){tid <- "(tid)"}
       p <- .e.pi(lapply(alpha, function(x)prop.table(x, 2)),
