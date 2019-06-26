@@ -51,6 +51,22 @@ plot.mmsbm <- function(fm, type="blockmodel", FX=NULL){ # network graph showing 
     print(p)
   }
   
+  if(type=="groups"){
+    require("igraph", quietly=TRUE)
+    mode <- ifelse(eval(fm$forms$directed), "directed", "undirected")
+    block.G <- graph.adjacency(exp(fm$BlockModel) / (1 + exp(fm$BlockModel)), mode=mode, weighted=TRUE)
+    e.weight <- E(block.G)$weight*100
+    if(any(e.weight < 0.1)){
+      e.weight <- e.weight*2
+    }
+    if(any(e.weight > 18)){
+      e.weight[e.weight > 18] <- 18}
+    v.size <- rowMeans(fm$MixedMembership)*100
+    plot(block.G, main = "Edge Formation Between Latent Groups",
+         edge.width=e.weight, vertex.size=v.size,
+         vertex.label.font=2, vertex.label.cex=1.1,
+         layout = layout_with_gem)
+  }
   
   if(type=="membership"){
     avgmems <- lapply(1:nrow(fm$MixedMembership), function(x){
