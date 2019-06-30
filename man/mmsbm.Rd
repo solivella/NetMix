@@ -6,8 +6,8 @@
 \usage{
 mmsbm(formula.dyad, formula.monad = ~1, senderID, receiverID,
   nodeID = NULL, timeID = NULL, data.dyad, data.monad = NULL,
-  n.blocks, n.hmmstates, directed = TRUE, missing = "indicator method",
-  mmsbm.control = list())
+  n.blocks, n.hmmstates = 1, directed = TRUE,
+  missing = "indicator method", mmsbm.control = list())
 }
 \arguments{
 \item{formula.dyad}{A \code{formula} object. The variable in \code{data.dyad} that contains 
@@ -55,9 +55,10 @@ to 1 (i.e. no HMM).}
 \item{mmsbm.control}{A named list of optional algorithm control parameters.
 \describe{
    \item{spectral}{Boolean. Type of initialization algorithm for mixed-membership vectors in static case. If \code{TRUE} (default),
-               use spectral clustering with degree correction; otherwise, use kmeans algorithm}
+               use spectral clustering with degree correction; otherwise, use kmeans algorithm.}
    \item{init.dyn.gibbs}{Boolean. Should a collapsed Gibbs sampler of non-regression mmsbm be used to initialize
-               each time period? Setting to \code{TRUE} will be result in faster estimation that is very sensitive to
+               each time period when multiple time periods are observed (instead of a spectral or simple kmeans initialization)?
+               Setting to \code{TRUE} will be result in faster estimation that is very sensitive to
                choice of alpha (see below)}            
    \item{alpha}{Numeric positive value. Concentration parameter for collapsed Gibbs sampler to find initial
                 mixed-membership values in dynamic case when \code{init.dyn.gibbs=TRUE}. Defaults to 0.5}            
@@ -102,7 +103,9 @@ Object of class \code{mmsbm}. List with named components:
       \item{LowerBound}{Value of the lower bound at final iteration}
       \item{niter}{Final number of VI iterations}
       \item{NodeIndex}{Order in which nodes are stored in all return objects.}
-      \item{monadic.data, dyadic.data, n_states, n_blocks, directed}{Original values of parameters used during estimation}
+      \item{monadic.data, dyadic.data, directed}{Original values of parameters used during estimation}
+      \item{forms}{Values of formal arguments passed in original function call}
+      \item{call}{Original (unevaluated) call}
     }
 }
 \description{
@@ -110,39 +113,22 @@ The function estimates a dynamic mixed-membership stochastic
 blockmodel that incorporates covariates.
 }
 \examples{
-#########################
-## Example: MID network
-## during the Cold War
-#########################
-
 library(NetMix)
-
-data(MID_monad_CW)
-data(MID_dyad_CW)
-
-
-## Estimate model (takes about 5 minutes)
-system.time(fit_onset <- mmsbm(formula.dyad = mid_onset ~ hially + dist + 
-                                 peaceyrs + spline1 + spline2 + spline3,
-                               formula.monad =  ~ polity + logcinc,
-                               data.dyad = MID_dyad_CW, data.monad = MID_monad_CW,
-                               senderID = "country1", receiverID = "country2", 
-                               nodeID = "country", 
-                               timeID = "year",
-                               n.groups = 3, 
-                               n.hmmstates = 2,
-                               directed = FALSE,
-                               mmsbm.control = list(em_iter = 3000)))
-
-## Summarize model
-summary(fit_onset) 
-
-## Plot blockmodel
-plot(fit_onset)
-
-
-
-
+## Load datasets
+data("lazega_dyadic")
+data("lazega_monadic")
+## Estimate model with 3 groups
+set.seed(123)
+lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
+                      ~  School + Practice + Status,
+                      senderID = "Lawyer1",
+                      receiverID = "Lawyer2",
+                      nodeID = "Lawyer",
+                      data.dyad = lazega_dyadic,
+                      data.monad = lazega_monadic,
+                      n.blocks = 3)
+## Summarize object
+summary(lazega_mmsbm)
 
 }
 \author{

@@ -4,11 +4,16 @@
 \alias{simulate.mmsbm}
 \title{Simulate a complete sociomatrix from an \code{mmsbm} object}
 \usage{
-\method{simulate}{mmsbm}(fm, new.data.dyad = NULL,
-  new.data.monad = NULL, parametric_mm = FALSE)
+\method{simulate}{mmsbm}(object, nsim = 1, seed = NULL,
+  new.data.dyad = NULL, new.data.monad = NULL, parametric_mm = FALSE,
+  ...)
 }
 \arguments{
-\item{fm}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.}
+\item{object}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}}
+
+\item{nsim}{Number of networks to simulate}
+
+\item{seed}{RNG seed.}
 
 \item{new.data.dyad}{An optional \code{data.frame} object. If not \code{NULL}, use these 
 dyadic predictor values instead of those used to fit the original model.}
@@ -18,7 +23,18 @@ dyadic predictor values instead of those used to fit the original model.}
 \item{parametric_mm}{Boolean. Should the variational posterior be used for sampling the mixed-memberships (\code{FALSE}), 
 or should the mixed-meberships be formed using the parameters in the monadic regression equation (\code{TRUE})?
 Defaults to \code{FALSE}. If \code{is.null(new.data.monad)=FALSE}, setting this to \code{FALSE} will produce an error.}
+
+\item{...}{Currently ignored}
+}
+\value{
+List of length \code{nsim} of simulated networks. 
+        If \code{new.data.dyad = NULL}, each element is a vector of length \code{nrow(object$dyadic.data)}. 
+        Else, vector of length \code{nrow(new.data.dyad)}. If \code{seed} is not NULL, return object
+        includes its value as attribute "seed". .
 }
 \description{
 The function generates one sample network from the posterior predictive of the model represented by a fitted \code{mmsbm} object.
+}
+\author{
+Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)
 }

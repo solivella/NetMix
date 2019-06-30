@@ -83,11 +83,29 @@
 #'       \item{LowerBound}{Value of the lower bound at final iteration}
 #'       \item{niter}{Final number of VI iterations}
 #'       \item{NodeIndex}{Order in which nodes are stored in all return objects.}
-#'       \item{monadic.data, dyadic.data, n_states, n_blocks, directed}{Original values of parameters used during estimation}
+#'       \item{monadic.data, dyadic.data, directed}{Original values of parameters used during estimation}
+#'       \item{forms}{Values of formal arguments passed in original function call}
+#'       \item{call}{Original (unevaluated) call}
 #'     }
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
-#' @example tests/Examples/MIDColdWar.R
+#' @examples 
+#' library(NetMix)
+#' ## Load datasets
+#' data("lazega_dyadic")
+#' data("lazega_monadic")
+#' ## Estimate model with 3 groups
+#' set.seed(123)
+#' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
+#'                       ~  School + Practice + Status,
+#'                       senderID = "Lawyer1",
+#'                       receiverID = "Lawyer2",
+#'                       nodeID = "Lawyer",
+#'                       data.dyad = lazega_dyadic,
+#'                       data.monad = lazega_monadic,
+#'                       n.blocks = 3)
+#' ## Summarize object
+#' summary(lazega_mmsbm)
 #' 
 
 mmsbm <- function(formula.dyad,
@@ -99,7 +117,7 @@ mmsbm <- function(formula.dyad,
                   data.dyad,
                   data.monad = NULL,
                   n.blocks,
-                  n.hmmstates,
+                  n.hmmstates = 1,
                   directed = TRUE,
                   missing="indicator method",
                   mmsbm.control = list()){
@@ -471,11 +489,8 @@ mmsbm <- function(formula.dyad,
     stop("Singular design matrix; check dyadic predictors.")
   }
   
-  
-  
-  
   if(is.null(ctrl$b_init_t)){
-    ctrl$b_init_t <- qlogis(approxB(Y, nt_id, ctrl$phi_init_t))
+    ctrl$b_init_t <- qlogis(.approxB(Y, nt_id, ctrl$phi_init_t))
     if(any(is.infinite(ctrl$b_init_t))){
       which.inf <- which(is.infinite(ctrl$b_init_t))
       ctrl$b_init_t[which.inf] <- ifelse(ctrl$b_init_t[which.inf] > 0, 25, -25) 
@@ -495,7 +510,7 @@ mmsbm <- function(formula.dyad,
     stop("Nearly singular design matrix; check monadic predictors.")
   }
   ## Estimate model
-  fit <- mmsbm_fit(t(Z),
+  fit <- .mmsbm_fit(t(Z),
                    t(X),
                    Y,
                    t_id_d,

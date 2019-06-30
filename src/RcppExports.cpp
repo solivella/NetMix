@@ -19,13 +19,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // getZ
-Rcpp::IntegerMatrix getZ(Rcpp::NumericMatrix pmat);
-RcppExport SEXP _NetMix_getZ(SEXP pmatSEXP) {
+Rcpp::IntegerMatrix getZ(Rcpp::NumericMatrix pi_mat);
+RcppExport SEXP _NetMix_getZ(SEXP pi_matSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type pmat(pmatSEXP);
-    rcpp_result_gen = Rcpp::wrap(getZ(pmat));
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type pi_mat(pi_matSEXP);
+    rcpp_result_gen = Rcpp::wrap(getZ(pi_mat));
     return rcpp_result_gen;
 END_RCPP
 }

@@ -1,12 +1,13 @@
-#' Parametric bootstrap for the dynamic mixed-membership SBM
+#' Parametric bootstrap for dynMMSBM
 #'
 #' The function performs a parametric bootstrap procedure on \code{mmsbm} models.
 #'
 #' @param fm An object of class \code{mmsbm}, a result of a call to \code{mmsbm}. 
-#' @param iter number of bootstrap iterations
-#' @param level signficance level for bootstrap confidence intervals
-#' @param full_obj logical; return full \code{mmsbm} objects, or bootstrapped CI for regression coefficients?
-#' @param parallel logical; indicates whether the bootstrap iterations should be run in parallel
+#' @param iter number of bootstrap iterations. Defaults to 50
+#' @param level signficance level for bootstrap confidence intervals. Defaults to 0.9
+#' @param full_obj logical; return full \code{mmsbm} objects, or bootstrapped CI for regression coefficients? Defaults to \code{FALSE}
+#' @param parallel logical; indicates whether the bootstrap iterations should be run in parallel. Defaults to \code{TRUE}
+#' @param n.cores int; if parallel, how many cores? Defaults to 2.
 #'
 #'     
 #' @return If \code{full_obj=TRUE}, list of length \code{iter}. Each entry contains an object of class \code{mmsbm}. If \code{full_obj=FALSE}, a named list:
@@ -16,10 +17,14 @@
 #'       \item{DyadCoef}{Array with as many rows as there are dyadic predictors,
 #'       and two columns (an upper and lower bound for the corresponding CI)}
 #'     }
+#'     
+#' 
+#' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
+#' 
 #' 
 
 
-boot.mmsbm <- function(fm, iter, level = 0.9, full_obj = FALSE, parallel = TRUE){ 
+boot_mmsbm <- function(fm, iter = 50, level = 0.9, full_obj = FALSE, parallel = TRUE, n.cores = 2){ 
   BootResClass <- function(monadic=NULL,dyadic=NULL){
     me <- list(monadic = monadic,
                dyadic = dyadic)
@@ -28,17 +33,14 @@ boot.mmsbm <- function(fm, iter, level = 0.9, full_obj = FALSE, parallel = TRUE)
   }
   
   ctrl_tmp <- fm$forms$mmsbm.control
-  ctrl_tmp$threads <- 1
   ctrl_tmp$verbose <- FALSE
   
   result <- vector("list", iter) 
-  require(foreach)
-  `%our_do%` <- if (parallel) `%dopar%` else `%do%`
+  `%our_do%` <- if (parallel) foreach::`%dopar%` else foreach::`%do%`
   if(parallel){
-    require(doParallel)
-    registerDoParallel()
+    doParallel::registerDoParallel(cores=n.cores)
   }
-  sims <- replicate(iter, simulate(fm))
+  sims <- simulate(fm, iter)
   dyad.formula <- update.formula(fm$forms$formula.dyad, Y~.)
   monad.formula <- fm$forms$formula.monad
   dyad.data <- fm$dyadic.data
@@ -46,9 +48,9 @@ boot.mmsbm <- function(fm, iter, level = 0.9, full_obj = FALSE, parallel = TRUE)
   nb <- fm$n_blocks
   ns <- fm$n_states
   direct <- fm$directed
-  boot.res <- foreach(i = 1:iter, .packages="NetMix") %our_do% {
+  boot.res <- foreach::foreach(i = 1:iter, .packages="NetMix") %our_do% {
     new_dyad <- dyad.data
-    new_dyad$Y <- sims[,i]
+    new_dyad$Y <- sims[[i]]
     fit <- mmsbm(formula.dyad = dyad.formula,
                  formula.monad = monad.formula,
                  senderID = "(sid)", receiverID = "(rid)",

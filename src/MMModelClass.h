@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <Rcpp.h>
-#include "HelperFuns.hpp"
+#include "AuxFuns.h"
 
 #ifdef _OPENMP
 #include <omp.h>

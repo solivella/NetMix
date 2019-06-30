@@ -1,4 +1,35 @@
-#include "MMModelClass.hpp"
+//' @name mmsbm_fit
+//' @title Fitter Function for dynamic MMSBM Model
+//' 
+//' @description This is the interface to the C++ fitter for the dynamic mixed-membership
+//' stochastic blockmodel for network regression.
+//' 
+//' @param z_t Numeric matrix; transpose of monadic design matrix. Should not include intercept row.
+//' @param x_t Numeric matrix; transpose of dyadic design matrix.
+//' @param y Numeric vector; vector of edge values. Must have same number of elements as \code{ncol(x_t)}
+//' @param time_id_dyad Integer vector; zero-based time-period identifier for each dyad.
+//' @param time_id_dyad Integer vector; zero-based time-period identifier for each node.
+//' @param nodes_per_period Integer vector; total number of unique nodes observed in each time period.
+//' @param node_id_dyad Integer matrix; zero-based sender and receiver identifier per dyad.
+//' @param mu_b Numeric matrix; matrix of prior means for elements in blockmodel matrix.
+//' @param var_b Numeric matrix; matrix of prior variances for elements in blockmodel matrix.
+//' @param phi_init Numeric matrix; matrix of initial mixed-memberships. Nodes along columns.
+//' @param kappa_init_t Numeric matrix; matrix of initial marginal HMM state probabilities. Time-periods along columns.
+//' @param b_init_t Numeric matrix; square matrix of initial values of blockmodel.
+//' @param beta_init Numeric vector; flat array (column-major order) of initial values of monadic coefficients.
+//' @param gamma_init Numeric vector; vector of initial values of dyadic coefficients
+//' @param control List; see the \code{mmsbm.control} argument of \code{\link{mmsbm}}
+//' 
+//' @return Unclassed list with named components; see \code{Value} of \code{\link{mmsbm}}
+//' @section Warning:
+//'          This function is for internal use only. End-users should always resort to \code{\link{mmsbm}}.
+//'          In particular, that interface post-processes the return value of this internal in important ways. 
+//'          
+//' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
+
+
+
+#include "MMModelClass.h"
 
 using Rcpp::NumericMatrix;
 using Rcpp::NumericVector;
@@ -9,7 +40,7 @@ using Rcpp::checkUserInterrupt;
 using Rcpp::as;
 
 
-// [[Rcpp::export]]
+// [[Rcpp::export(.mmsbm_fit)]]
 List mmsbm_fit(const NumericMatrix& z_t,
                const NumericMatrix& x_t,
                const IntegerVector& y,

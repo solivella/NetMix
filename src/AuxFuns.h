@@ -56,18 +56,6 @@ private:
   std::vector<T> data;
 };
 
-Rcpp::NumericMatrix approxB(Rcpp::NumericVector y,
-                            Rcpp::IntegerMatrix d_id,
-                            Rcpp::NumericMatrix pi_mat);
-
-Rcpp::IntegerMatrix getZ(Rcpp::NumericMatrix pmat);
-
-// Coming from Abramowitz and Stegun 6.4.13 and 6.4.6
-double tetragamma(double);
-// Coming from Blei's lda implementation in C (github.com/blei-lab/lda-c)
-double trigamma(double);
-// double digamma(double x);
-
 double logSumExp(const std::vector<double>& invec);
 
 typedef double optimfn(int, double*, void*);

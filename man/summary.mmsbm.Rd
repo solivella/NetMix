@@ -2,12 +2,14 @@
 % Please edit documentation in R/summary.mmsbm.R
 \name{summary.mmsbm}
 \alias{summary.mmsbm}
-\title{Summarize fitted dynMMSBM}
+\title{Summarize 'mmsbm' object}
 \usage{
-\method{summary}{mmsbm}(fm)
+\method{summary}{mmsbm}(object, ...)
 }
 \arguments{
-\item{fm}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.}
+\item{object}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.}
+
+\item{...}{Currently ignored}
 }
 \value{
 List with named components:
@@ -24,4 +26,7 @@ List with named components:
 }
 \description{
 The function summarizes the output of a dynMMSBM model object
+}
+\author{
+Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)
 }

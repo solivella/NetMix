@@ -4,24 +4,30 @@
 \alias{predict.mmsbm}
 \title{Predict edges based on estimated mmsbm model}
 \usage{
-\method{predict}{mmsbm}(fm, new.data.dyad = NULL,
+\method{predict}{mmsbm}(object, new.data.dyad = NULL,
   new.data.monad = NULL, parametric_mm = FALSE, forecast = FALSE,
-  type = c("link", "response"))
+  type = c("link", "response"), ...)
 }
 \arguments{
-\item{fm}{Object of class \code{mmsbm}.}
+\item{object}{Object of class \code{mmsbm}.}
 
 \item{new.data.dyad}{An optional \code{data.frame} object.}
 
 \item{new.data.monad}{An optional \code{data.frame} object.}
 
-\item{forecast}{Boolean. Defaults to FALSE.}
+\item{parametric_mm}{oolean. Should the variational posterior be used for sampling the mixed-memberships (\code{FALSE}), 
+or should the mixed-meberships be formed using the parameters in the monadic regression equation (\code{TRUE})?
+Defaults to \code{FALSE}. If \code{(new.data.monad | forcast) = TRUE}, setting this to \code{FALSE} will produce an error.}
+
+\item{forecast}{Boolean. Should prediction forcast one step into the future? Defaults to FALSE.}
 
 \item{type}{Character string. The default is to use the linear predictor of edges. The alternative
 "response" returns predicted probabilities.}
+
+\item{...}{Currently ignored}
 }
 \value{
-If \code{new.data.dyad = NULL}, vector of length \code{nrow(fm$dyadic.data)}. Else, vector of length \code{nrow(new.data.dyad)}.
+If \code{new.data.dyad = NULL}, vector of length \code{nrow(object$dyadic.data)}. Else, vector of length \code{nrow(new.data.dyad)}.
 }
 \description{
 The function produces expected posterior edges based  

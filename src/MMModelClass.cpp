@@ -1,4 +1,4 @@
-#include "MMModelClass.hpp"
+#include "MMModelClass.h"
 
 
 using Rcpp::NumericMatrix;
@@ -173,8 +173,10 @@ double MMModel::alphaLB()
         alpha_val = alpha(g, p, m);
         alpha_row += alpha_val;
         res_int += (lgamma(alpha_val + e_c_t(g, p)) - lgamma(alpha_val));
+        
       }
       res_int += (lgamma(alpha_row) - lgamma(alpha_row + tot_nodes[p]));
+
       res += res_int * kappa_t(m, time_id_node[p]);
     }
     
@@ -224,6 +226,10 @@ void MMModel::alphaGr(int N_PAR, double *gr)
   for(int i = 0; i < N_PAR; ++i){
     gr[i] /= N_NODE;
   }
+
+
+
+  
 }
 
 

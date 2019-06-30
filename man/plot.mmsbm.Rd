@@ -2,12 +2,12 @@
 % Please edit documentation in R/plot.mmsbm.R
 \name{plot.mmsbm}
 \alias{plot.mmsbm}
-\title{Plot output of dynMMSBM}
+\title{Various visualization tools for 'mmsbm' objects}
 \usage{
-\method{plot}{mmsbm}(fm, type = "blockmodel", FX = NULL)
+\method{plot}{mmsbm}(x, type = "blockmodel", FX = NULL, ...)
 }
 \arguments{
-\item{fm}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.}
+\item{x}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.}
 
 \item{type}{character string denoting the type of plot. The default, "\code{blockmodel}," plots the estimated matrix of 
 group by group edge formation probabilities as a tile plot, with tiles proportional to group sizes.  "\code{membership}" plots average membership in
@@ -15,7 +15,15 @@ each latent group by time period. "\code{effect}" provides a series of plots sho
 of a shfit in monadic covariate values.}
 
 \item{FX}{with \code{type == "effect"}; a list resulting from a call to \code{covFX}.}
+
+\item{...}{Currently ignored}
+}
+\value{
+A plot object.
 }
 \description{
 The function provides a variety of plotting options for a fitted \code{mmsbm} object.
+}
+\author{
+Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)
 }

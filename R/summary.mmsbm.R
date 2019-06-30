@@ -1,8 +1,9 @@
-#' Summarize fitted dynMMSBM
+#' Summarize 'mmsbm' object
 #'
 #' The function summarizes the output of a dynMMSBM model object
 #'
-#' @param fm An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.
+#' @param object An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.
+#' @param ... Currently ignored
 #' @return List with named components:
 #'     \describe{
 #'       \item{N}{Total number of dyad-time period observations.}
@@ -14,13 +15,23 @@
 #'                        and \code{n.hmmstates} slices.}
 #'       \item{Markov State Probabilities}{Average HMM state probabilities across all time periods.}
 #'     }
+#'     
+#' @method summary mmsbm
+#' 
+#' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
+#' 
+#' 
 
 
-summary.mmsbm <- function(fm){
-  summ <- list(nrow(fm$dyadic.data), ncol(fm$BlockModel), 
-               rowMeans(fm$MixedMembership),
-               exp(fm$BlockModel) / (1 + exp(fm$BlockModel)), 
-               fm$DyadCoef, fm$MonadCoef, rowMeans(fm$Kappa))
+
+
+
+
+summary.mmsbm <- function(object, ...){
+  summ <- list(nrow(object$dyadic.data), ncol(object$BlockModel), 
+               rowMeans(object$MixedMembership),
+               exp(object$BlockModel) / (1 + exp(object$BlockModel)), 
+               object$DyadCoef, object$MonadCoef, rowMeans(object$Kappa))
   names(summ) <- c("N", "Number of Clusters", "Percent of Observations in Each Cluster",
                    "Edge Formation Probabilities", "Dyadic Coefficients", "Monadic Coefficients",
                    "Markov State Probabilities")

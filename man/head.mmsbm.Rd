@@ -4,23 +4,28 @@
 \alias{head.mmsbm}
 \title{Identify nodes with most frequent membership in latent groups}
 \usage{
-\method{head}{mmsbm}(fm, n = 10, t = NULL, node = TRUE,
-  t.correct = FALSE)
+\method{head}{mmsbm}(x, n = 10, t = NULL, node = TRUE,
+  t.correct = FALSE, ...)
 }
 \arguments{
-\item{fm}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.}
+\item{x}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.}
 
-\item{n}{numeric or integer; specifies how many units will be identified for each group.}
+\item{n}{Numeric or integer; specifies how many units will be identified for each group.}
 
-\item{t}{optional vector of time periods to be used for assessing latent group membership.}
+\item{t}{Optional vector of time periods to be used for assessing latent group membership.}
 
-\item{node}{logical; indicates whether latent group memberships should be averaged at the node level.  If FALSE, the function returns the node-time period units with highest estimated membership in each latent group.}
+\item{node}{Logical; indicates whether latent group memberships should be averaged at the node level.  If FALSE, the function returns the node-time period units with highest estimated membership in each latent group.}
 
-\item{t.correct}{logical; indicates whether latent group memberships should be corrected for temporal trends.  If TRUE, the function returns the node-time period units with highest estimated membership in each latent group.}
+\item{t.correct}{Logical; indicates whether latent group memberships should be corrected for temporal trends.  If TRUE, the function returns the node-time period units with highest estimated membership in each latent group.}
+
+\item{...}{Currently ignored}
 }
 \value{
 List of length \code{n.groups}.  Each entry contains a sorted vector of average latent membership probabilities of length \code{n}.
 }
 \description{
 The function lists the nodes (optionally, node-time periods) that most frequently instantiate membership in each latent group.
+}
+\author{
+Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)
 }

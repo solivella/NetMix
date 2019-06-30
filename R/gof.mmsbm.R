@@ -1,4 +1,4 @@
-#' Plot posterior predictive checks using structural network charactericts
+#' Posterior predictive checks using structural network charactericts
 #'
 #' The function generates a variety of plots that serve as posterior predictive checks on the goodness of fit of a fitted \code{mmsbm} object.
 #'
@@ -18,23 +18,33 @@
 #'  nodes.
 #'  
 #'  
-#' @param fm An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.
+#' @param x An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.
 #' @param gof_stat Character vector. Accepts any subset from "Geodesics", "3-Motifs", "Indegree", "Outdegree",
 #'                 "Dyad Shared Partners", "Edge Shared Partners", and "Incoming K-stars". See details.
 #' @param level Double. Level of credible interval for posterior predictive distribution around structural quantities of interest. 
 #' @param samples Integer. Number of sampled networks from model's posterior predictive using \code{\link{simulate.mmsbm}}.
-#' @param new.data.dyad See \code{\link{simulate.mmsbm}}.
-#' @param new.data.monad See \code{\link{simulate.mmsbm}}.
+#' @param new.data.dyad See \code{\link{simulate.mmsbm}}. Enables out-of-sample checking.
+#' @param new.data.monad See \code{\link{simulate.mmsbm}}. Enables out-of-sample checking.
 #' @param parametric_mm See \code{\link{simulate.mmsbm}}.
+#' @param ... Currently ignored
 #'
+#' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
+#' 
+#'
+gof <- function (x, ...) {
+  UseMethod("gof", x)
+}
 
-gof.mmsbm <- function(fm,
+#' @method gof mmsbm
+#' @rdname gof
+gof.mmsbm <- function(x,
                       gof_stat = c("Geodesics","Degree"),
                       level = 0.95,
                       samples = 50,
                       new.data.dyad = NULL,
                       new.data.monad  = NULL, 
-                      parametric_mm = FALSE
+                      parametric_mm = FALSE,
+                      ...
                       ){
   ## Define helper function
   gof_getter <- function(gof, nets, fm){
@@ -42,21 +52,21 @@ gof.mmsbm <- function(fm,
            "Indegree" = sapply(nets,
                              function(y){
                                igraph::degree_distribution(y,
-                                                           mode = "in")[1:(nrow(fm$monadic.data)-2)]
+                                                           mode = "in")[1:(nrow(x$monadic.data)-2)]
                              }),
            "Outdegree" = sapply(nets,
                              function(y){
                                igraph::degree_distribution(y,
-                                                           mode = "out")[1:(nrow(fm$monadic.data)-2)]
+                                                           mode = "out")[1:(nrow(x$monadic.data)-2)]
                              }),
            "Degree" = sapply(nets,
                                 function(y){
                                   igraph::degree_distribution(y,
-                                                              mode = "all")[1:(nrow(fm$monadic.data)-2)]
+                                                              mode = "all")[1:(nrow(x$monadic.data)-2)]
                                 }),
            "Geodesics" = sapply(nets,
                                function(y){
-                                 prop.table(igraph::distance_table(y, fm$directed)$res)
+                                 prop.table(igraph::distance_table(y, x$directed)$res)
                                }),
            "3-Motifs" = sapply(nets,
                             function(y){
@@ -83,23 +93,24 @@ gof.mmsbm <- function(fm,
 
   
   ## Get networks
-  el <- replicate(samples, simulate(fm, new.data.dyad,
-                                    new.data.monad, 
-                                    parametric_mm), simplify = FALSE) 
+  el <- simulate(x, samples, seed=NULL,
+                 new.data.dyad,
+                 new.data.monad, 
+                 parametric_mm)
   if(!is.null(new.data.dyad)){
-    if(is.null(fm$forms$timeID)){
+    if(is.null(x$forms$timeID)){
       tid <- "(tid)"
       new.data.dyad[,tid] <- 1
     } else {
-      tid <- fm$forms$tid
+      tid <- x$forms$tid
     }
-    var_names <- c(with(fm$forms, c(senderID, receiverID)), tid)
-    new_y <- new.data.dyad[, all.vars(net3.dmodel$forms$formula.dyad)[1]]
+    var_names <- c(with(x$forms, c(senderID, receiverID)), tid)
+    new_y <- new.data.dyad[, all.vars(x$forms$formula.dyad)[1]]
     obs_dyad <- new.data.dyad[, var_names]
     el_obs <- new.data.dyad[new_y==1, var_names]
   } else {
-    obs_dyad <- fm$dyadic.data[,c("(sid)","(rid)","(tid)")]
-    el_obs <- fm$dyadic.data[fm$Y==1,c("(sid)","(rid)", "(tid)")]
+    obs_dyad <- x$dyadic.data[,c("(sid)","(rid)","(tid)")]
+    el_obs <- x$dyadic.data[x$Y==1,c("(sid)","(rid)", "(tid)")]
   }
   ## Convert to igraph objects
   nets <- lapply(el,
@@ -109,22 +120,22 @@ gof.mmsbm <- function(fm,
                    lapply(seq.int(length(unique(x_full[,3]))),
                           function(y){
                             x_sub_y <- x_sub[x_sub[,3]==y, c(1,2)]
-                            igraph::graph_from_edgelist(as.matrix(x_sub_y), fm$directed)
+                            igraph::graph_from_edgelist(as.matrix(x_sub_y), x$directed)
                           })
                  })
   el_obs_list <- split.data.frame(el_obs, el_obs[,3])
   net_obs <- lapply(el_obs_list,
                     function(y){
-                      igraph::graph_from_edgelist(as.matrix(y[,c(1, 2)]), fm$directed)
+                      igraph::graph_from_edgelist(as.matrix(y[,c(1, 2)]), x$directed)
                     })
   
   if((length(gof_stat) == 1) && (gof_stat == "all")){
     gof_stat <- c("Geodesics","3-Motifs", "Dyad Shared Partners", "Edge Shared Partners", "Indegree","Outdegree","Degree","Incoming K-stars")
   }
-  if(fm$directed & ("Degree"%in%gof_stat)){
+  if(x$directed & ("Degree"%in%gof_stat)){
     gof_stat <- c(gof_stat,"Indegree","Outdegree")
   }
-  if(any(c("Outdegree","Indegree","3-Motifs")%in%gof_stat) & !fm$directed){
+  if(any(c("Outdegree","Indegree","3-Motifs")%in%gof_stat) & !x$directed){
     stop("Requested statistic not meaningful for undirected networks.")
   }
   if(any(c("Dyad Shared Partners", "Edge Shared Partners","Incoming K-stars")%in%gof_stat)){
@@ -132,15 +143,14 @@ gof.mmsbm <- function(fm,
   }
   
   ## Compute for simulated nets
-  sim_stats_l <- lapply(gof_stat, gof_getter, nets = unlist(nets, recursive = FALSE), fm = fm)
+  sim_stats_l <- lapply(gof_stat, gof_getter, nets = unlist(nets, recursive = FALSE), fm = x)
   alpha <- (1 - level)/2 
-  sim_stats <- mapply(function(x, y){
-                       if(is.list(x)){
-                         require(rowr)
-                         x <- do.call(cbind.fill, x)
+  sim_stats <- mapply(function(z, y){
+                       if(is.list(z)){
+                         z <- do.call(.cbind.fill, x)
                        }
-                       x[is.na(x)] <- 0  
-                       res <- as.data.frame(t(apply(x, 1, quantile, probs = c(alpha, 0.5, level + alpha), na.rm=TRUE)))
+                       z[is.na(z)] <- 0  
+                       res <- as.data.frame(t(apply(z, 1, quantile, probs = c(alpha, 0.5, level + alpha), na.rm=TRUE)))
                        names(res) <- c("LB","Est","UB")
                        res$GOF <- y
                        res$Val <- 1:nrow(res)
@@ -149,15 +159,16 @@ gof.mmsbm <- function(fm,
                       sim_stats_l, gof_stat,
                       SIMPLIFY = FALSE)
   sim_stats_full <-  do.call("rbind",sim_stats)               
-  Observed <- apply(do.call(rbind,lapply(gof_stat, gof_getter, nets = net_obs, fm = fm)),1,median)
+  Observed <- apply(do.call(rbind,lapply(gof_stat, gof_getter, nets = net_obs, fm = x)),1,median)
   Observed[is.na(Observed)] <- 0
   sim_stats_full$Observed <- Observed
 
   ## Plot results
-  ggplot2::ggplot(subset(sim_stats_full, Est > 0), aes(x=Val, y=Observed)) +
+  res_df <- sim_stats_full[sim_stats_full$Est > 0,]
+  ggplot2::ggplot(data=res_df, aes_string(x="Val", y="Observed")) +
     ggplot2::facet_wrap(~GOF, scales="free") +
-    ggplot2::geom_linerange(aes(ymin=LB, ymax=UB), col="gray60", lwd=2) +
-    ggplot2::geom_line(aes(y=Observed), lwd=1.1) +
+    ggplot2::geom_linerange(aes_string(ymin="LB", ymax="UB"), col="gray60", lwd=2) +
+    ggplot2::geom_line(aes_string(y="Observed"), lwd=1.1) +
     ggplot2::theme_bw() + 
     ggplot2::xlab("") +
     ggplot2::ylab("Density")

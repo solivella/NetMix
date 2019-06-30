@@ -1,100 +1,4 @@
-#include "HelperFuns.hpp"
-
-// [[Rcpp::export]]
-Rcpp::NumericMatrix approxB(Rcpp::NumericVector y,
-                            Rcpp::IntegerMatrix d_id,
-                            Rcpp::NumericMatrix pi_mat)
-{
-  int N_BLK = pi_mat.nrow();
-  int N_DYAD = d_id.nrow();
-  Rcpp::NumericMatrix den(N_BLK, N_BLK), num(N_BLK, N_BLK), B_t(N_BLK, N_BLK);
-  int s, r;
-  double prob_temp;
-  for(int d = 0; d < N_DYAD; ++d){
-    s = d_id(d, 0);
-    r = d_id(d, 1);
-    for(int g = 0; g < N_BLK; ++g){
-      for(int h = 0; h < N_BLK; ++h){
-        prob_temp = pi_mat(g, s) * pi_mat(h, r);
-        num(h, g) += y[d] * prob_temp;
-        den(h, g) += prob_temp;
-      }
-    }
-  }
-  std::transform(num.begin(), num.end(),
-                 den.begin(),
-                 B_t.begin(),
-                 std::divides<double>());
-  return B_t;
-}
-
-//[[Rcpp::export(.getZ)]]
-Rcpp::IntegerMatrix getZ(Rcpp::NumericMatrix pmat)
-{
-  int NROW = pmat.nrow();
-  int NCOL = pmat.ncol();
-  int mflag, bloc;
-  double u, acc;
-  Rcpp::NumericVector cprob(NROW); 
-  Rcpp::IntegerMatrix res(NROW, NCOL);
-  for(int i = 0; i < NCOL; ++i){
-    u = R::runif(0, 1);
-    acc = 0.0;
-    for(int j = 0; j < NROW; ++j){
-      acc += pmat(j, i);
-      cprob[j] = acc;
-    }
-    bloc = findInterval(&(cprob[0]), NROW, u, FALSE, FALSE, 0, &mflag);
-    res(bloc, i) = 1;
-  }
-  return(res);
-}
-
-// Coming from Abramowitz and Stegun 6.4.13 and 6.4.6
-inline double tetragamma(double x)
-{
-  x += 6;
-  double p = 1.0/(x*x);
-  p = p*(-1-p*(0.5+p*(0.16666666666667
-                        - p*(0.16666666666667
-                               + p*(0.3-p*(0.83333333333333
-                               + p*3.2904761904762))))))-1.0/(x*x*x);
-                               for(int i = 0; i<6; ++i)
-                               {
-                                 x -= 1;
-                                 p -= 2.0/(x*x*x);
-                               }
-                               return p;
-}
-
-// Coming from Blei's lda implementation in C (github.com/blei-lab/lda-c)
-inline double trigamma(double x)
-{
-  double p;
-  int i;
-  
-  x+=6;
-  p=1.0/(x*x);
-  p=(((((0.075757575757576*p-0.033333333333333)*p+0.0238095238095238)
-         *p-0.033333333333333)*p+0.166666666666667)*p+1)/x+0.5*p;
-  for (i=0; i<6 ;i++)
-  {
-    x-=1;
-    p+=1.0/(x*x);
-  }
-  return p;
-}
-
-// inline double digamma(double x)
-// {
-//   double p;
-//   x+=6;
-//   p=1.0/(x*x);
-//   p=(((0.004166666666667*p-0.003968253986254)*p+
-//       0.008333333333333)*p-0.083333333333333)*p;
-//   p+=log(x)-0.5/x-1./(x-1)-1./(x-2)-1./(x-3)-1./(x-4)-1./(x-5)-1./(x-6);
-//   return p;
-// }
+#include "AuxFuns.h"
 
 double logSumExp(const std::vector<double>& invec)
 {
@@ -109,7 +13,7 @@ double logSumExp(const std::vector<double>& invec)
 
 /*
  // Adaptation of vmmin in optim.c to
- // enable use in threaded application
+ // enable use in threaded call
  */
 void vmmin_ours(int n0, double *b, double *Fmin, optimfn fminfn, optimgr fmingr,
                 int maxit, int trace, int *mask,
