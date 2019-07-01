@@ -3,4 +3,7 @@ warnings_are_errors: true
 r:
   - release
   - devel
+os:
+  - osx
+  - linux
 cache: packages

@@ -91,8 +91,6 @@ List mmsbm_fit(const NumericMatrix& z_t,
   int iter = 0,
     EM_ITER = as<int>(control["em_iter"]),
     N_BLK = as<int>(control["blocks"]),
-    N_DYAD_PRED = z_t.nrow(),
-    N_MONAD_PRED = x_t.nrow(),
     N_STATE = as<int>(control["states"]);
   
   bool conv = false,
@@ -105,6 +103,7 @@ List mmsbm_fit(const NumericMatrix& z_t,
     Rprintf("Estimating model...\n");
   }
   oldLL = Model.cLL();
+  newLL = 0.0;
   while(iter < EM_ITER && conv == false){
     checkUserInterrupt();
     

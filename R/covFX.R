@@ -1,4 +1,4 @@
-#' Generate estimated covariate effects for fitted dynMMSBM
+#' Generate estimated covariate effects for estimated mmsbm model
 #'
 #' The function estimates the effect of a shift in monadic covariate values on the probability of edge formation in the network. 
 #'
@@ -16,6 +16,8 @@
 #'       \item{Avg. Effect by Dyad}{Vector of average effects of the covariate shift on the predicted probability of edge formation for each node dyad.}
 #'       \item{Avg. Effect Dyad-Time}{Vector of estimated effects of the covariate shift on the predicted probability of edge formation for each node dyad-time unit.}
 #'     }
+#' 
+#' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
 
 

@@ -2,7 +2,7 @@
 % Please edit documentation in R/covFX.R
 \name{covFX}
 \alias{covFX}
-\title{Generate estimated covariate effects for fitted dynMMSBM}
+\title{Generate estimated covariate effects for estimated mmsbm model}
 \usage{
 covFX(fm, cov, shift, max.val = FALSE)
 }
@@ -27,4 +27,7 @@ List with named components:
 }
 \description{
 The function estimates the effect of a shift in monadic covariate values on the probability of edge formation in the network.
+}
+\author{
+Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)
 }

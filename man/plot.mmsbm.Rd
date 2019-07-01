@@ -4,13 +4,15 @@
 \alias{plot.mmsbm}
 \title{Various visualization tools for 'mmsbm' objects}
 \usage{
-\method{plot}{mmsbm}(x, type = "blockmodel", FX = NULL, ...)
+\method{plot}{mmsbm}(x, type = "groups", FX = NULL, ...)
 }
 \arguments{
 \item{x}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.}
 
-\item{type}{character string denoting the type of plot. The default, "\code{blockmodel}," plots the estimated matrix of 
-group by group edge formation probabilities as a tile plot, with tiles proportional to group sizes.  "\code{membership}" plots average membership in
+\item{type}{character string denoting the type of plot. The default, "\code{groups}," plots the estimated matrix of 
+group by group edge formation probabilities as a network plot, with nodes representing groups (sized proportional to relative membership) 
+and edge colors encoding probability of between-group ties. "\code{blockmodel}" plots the same information,
+but using a tile plot instead of a network plot.  "\code{membership}" plots average membership in
 each latent group by time period. "\code{effect}" provides a series of plots showing the estimated effect 
 of a shfit in monadic covariate values.}
 

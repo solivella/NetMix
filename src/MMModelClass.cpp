@@ -600,38 +600,6 @@ void MMModel::updatePhi()
   }
 }
 
-/** 
- CONVERGENCE CHECKER
- */
-int MMModel::checkConvChng(NumericVector::iterator first,
-                           NumericVector::iterator last, 
-                           int caseid,
-                           double tol)
-{
-  double* target;
-  switch(caseid){
-  case 0:
-    target = &*(gamma.begin());
-    break;
-  case 1:
-    target = &*(b_t.begin());
-    break;
-  case 2:
-    target = &*(beta.begin());
-    break;
-  }
-  double diff;
-  int res = 1;
-  for(NumericVector::iterator it = first; it != last; ++it, ++target){
-    diff = fabs(*it - *target);
-    if(diff > tol) {
-      res = 0;
-      break;
-    }    
-  }
-  return res;
-}
-
 /**
  GETTER FUNCTIONS
  */
@@ -709,7 +677,7 @@ NumericMatrix MMModel::getKappa()
 NumericMatrix MMModel::getWmn()
 {
   NumericMatrix res(N_STATE, N_STATE);
-  if(N_TIME > 1 & N_STATE > 1){
+  if((N_TIME > 1) & (N_STATE > 1)){
     double row_total;
     for(int c = 0; c < N_STATE; ++c){
       row_total = 0.0;
