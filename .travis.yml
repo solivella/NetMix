@@ -4,6 +4,5 @@ r:
   - release
   - devel
 os:
-  - osx
   - linux
 cache: packages
