@@ -5,7 +5,7 @@
 \title{Parametric bootstrap for dynMMSBM}
 \usage{
 boot_mmsbm(fm, iter = 50, level = 0.9, full_obj = FALSE,
-  parallel = TRUE, n.cores = 2)
+  parallel = FALSE, n.cores = 2)
 }
 \arguments{
 \item{fm}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.}
@@ -16,7 +16,8 @@ boot_mmsbm(fm, iter = 50, level = 0.9, full_obj = FALSE,
 
 \item{full_obj}{logical; return full \code{mmsbm} objects, or bootstrapped CI for regression coefficients? Defaults to \code{FALSE}}
 
-\item{parallel}{logical; indicates whether the bootstrap iterations should be run in parallel. Defaults to \code{TRUE}}
+\item{parallel}{logical; indicates whether the bootstrap iterations should be run in parallel. Requires \code{doParallel} and \code{foreach} 
+packages Defaults to \code{FALSE}}
 
 \item{n.cores}{int; if parallel, how many cores? Defaults to 2.}
 }

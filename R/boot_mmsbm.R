@@ -6,7 +6,8 @@
 #' @param iter number of bootstrap iterations. Defaults to 50
 #' @param level signficance level for bootstrap confidence intervals. Defaults to 0.9
 #' @param full_obj logical; return full \code{mmsbm} objects, or bootstrapped CI for regression coefficients? Defaults to \code{FALSE}
-#' @param parallel logical; indicates whether the bootstrap iterations should be run in parallel. Defaults to \code{TRUE}
+#' @param parallel logical; indicates whether the bootstrap iterations should be run in parallel. Requires \code{doParallel} and \code{foreach} 
+#'                 packages Defaults to \code{FALSE}
 #' @param n.cores int; if parallel, how many cores? Defaults to 2.
 #'
 #'     
@@ -24,12 +25,19 @@
 #' 
 
 
-boot_mmsbm <- function(fm, iter = 50, level = 0.9, full_obj = FALSE, parallel = TRUE, n.cores = 2){ 
+boot_mmsbm <- function(fm, iter = 50, level = 0.9, full_obj = FALSE, parallel = FALSE, n.cores = 2){ 
   BootResClass <- function(monadic=NULL,dyadic=NULL){
     me <- list(monadic = monadic,
                dyadic = dyadic)
     class(me) <- append(class(me),"multiResultClass")
     return(me)
+  }
+  
+  if(parallel){
+    if (!(requireNamespace("doParallel", quietly = TRUE) & requireNamespace("foreach", quietly = TRUE))) {
+      stop("Packages \"foreach\" and \"doParallel\" needed to compute bootstrap in parallel. Please install them.",
+           call. = FALSE)
+    }
   }
   
   ctrl_tmp <- fm$forms$mmsbm.control

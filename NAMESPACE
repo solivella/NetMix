@@ -2,7 +2,6 @@ useDynLib(NetMix)
 exportPattern("^[[:alpha:]]+")
 importFrom("graphics", "hist", "layout", "legend", "lines", "par", "plot", "points",
              "rasterImage", "title", "text")
-importFrom("ggplot2", "aes_string", "element_text", "guide_legend", "theme_bw")
 importFrom("grDevices", "as.raster", "colorRamp", "rgb")
 importFrom("methods", "as", "formalArgs")
 importFrom("Rcpp", "evalCpp")

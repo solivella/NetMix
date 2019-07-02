@@ -22,6 +22,12 @@
 
 
 plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing B-matrix
+  if(type %in% c("blockmodel", "membership", "hmm")){
+    if (!requireNamespace("ggplot2", quietly = TRUE)) {
+      stop("Package \"ggplot2\" needed to produce requested plot. Please install it.",
+           call. = FALSE)
+    }
+  }
   if(type=="blockmodel"){
     mode <- ifelse(eval(x$forms$directed), "directed", "undirected")
     v.size <- rowMeans(x$MixedMembership)
@@ -41,12 +47,13 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     
     dm$Sender  <- factor(dm$Sender, levels=rev(rownames(x$BlockModel)))
     
-    ggplot2::ggplot(aes_string(y = "Sender", x ="Receiver", fill="Val", width="Width", height="Height"),
+    return(ggplot2::ggplot(ggplot2::aes_string(y = "Sender", x ="Receiver", 
+                                               fill="Val", width="Width", height="Height"),
                     data = dm) + 
-      ggplot2::geom_tile(color = "white") + theme_bw()+
+      ggplot2::geom_tile(color = "white") + ggplot2::theme_bw()+
       ggplot2::scale_size(guide='none') +
       ggplot2::scale_fill_gradient2(low = "#deebf7", mid = "#9ecae1", high = "#3182bd",
-                           midpoint = 0.5, limit = c(0,1), name="Edge\nProbability")
+                           midpoint = 0.5, limit = c(0,1), name="Edge\nProbability"))
   }
   
   if(type=="groups"){
@@ -83,10 +90,10 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     avgmems$Group <- factor(avgmems$Group, levels=length(unique(avgmems$Group)):1)
     if(class(avgmems$Avg.Membership) == "factor"){avgmems$Avg.Membership <- as.numeric(as.character(avgmems$Avg.Membership))}
     if(class(avgmems$Time) == "factor"){avgmems$Time <- as.numeric(as.character(avgmems$Time))}
-    ggplot2::ggplot() + 
-      ggplot2::geom_area(aes_string(y = "Avg.Membership", x = "Time", fill="Group"), data = avgmems,
+    return(ggplot2::ggplot() + 
+      ggplot2::geom_area(ggplot2::aes_string(y = "Avg.Membership", x = "Time", fill="Group"), data = avgmems,
                 stat="identity", position="stack") + 
-      ggplot2::guides(fill=guide_legend(title="Group"))
+      ggplot2::guides(fill=ggplot2::guide_legend(title="Group")))
   }
   
   if(type=="effect"){
@@ -116,10 +123,10 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
       })))
     colnames(hms) <- c("Time", "Kappa", "State")
     hms$State <- as.factor(hms$State)
-    ggplot2::ggplot() + 
-      ggplot2::geom_area(aes_string(y = "Kappa", x = "Time", fill="State"), data = hms,
+    return(ggplot2::ggplot() + 
+      ggplot2::geom_area(ggplot2::aes_string(y = "Kappa", x = "Time", fill="State"), data = hms,
                 stat="identity", position="stack") + 
-      ggplot2::guides(fill=guide_legend(title="HMM State"))
+      ggplot2::guides(fill=ggplot2::guide_legend(title="HMM State")))
   }
 }
 

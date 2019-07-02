@@ -46,6 +46,29 @@ gof.mmsbm <- function(x,
                       parametric_mm = FALSE,
                       ...
                       ){
+  if (!requireNamespace("ggplot2", quietly = TRUE)) {
+    stop("Package \"ggplot2\" needed to produce plot of GOF statistics. Please install it.",
+         call. = FALSE)
+  }
+  
+  if((length(gof_stat) == 1) && (gof_stat == "all")){
+    gof_stat <- c("Geodesics","3-Motifs", "Dyad Shared Partners", "Edge Shared Partners", "Indegree","Outdegree","Degree","Incoming K-stars")
+  }
+  if(x$directed & ("Degree"%in%gof_stat)){
+    gof_stat <- c(gof_stat,"Indegree","Outdegree")
+  }
+  if(any(c("Outdegree","Indegree","3-Motifs")%in%gof_stat) & !x$directed){
+    stop("Requested statistic not meaningful for undirected networks.")
+  }
+  if(any(c("Dyad Shared Partners", "Edge Shared Partners","Incoming K-stars")%in%gof_stat)){
+    if (!(requireNamespace("ergm", quietly = TRUE) & requireNamespace("network", quietly = TRUE))) {
+      stop("Packages \"ergm\" and \"network\" needed to compute requested statistics. Please install them.",
+           call. = FALSE)
+    } else {
+      cat("Resorting to third-party package \"ergm\"; expect substantial increase in computation time.\n")
+    }
+  }
+  
   ## Define helper function
   gof_getter <- function(gof, nets, fm){
     switch(gof,
@@ -129,19 +152,6 @@ gof.mmsbm <- function(x,
                       igraph::graph_from_edgelist(as.matrix(y[,c(1, 2)]), x$directed)
                     })
   
-  if((length(gof_stat) == 1) && (gof_stat == "all")){
-    gof_stat <- c("Geodesics","3-Motifs", "Dyad Shared Partners", "Edge Shared Partners", "Indegree","Outdegree","Degree","Incoming K-stars")
-  }
-  if(x$directed & ("Degree"%in%gof_stat)){
-    gof_stat <- c(gof_stat,"Indegree","Outdegree")
-  }
-  if(any(c("Outdegree","Indegree","3-Motifs")%in%gof_stat) & !x$directed){
-    stop("Requested statistic not meaningful for undirected networks.")
-  }
-  if(any(c("Dyad Shared Partners", "Edge Shared Partners","Incoming K-stars")%in%gof_stat)){
-    cat("Resorting to third-party package `ergm'; expect substantial increase in computation time.\n")
-  }
-  
   ## Compute for simulated nets
   sim_stats_l <- lapply(gof_stat, gof_getter, nets = unlist(nets, recursive = FALSE), fm = x)
   alpha <- (1 - level)/2 
@@ -165,7 +175,7 @@ gof.mmsbm <- function(x,
 
   ## Plot results
   res_df <- sim_stats_full[sim_stats_full$Est > 0,]
-  ggplot2::ggplot(data=res_df, aes_string(x="Val", y="Observed")) +
+  ggplot2::ggplot(data=res_df, ggplot2::aes_string(x="Val", y="Observed")) +
     ggplot2::facet_wrap(~GOF, scales="free") +
     ggplot2::geom_linerange(aes_string(ymin="LB", ymax="UB"), col="gray60", lwd=2) +
     ggplot2::geom_line(aes_string(y="Observed"), lwd=1.1) +
