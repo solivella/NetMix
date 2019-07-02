@@ -177,8 +177,8 @@ gof.mmsbm <- function(x,
   res_df <- sim_stats_full[sim_stats_full$Est > 0,]
   ggplot2::ggplot(data=res_df, ggplot2::aes_string(x="Val", y="Observed")) +
     ggplot2::facet_wrap(~GOF, scales="free") +
-    ggplot2::geom_linerange(aes_string(ymin="LB", ymax="UB"), col="gray60", lwd=2) +
-    ggplot2::geom_line(aes_string(y="Observed"), lwd=1.1) +
+    ggplot2::geom_linerange(ggplot2::aes_string(ymin="LB", ymax="UB"), col="gray60", lwd=2) +
+    ggplot2::geom_line(ggplot2::aes_string(y="Observed"), lwd=1.1) +
     ggplot2::theme_bw() + 
     ggplot2::xlab("") +
     ggplot2::ylab("Density")
