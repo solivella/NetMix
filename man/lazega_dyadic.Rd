@@ -7,16 +7,15 @@
 \format{A data frame with 5041 rows and 4 variables:
 \describe{
   \item{Lawyer1, Lawyer2}{lawyer ID, corresponding to identifiers common
-         to those in \code{lazega-monadic}; numeric}
+         to those in \code{lazega_monadic}; numeric}
   \item{SocializeWith}{value of edge in network; binary}
   \item{Coworkers}{are the corresponding lawyers in the same office? boolean}
-  ...
 }}
 \source{
 \url{https://github.com/Z-co/networkdata/blob/master/networkdata/data/lazega.rda}
 }
 \usage{
-lazega_dyadic
+data(lazega_dyadic)
 }
 \description{
 A dataset containing edges and dyad-level predictors in the network
