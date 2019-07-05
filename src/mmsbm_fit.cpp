@@ -1,4 +1,4 @@
-//' @name mmsbm_fit
+//' @name .mmsbm_fit
 //' @title Fitter Function for dynamic MMSBM Model
 //' 
 //' @description This is the interface to the C++ fitter for the dynamic mixed-membership
@@ -63,109 +63,111 @@ List mmsbm_fit(const NumericMatrix& z_t,
   int requested = as<int>(control["threads"]);
 #ifdef _OPENMP
 {
-    omp_set_num_threads(requested);
-    N_THREADS = requested;
+  omp_set_num_threads(requested);
+  N_THREADS = requested;
 }    
 #endif
-  
-  //Create model instance
-  MMModel Model(z_t,
-                x_t,
-                y,
-                N_THREADS,
-                time_id_dyad,
-                time_id_node,
-                nodes_per_period,
-                node_id_dyad,
-                mu_b,
-                var_b,
-                phi_init,
-                kappa_init_t,
-                b_init_t,
-                beta_init,
-                gamma_init,
-                control
-  );
-  
-  // VARIATIONAL EM
-  int iter = 0,
-    EM_ITER = as<int>(control["em_iter"]),
-    N_BLK = as<int>(control["blocks"]),
-    N_STATE = as<int>(control["states"]);
-  
-  bool conv = false,
-    verbose = as<bool>(control["verbose"]);
-  
-  double newLL, oldLL,
+
+//Create model instance
+MMModel Model(z_t,
+              x_t,
+              y,
+              N_THREADS,
+              time_id_dyad,
+              time_id_node,
+              nodes_per_period,
+              node_id_dyad,
+              mu_b,
+              var_b,
+              phi_init,
+              kappa_init_t,
+              b_init_t,
+              beta_init,
+              gamma_init,
+              control
+);
+
+// VARIATIONAL EM
+int iter = 0,
+  EM_ITER = as<int>(control["em_iter"]),
+  N_BLK = as<int>(control["blocks"]),
+  N_STATE = as<int>(control["states"]);
+
+bool conv = false,
+  verbose = as<bool>(control["verbose"]);
+
+double newLL, oldLL,
   tol = as<double>(control["conv_tol"]);
 
+if(verbose){
+  Rprintf("Estimating model...\n");
+}
+oldLL = Model.cLL();
+newLL = 0.0;
+while(iter < EM_ITER && conv == false){
+  checkUserInterrupt();
+  
+  // E-STEP
+  Model.updatePhi();
+  
+  
+  if(N_STATE > 1){
+    Model.updateKappa();
+  }
+  
+  
+  
+  //M-STEP
+  Model.optim_ours(true); //optimize alphaLB
+  
+  Model.optim_ours(false); //optimize thetaLB
+  
+  
+  
+  
+  //Check convergence
+  newLL = Model.cLL();
+  
+  if(fabs((newLL-oldLL)/oldLL) < tol){
+    conv = true;
+  } else {
+    oldLL = newLL;
+  }
   if(verbose){
-    Rprintf("Estimating model...\n");
-  }
-  oldLL = Model.cLL();
-  newLL = 0.0;
-  while(iter < EM_ITER && conv == false){
-    checkUserInterrupt();
-    
-    // E-STEP
-    Model.updatePhi();
-    
-    
-    if(N_STATE > 1){
-      Model.updateKappa();
+    if((iter+1) % 25 == 0) {
+      Rprintf("LB %i: %f\n", iter + 1, -newLL);
     }
-    
-    
-    
-    //M-STEP
-    Model.optim_ours(true); //optimize alphaLB
-
-    Model.optim_ours(false); //optimize thetaLB
-
-    
-    
-    
-    //Check convergence
-    newLL = Model.cLL();
-    
-    if(fabs((newLL-oldLL)/oldLL) < tol){
-      conv = true;
-    } else {
-      oldLL = newLL;
-    }
-    if(verbose)
-      if((iter+1) % 25 == 0)
-        Rprintf("LB %i: %f\n", iter + 1, -newLL);
-      
-      ++iter;
   }
-  if((conv == false) & verbose)
-    Rprintf("Warning: model did not converge after %i iterations.\n", iter);
-  else if (verbose)
-    Rprintf("done after %i iterations.\n", iter);
-  
-  
-  //Form return objects
-  NumericMatrix phi_res = Model.getC();
-  NumericMatrix A = Model.getWmn();
-  NumericMatrix kappa_res = Model.getKappa();
-  NumericMatrix B = Model.getB();
-  NumericVector gamma_res = Model.getGamma();
-  List beta_res = Model.getBeta();
-  
-  
-  List res;
-  res["MixedMembership"] = phi_res;
-  res["BlockModel"] = B;
-  res["DyadCoef"] = gamma_res;
-  res["TransitionKernel"] = A;
-  res["MonadCoef"] = beta_res;
-  res["Kappa"] = kappa_res;
-  res["n_states"] = N_STATE;
-  res["n_blocks"] = N_BLK;
-  res["LowerBound"] = newLL;
-  res["niter"] = iter;
-  
-  
-  return res;
+    
+  ++iter;
+}
+if((conv == false) & verbose)
+  Rprintf("Warning: model did not converge after %i iterations.\n", iter);
+else if (verbose)
+  Rprintf("done after %i iterations.\n", iter);
+
+
+//Form return objects
+NumericMatrix phi_res = Model.getC();
+NumericMatrix A = Model.getWmn();
+NumericMatrix kappa_res = Model.getKappa();
+NumericMatrix B = Model.getB();
+NumericVector gamma_res = Model.getGamma();
+List beta_res = Model.getBeta();
+
+
+List res;
+res["MixedMembership"] = phi_res;
+res["BlockModel"] = B;
+res["DyadCoef"] = gamma_res;
+res["TransitionKernel"] = A;
+res["MonadCoef"] = beta_res;
+res["Kappa"] = kappa_res;
+res["n_states"] = N_STATE;
+res["n_blocks"] = N_BLK;
+res["LowerBound"] = newLL;
+res["niter"] = iter;
+
+
+return res;
 }

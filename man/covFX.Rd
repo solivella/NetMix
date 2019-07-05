@@ -2,7 +2,7 @@
 % Please edit documentation in R/covFX.R
 \name{covFX}
 \alias{covFX}
-\title{Generate estimated covariate effects for estimated mmsbm model}
+\title{Generate estimated monadic covariate effects for estimated mmsbm model}
 \usage{
 covFX(fm, cov, shift, max.val = FALSE)
 }
@@ -27,6 +27,27 @@ List with named components:
 }
 \description{
 The function estimates the effect of a shift in monadic covariate values on the probability of edge formation in the network.
+}
+\examples{
+library(NetMix)
+## Load datasets
+data("lazega_dyadic")
+data("lazega_monadic")
+## Estimate model with 3 groups
+set.seed(123)
+lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
+                      ~  School + Practice + Age,
+                      senderID = "Lawyer1",
+                      receiverID = "Lawyer2",
+                      nodeID = "Lawyer",
+                      data.dyad = lazega_dyadic,
+                      data.monad = lazega_monadic,
+                      n.blocks = 3)
+
+## Compute effect of decreasing every lawyers' age by 10 years
+fx_list <- covFX(lazega_mmsbm, cov = "Age", shift = -10)
+fx_list[["Overall Avg. Effect of Age"]]
+
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)

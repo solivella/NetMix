@@ -11,7 +11,7 @@
     .Call('_NetMix_getZ', PACKAGE = 'NetMix', pi_mat)
 }
 
-#' @name mmsbm_fit
+#' @name .mmsbm_fit
 #' @title Fitter Function for dynamic MMSBM Model
 #' 
 #' @description This is the interface to the C++ fitter for the dynamic mixed-membership

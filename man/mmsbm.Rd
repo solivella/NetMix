@@ -127,8 +127,6 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       data.dyad = lazega_dyadic,
                       data.monad = lazega_monadic,
                       n.blocks = 3)
-## Summarize object
-summary(lazega_mmsbm)
 
 }
 \author{

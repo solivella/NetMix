@@ -27,14 +27,28 @@
 #' 
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #'
-
+#' @return See individual return section for each function:
+#' \describe{
+#'       \item{.cbind.fill}{Matrix of \code{cbind}'ed elements in \code{...}, with missing values in each vector filled with \code{NA}.}
+#'       \item{.mpower}{Matrix; the result of raising \code{mat} to the \code{p} power.}
+#'       \item{.findPerm}{List of permuted blockmodel matrices}
+#'       \item{.transf}{Matrix with transformed mixed-membership vectors along its rows, s.t. no element is equal to 0.0 or 1.0.}
+#'       \item{.pi.hat}{List of predicted mixed-membership matrices, one element per HMM state.}
+#'       \item{.e.pi }{Matrix of expected mixed-membership vectors along its rows, with expectation computed over marginal 
+#'                     distribution over HMM states for each time period.}
+#'     }
+#' 
 #' @rdname auxfuns
 .cbind.fill<-function(...){
   nm <- list(...) 
-  nm<-lapply(nm, as.matrix)
-  n <- max(sapply(nm, nrow)) 
-  do.call(cbind, lapply(nm, function (x) 
-    rbind(x, matrix(NA, n-nrow(x), ncol(x))))) 
+  nm <- lapply(nm, as.matrix)
+  rnames <- unique(unlist(lapply(nm, rownames)))
+  mat <- matrix(NA, nrow = length(rnames), ncol = length(nm), 
+                dimnames = list(rnames, 1:length(nm)))
+  for (x in seq_along(nm)) {
+    mat[rownames(nm[[x]]), x] <- nm[[x]]
+  }
+  return(mat)
 }
 
 #' @rdname auxfuns
@@ -58,25 +72,25 @@
     all_perms <- gtools::permutations(n, n)
   } 
   res <- lapply(seq_along(block.list),
-                function(x){
+                function(x, t_mat, tar_nprov){
                   if(use.perms){
                     norms <- apply(all_perms, 1,
                                    function(p){
-                                     base::norm(block.list[[x]][p, p]-target.mat, type="f")
+                                     base::norm(block.list[[x]][p, p]-t_mat, type="f")
                                    })
                     P <- as.matrix(as(all_perms[which.min(norms),], "pMatrix"))
                   } else {
                     P <- as.matrix(igraph::match_vertices(plogis(block.list[[x]]),
-                                                          plogis(target.mat),
+                                                          plogis(t_mat),
                                                           m = 0,
                                                           start = diag(ncol(block.list[[x]])),
                                                           iteration = 10)$P)
                   }
                   if(tar_nprov){
-                    target.mat <<- t(P) %*% block.list[[x]] %*% P
+                    t_mat <- t(P) %*% block.list[[x]] %*% P
                   }
                   return(P)
-                })
+                }, t_mat = target.mat, tar_nprov = tar_nprov)
   return(res)
 }
 

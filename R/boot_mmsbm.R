@@ -7,7 +7,7 @@
 #' @param level signficance level for bootstrap confidence intervals. Defaults to 0.9
 #' @param full_obj logical; return full \code{mmsbm} objects, or bootstrapped CI for regression coefficients? Defaults to \code{FALSE}
 #' @param parallel logical; indicates whether the bootstrap iterations should be run in parallel. Requires \code{doParallel} and \code{foreach} 
-#'                 packages Defaults to \code{FALSE}
+#'                 packages Defaults to \code{TRUE}
 #' @param n.cores int; if parallel, how many cores? Defaults to 2.
 #'
 #'     
@@ -22,10 +22,28 @@
 #' 
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
+#' @examples
+#' library(NetMix)
+#' ## Load datasets
+#' data("lazega_dyadic")
+#' data("lazega_monadic")
+#' ## Estimate model with 3 groups
+#' set.seed(123)
+#' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
+#'                       ~  School + Practice + Status,
+#'                       senderID = "Lawyer1",
+#'                       receiverID = "Lawyer2",
+#'                       nodeID = "Lawyer",
+#'                       data.dyad = lazega_dyadic,
+#'                       data.monad = lazega_monadic,
+#'                       n.blocks = 3)
 #' 
+#' ## Get confidence intervals for coefficients
+#' ## (typically requires many more iterations!)
+#' boot_mmsbm(lazega_mmsbm, iter = 10)
 
 
-boot_mmsbm <- function(fm, iter = 50, level = 0.9, full_obj = FALSE, parallel = FALSE, n.cores = 2){ 
+boot_mmsbm <- function(fm, iter = 50, level = 0.9, full_obj = FALSE, parallel = TRUE, n.cores = 2){ 
   BootResClass <- function(monadic=NULL,dyadic=NULL){
     me <- list(monadic = monadic,
                dyadic = dyadic)

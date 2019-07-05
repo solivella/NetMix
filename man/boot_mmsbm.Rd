@@ -5,7 +5,7 @@
 \title{Parametric bootstrap for dynMMSBM}
 \usage{
 boot_mmsbm(fm, iter = 50, level = 0.9, full_obj = FALSE,
-  parallel = FALSE, n.cores = 2)
+  parallel = TRUE, n.cores = 2)
 }
 \arguments{
 \item{fm}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.}
@@ -17,7 +17,7 @@ boot_mmsbm(fm, iter = 50, level = 0.9, full_obj = FALSE,
 \item{full_obj}{logical; return full \code{mmsbm} objects, or bootstrapped CI for regression coefficients? Defaults to \code{FALSE}}
 
 \item{parallel}{logical; indicates whether the bootstrap iterations should be run in parallel. Requires \code{doParallel} and \code{foreach} 
-packages Defaults to \code{FALSE}}
+packages Defaults to \code{TRUE}}
 
 \item{n.cores}{int; if parallel, how many cores? Defaults to 2.}
 }
@@ -32,6 +32,26 @@ If \code{full_obj=TRUE}, list of length \code{iter}. Each entry contains an obje
 }
 \description{
 The function performs a parametric bootstrap procedure on \code{mmsbm} models.
+}
+\examples{
+library(NetMix)
+## Load datasets
+data("lazega_dyadic")
+data("lazega_monadic")
+## Estimate model with 3 groups
+set.seed(123)
+lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
+                      ~  School + Practice + Status,
+                      senderID = "Lawyer1",
+                      receiverID = "Lawyer2",
+                      nodeID = "Lawyer",
+                      data.dyad = lazega_dyadic,
+                      data.monad = lazega_monadic,
+                      n.blocks = 3)
+
+## Get confidence intervals for coefficients
+## (typically requires many more iterations!)
+boot_mmsbm(lazega_mmsbm, iter = 10)
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)

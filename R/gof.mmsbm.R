@@ -10,26 +10,49 @@
 #' The set of structural features used to determine goodness of fit is somewhat arbitrary, and chosen mostly to incorporate various 
 #' first order, second order, and (to the extent possible) third-order characteristics of the network. "Geodesics" focuses on the distribution over 
 #' observed and predicted geodesic distances between nodes; "Indegree" and "Outdegree" focuses on the distribution over incoming and outgoing connections 
-#' per node; "3-motifs" focus on a distribution over possible connectivity patterns between triads; "Dyad Shared Partners" focuses on the distribution
+#' per node; "3-motifs" focus on a distribution over possible connectivity patterns between triads (i.e. the triadic census); "Dyad Shared Partners" focuses on the distribution
 #' over the number of shared partners between any two dayds; "Edge Shared Partners" is similarly defined, but w.r.t. edges, rather than dyads; and finally
 #' "Incoming K-stars" focuses on a frequency distribution over stars with k=1,... spokes. 
 #' 
 #' Obtaining samples of the last three structural features can be very computationally expensive, and is discouraged on networks with more than 50
-#'  nodes.
+#' nodes.
 #'  
 #'  
 #' @param x An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.
-#' @param gof_stat Character vector. Accepts any subset from "Geodesics", "3-Motifs", "Indegree", "Outdegree",
+#' @param gof_stat Character vector. Accepts any subset from "Geodesics","Degree", "Indegree", "Outdegree", "3-Motifs",
 #'                 "Dyad Shared Partners", "Edge Shared Partners", and "Incoming K-stars". See details.
 #' @param level Double. Level of credible interval for posterior predictive distribution around structural quantities of interest. 
 #' @param samples Integer. Number of sampled networks from model's posterior predictive using \code{\link{simulate.mmsbm}}.
 #' @param new.data.dyad See \code{\link{simulate.mmsbm}}. Enables out-of-sample checking.
 #' @param new.data.monad See \code{\link{simulate.mmsbm}}. Enables out-of-sample checking.
 #' @param parametric_mm See \code{\link{simulate.mmsbm}}.
-#' @param ... Currently ignored
+#' @param seed See \code{\link{simulate.mmsbm}}.
+#' @param ... Currently ignored.
 #'
+#' @return A \code{ggplot} object.
+#'    
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
+#' @examples 
+#' library(NetMix)
+#' ## Load datasets
+#' data("lazega_dyadic")
+#' data("lazega_monadic")
+#' ## Estimate model with 3 groups
+#' set.seed(123)
+#' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
+#'                       ~  School + Practice + Status,
+#'                       senderID = "Lawyer1",
+#'                       receiverID = "Lawyer2",
+#'                       nodeID = "Lawyer",
+#'                       data.dyad = lazega_dyadic,
+#'                       data.monad = lazega_monadic,
+#'                       n.blocks = 3)
+#' 
+#' ## Plot observed (red) and simulated (gray) distributions over 
+#' ## geodesic distances, outdegrees and indegrees
+#' ## (typically a larger number of samples would be taken!) 
+#' gof(lazega_mmsbm, seed = 123, samples = 15)
 #'
 gof <- function (x, ...) {
   UseMethod("gof", x)
@@ -44,6 +67,7 @@ gof.mmsbm <- function(x,
                       new.data.dyad = NULL,
                       new.data.monad  = NULL, 
                       parametric_mm = FALSE,
+                      seed = NULL,
                       ...
                       ){
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
@@ -55,7 +79,7 @@ gof.mmsbm <- function(x,
     gof_stat <- c("Geodesics","3-Motifs", "Dyad Shared Partners", "Edge Shared Partners", "Indegree","Outdegree","Degree","Incoming K-stars")
   }
   if(x$directed & ("Degree"%in%gof_stat)){
-    gof_stat <- c(gof_stat,"Indegree","Outdegree")
+    gof_stat <- c(gof_stat[-which(gof_stat=="Degree")],"Indegree","Outdegree")
   }
   if(any(c("Outdegree","Indegree","3-Motifs")%in%gof_stat) & !x$directed){
     stop("Requested statistic not meaningful for undirected networks.")
@@ -75,21 +99,21 @@ gof.mmsbm <- function(x,
            "Indegree" = sapply(nets,
                              function(y){
                                igraph::degree_distribution(y,
-                                                           mode = "in")[1:(nrow(x$monadic.data)-2)]
+                                                           mode = "in")[1:(nrow(fm$monadic.data)-2)]
                              }),
            "Outdegree" = sapply(nets,
                              function(y){
                                igraph::degree_distribution(y,
-                                                           mode = "out")[1:(nrow(x$monadic.data)-2)]
+                                                           mode = "out")[1:(nrow(fm$monadic.data)-2)]
                              }),
            "Degree" = sapply(nets,
                                 function(y){
                                   igraph::degree_distribution(y,
-                                                              mode = "all")[1:(nrow(x$monadic.data)-2)]
+                                                              mode = "all")[1:(nrow(fm$monadic.data)-2)]
                                 }),
-           "Geodesics" = sapply(nets,
+           "Geodesics" = lapply(nets,
                                function(y){
-                                 prop.table(igraph::distance_table(y, x$directed)$res)
+                                 prop.table(table(igraph::distances(y)))
                                }),
            "3-Motifs" = sapply(nets,
                             function(y){
@@ -116,7 +140,7 @@ gof.mmsbm <- function(x,
 
   
   ## Get networks
-  el <- simulate(x, samples, seed=NULL,
+  el <- simulate(x, samples, seed=seed,
                  new.data.dyad,
                  new.data.monad, 
                  parametric_mm)
@@ -136,9 +160,9 @@ gof.mmsbm <- function(x,
     el_obs <- x$dyadic.data[x$Y==1,c("(sid)","(rid)", "(tid)")]
   }
   ## Convert to igraph objects
-  nets <- lapply(el,
-                 function(x){
-                   x_full <- cbind(obs_dyad, x)
+  nets_sim <- lapply(el,
+                 function(i){
+                   x_full <- cbind(obs_dyad, i)
                    x_sub <- x_full[x_full[,4] == 1, c(1, 2, 3)]
                    lapply(seq.int(length(unique(x_full[,3]))),
                           function(y){
@@ -153,33 +177,44 @@ gof.mmsbm <- function(x,
                     })
   
   ## Compute for simulated nets
-  sim_stats_l <- lapply(gof_stat, gof_getter, nets = unlist(nets, recursive = FALSE), fm = x)
+  sim_stats_l <- lapply(gof_stat, gof_getter, nets = unlist(nets_sim, recursive = FALSE), fm = x)
   alpha <- (1 - level)/2 
   sim_stats <- mapply(function(z, y){
                        if(is.list(z)){
-                         z <- do.call(.cbind.fill, x)
+                         z <- do.call(.cbind.fill, z)
                        }
                        z[is.na(z)] <- 0  
                        res <- as.data.frame(t(apply(z, 1, quantile, probs = c(alpha, 0.5, level + alpha), na.rm=TRUE)))
                        names(res) <- c("LB","Est","UB")
                        res$GOF <- y
-                       res$Val <- 1:nrow(res)
+                       res$Val <- as.numeric(rownames(res))
                        return(res)
                       },
                       sim_stats_l, gof_stat,
                       SIMPLIFY = FALSE)
-  sim_stats_full <-  do.call("rbind",sim_stats)               
-  Observed <- apply(do.call(rbind,lapply(gof_stat, gof_getter, nets = net_obs, fm = x)),1,median)
-  Observed[is.na(Observed)] <- 0
-  sim_stats_full$Observed <- Observed
+  sim_stats_full <-  do.call("rbind",sim_stats)  
+  Observed_l <- lapply(gof_stat, gof_getter, nets = net_obs, fm = x)
+  obs_stats <- mapply(function(z, y){
+                        if(is.list(z)){
+                          z <- do.call(.cbind.fill, z)
+                        }
+                      z[is.na(z)] <- 0 
+                      res <- data.frame(Observed = apply(z, 1, median, na.rm=TRUE))
+                      res$GOF <- y
+                      res$Val <- as.numeric(rownames(res))
+                      return(res)
+                      },
+                      Observed_l, gof_stat,
+                      SIMPLIFY = FALSE)
+  Observed <- do.call("rbind", obs_stats)  
+  res_df <- merge(sim_stats_full, Observed)
 
   ## Plot results
-  res_df <- sim_stats_full[sim_stats_full$Est > 0,]
-  ggplot2::ggplot(data=res_df, ggplot2::aes_string(x="Val", y="Observed")) +
+  return(ggplot2::ggplot(data=res_df, ggplot2::aes_string(x="Val", y="Observed")) +
     ggplot2::facet_wrap(~GOF, scales="free") +
     ggplot2::geom_linerange(ggplot2::aes_string(ymin="LB", ymax="UB"), col="gray60", lwd=2) +
-    ggplot2::geom_line(ggplot2::aes_string(y="Observed"), lwd=1.1) +
+    ggplot2::geom_line(ggplot2::aes_string(y="Observed"), lwd=1.1, alpha=0.5, col="darkred") +
     ggplot2::theme_bw() + 
     ggplot2::xlab("") +
-    ggplot2::ylab("Density")
+    ggplot2::ylab("Density"))
 } 

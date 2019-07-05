@@ -60,6 +60,18 @@ It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.}
 
 \item{kappa}{Numeric matrix; matrix of marginal HMM state probabilities.}
 }
+\value{
+See individual return section for each function:
+\describe{
+      \item{.cbind.fill}{Matrix of \code{cbind}'ed elements in \code{...}, with missing values in each vector filled with \code{NA}.}
+      \item{.mpower}{Matrix; the result of raising \code{mat} to the \code{p} power.}
+      \item{.findPerm}{List of permuted blockmodel matrices}
+      \item{.transf}{Matrix with transformed mixed-membership vectors along its rows, s.t. no element is equal to 0.0 or 1.0.}
+      \item{.pi.hat}{List of predicted mixed-membership matrices, one element per HMM state.}
+      \item{.e.pi }{Matrix of expected mixed-membership vectors along its rows, with expectation computed over marginal 
+                    distribution over HMM states for each time period.}
+    }
+}
 \description{
 These are various utilities and generic methods used by 
 the main package function.

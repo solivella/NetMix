@@ -33,6 +33,26 @@ If \code{new.data.dyad = NULL}, vector of length \code{nrow(object$dyadic.data)}
 The function produces expected posterior edges based  
 on estimated parameters and (optionally new) predictor data
 }
+\examples{
+library(NetMix)
+## Load datasets
+data("lazega_dyadic")
+data("lazega_monadic")
+## Estimate model with 3 groups
+set.seed(123)
+lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
+                      ~  School + Practice + Status,
+                      senderID = "Lawyer1",
+                      receiverID = "Lawyer2",
+                      nodeID = "Lawyer",
+                      data.dyad = lazega_dyadic,
+                      data.monad = lazega_monadic,
+                      n.blocks = 3)
+
+## Get in-sample predicted edge probabilities
+lazega_preds <- predict(lazega_mmsbm, type = "response")
+hist(lazega_preds, main="Predicted probability of edges\\nin Lazega network")
+}
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)
 }

@@ -4,7 +4,7 @@
 \alias{head.mmsbm}
 \title{Identify nodes with most frequent membership in latent groups}
 \usage{
-\method{head}{mmsbm}(x, n = 10, t = NULL, node = TRUE,
+\method{head}{mmsbm}(x, n = 6, t = NULL, node = TRUE,
   t.correct = FALSE, ...)
 }
 \arguments{
@@ -25,6 +25,25 @@ List of length \code{n.groups}.  Each entry contains a sorted vector of average 
 }
 \description{
 The function lists the nodes (optionally, node-time periods) that most frequently instantiate membership in each latent group.
+}
+\examples{
+library(NetMix)
+## Load datasets
+data("lazega_dyadic")
+data("lazega_monadic")
+## Estimate model with 3 groups
+set.seed(123)
+lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
+                      ~  School + Practice + Status,
+                      senderID = "Lawyer1",
+                      receiverID = "Lawyer2",
+                      nodeID = "Lawyer",
+                      data.dyad = lazega_dyadic,
+                      data.monad = lazega_monadic,
+                      n.blocks = 3)
+
+## Show top 6 lawyers in each estimated latent block
+head(lazega_mmsbm)
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)

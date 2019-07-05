@@ -12,13 +12,33 @@
 #' @param FX with \code{type == "effect"}; a list resulting from a call to \code{covFX}.
 #' @param ... Currently ignored
 #'
-#' @return A plot object. 
+#' @return The requested plot object. 
 #' 
 #' @method plot mmsbm
 #'
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
+#' @examples 
+#' library(NetMix)
+#' ## Load datasets
+#' data("lazega_dyadic")
+#' data("lazega_monadic")
+#' ## Estimate model with 3 groups
+#' set.seed(123)
+#' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
+#'                       ~  School + Practice + Status,
+#'                       senderID = "Lawyer1",
+#'                       receiverID = "Lawyer2",
+#'                       nodeID = "Lawyer",
+#'                       data.dyad = lazega_dyadic,
+#'                       data.monad = lazega_monadic,
+#'                       n.blocks = 3)
 #' 
+#' ## Plot blockmodel as network
+#' plot(lazega_mmsbm)
+#' 
+#' ## Plot blockmodel using tile plot
+#' plot(lazega_mmsbm, type = "blockmodel")
 
 
 plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing B-matrix
@@ -63,22 +83,25 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     dimnames(adj_mat) <- list(paste("G",1:nrow(adj_mat), sep=""),
                               paste("G", 1:ncol(adj_mat), sep=""))
     block.G <- igraph::graph.adjacency(plogis(adj_mat), mode=mode, weighted=TRUE)
-    e.weight <- igraph::E(block.G)$weight
+    e.weight <- (1/diff(range(igraph::E(block.G)$weight))) * (igraph::E(block.G)$weight - max(igraph::E(block.G)$weight)) + 1
     e.cols <- rgb(colRamp(e.weight), maxColorValue = 255)
-    v.size <- rowMeans(x$MixedMembership)*100
+    v.size <- rowMeans(x$MixedMembership)*100 + 15
     layout(matrix(1:2,ncol=2), widths = c(2,1), heights = c(1,1))
     opar <- par(mar=c(0,0,0,0)+.75)
+    on.exit(par(opar))
     igraph::plot.igraph(block.G, main = "",
-         edge.width=4, edge.color=e.cols,  edge.curved = 0.5, edge.arrow.size = .65,
+         edge.width=4, edge.color=e.cols,  edge.curved = x$directed, edge.arrow.size = .65,
          vertex.size=v.size, vertex.color="gray80", vertex.frame.color="black",
-         vertex.label.font=2, vertex.label.cex=1,
-         layout = igraph::layout_nicely)
+         vertex.label.font=2, vertex.label.cex=1, vertex.label.color="black",
+         layout = igraph::layout_with_graphopt)
     par(opar)
     legend_image <- as.raster(matrix(rgb(colRamp(seq(1,0,length.out=50)), maxColorValue = 255), ncol=1))
-    plot(c(0,2.5),c(0.3,.7),type = 'n', axes = FALSE ,xlab = '', ylab = '')
-    title('Edge\nprobability', cex.main=0.9, adj=0, line=-0.005)
-    text(x=1.9, y = seq(0.3,.7,length.out = 5), labels = seq(0,1,length.out =5), cex = 0.75)
-    rasterImage(legend_image, 0, 0.3, 1,0.7)
+    plot(c(0,2.0),c(0.3,.7),type = 'n', axes = FALSE ,xlab = '', ylab = '')
+    title('Edge\nprobability', cex.main=0.9, adj=0, line=-0.005,font=2)
+    text(x=1.5, y = seq(0.3,.7,length.out = 5), labels = seq(round(min(igraph::E(block.G)$weight),2),
+                                                             round(max(igraph::E(block.G)$weight),2),
+                                                             length.out =5), cex = 0.75, font=2)
+    rasterImage(legend_image, 0, 0.3, 1, 0.7)
   }
   
   if(type=="membership"){
@@ -106,7 +129,7 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     plot(unique(x$dyadic.data[,"(tid)"]), tapply(FX[[5]], x$dyadic.data[,"(tid)"], mean), type="o",
          xlab="Time", ylab=paste("Effect of", cov, "on Pr(Edge Formation)"), main="Marginal Effect over Time")
     
-    nodenames <- names(sort(table(x$monadic.data[,"(nid)"]), decreasing=T))
+    nodenames <- names(sort(table(x$monadic.data[,"(nid)"]), decreasing=TRUE))
     nodes <- sort(FX[[3]])[names(sort(FX[[3]])) %in% nodenames]
     plot(1, type="n", xlab="Node-Level Estimated Effect", ylab="", 
          xlim=c(min(nodes), max(nodes) + 0.001),

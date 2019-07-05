@@ -9,14 +9,14 @@ gof(x, ...)
 
 \method{gof}{mmsbm}(x, gof_stat = c("Geodesics", "Degree"),
   level = 0.95, samples = 50, new.data.dyad = NULL,
-  new.data.monad = NULL, parametric_mm = FALSE, ...)
+  new.data.monad = NULL, parametric_mm = FALSE, seed = NULL, ...)
 }
 \arguments{
 \item{x}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.}
 
-\item{...}{Currently ignored}
+\item{...}{Currently ignored.}
 
-\item{gof_stat}{Character vector. Accepts any subset from "Geodesics", "3-Motifs", "Indegree", "Outdegree",
+\item{gof_stat}{Character vector. Accepts any subset from "Geodesics","Degree", "Indegree", "Outdegree", "3-Motifs",
 "Dyad Shared Partners", "Edge Shared Partners", and "Incoming K-stars". See details.}
 
 \item{level}{Double. Level of credible interval for posterior predictive distribution around structural quantities of interest.}
@@ -28,6 +28,11 @@ gof(x, ...)
 \item{new.data.monad}{See \code{\link{simulate.mmsbm}}. Enables out-of-sample checking.}
 
 \item{parametric_mm}{See \code{\link{simulate.mmsbm}}.}
+
+\item{seed}{See \code{\link{simulate.mmsbm}}.}
+}
+\value{
+A \code{ggplot} object.
 }
 \description{
 The function generates a variety of plots that serve as posterior predictive checks on the goodness of fit of a fitted \code{mmsbm} object.
@@ -41,12 +46,34 @@ passed that are different from those used in estimation, this is equivalent to c
 The set of structural features used to determine goodness of fit is somewhat arbitrary, and chosen mostly to incorporate various 
 first order, second order, and (to the extent possible) third-order characteristics of the network. "Geodesics" focuses on the distribution over 
 observed and predicted geodesic distances between nodes; "Indegree" and "Outdegree" focuses on the distribution over incoming and outgoing connections 
-per node; "3-motifs" focus on a distribution over possible connectivity patterns between triads; "Dyad Shared Partners" focuses on the distribution
+per node; "3-motifs" focus on a distribution over possible connectivity patterns between triads (i.e. the triadic census); "Dyad Shared Partners" focuses on the distribution
 over the number of shared partners between any two dayds; "Edge Shared Partners" is similarly defined, but w.r.t. edges, rather than dyads; and finally
 "Incoming K-stars" focuses on a frequency distribution over stars with k=1,... spokes.
 
 Obtaining samples of the last three structural features can be very computationally expensive, and is discouraged on networks with more than 50
- nodes.
+nodes.
+}
+\examples{
+library(NetMix)
+## Load datasets
+data("lazega_dyadic")
+data("lazega_monadic")
+## Estimate model with 3 groups
+set.seed(123)
+lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
+                      ~  School + Practice + Status,
+                      senderID = "Lawyer1",
+                      receiverID = "Lawyer2",
+                      nodeID = "Lawyer",
+                      data.dyad = lazega_dyadic,
+                      data.monad = lazega_monadic,
+                      n.blocks = 3)
+
+## Plot observed (red) and simulated (gray) distributions over 
+## geodesic distances, outdegrees and indegrees
+## (typically a larger number of samples would be taken!) 
+gof(lazega_mmsbm, seed = 123, samples = 15)
+
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)

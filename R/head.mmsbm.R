@@ -15,10 +15,27 @@
 #'
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
+#' @examples 
+#' library(NetMix)
+#' ## Load datasets
+#' data("lazega_dyadic")
+#' data("lazega_monadic")
+#' ## Estimate model with 3 groups
+#' set.seed(123)
+#' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
+#'                       ~  School + Practice + Status,
+#'                       senderID = "Lawyer1",
+#'                       receiverID = "Lawyer2",
+#'                       nodeID = "Lawyer",
+#'                       data.dyad = lazega_dyadic,
+#'                       data.monad = lazega_monadic,
+#'                       n.blocks = 3)
 #' 
+#' ## Show top 6 lawyers in each estimated latent block
+#' head(lazega_mmsbm)
 
 
-head.mmsbm <- function(x,  n=10, t=NULL, node=TRUE, t.correct=FALSE, ...){
+head.mmsbm <- function(x,  n=6, t=NULL, node=TRUE, t.correct=FALSE, ...){
   if(is.null(t)){t <- unique(x$monadic.data$`(tid)`)}
   Mem <- x$MixedMembership[,x$monadic.data[,"(tid)"] %in% t]
   if(!node){

@@ -20,7 +20,27 @@
 #' 
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
+#' @examples 
+#' library(NetMix)
+#' ## Load datasets
+#' data("lazega_dyadic")
+#' data("lazega_monadic")
+#' ## Estimate model with 3 groups
+#' set.seed(123)
+#' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
+#'                       ~  School + Practice + Status,
+#'                       senderID = "Lawyer1",
+#'                       receiverID = "Lawyer2",
+#'                       nodeID = "Lawyer",
+#'                       data.dyad = lazega_dyadic,
+#'                       data.monad = lazega_monadic,
+#'                       n.blocks = 3)
 #' 
+#' ## Get in-sample predicted edge probabilities
+#' lazega_preds <- predict(lazega_mmsbm, type = "response")
+#' hist(lazega_preds, main="Predicted probability of edges\nin Lazega network")
+
+
 
 predict.mmsbm <- function(object, 
                           new.data.dyad = NULL,
@@ -31,7 +51,7 @@ predict.mmsbm <- function(object,
                           ...)
 {
   type <- match.arg(type)
-  if((new.data.monad | forecast) & !parametric_mm){
+  if(((!is.null(new.data.monad)) | forecast) & !parametric_mm){
     stop("Must use parametric mixed-memberships when forecasting or when using new monadic data.")
   }
   if(!is.null(new.data.dyad)){
@@ -56,9 +76,11 @@ predict.mmsbm <- function(object,
                     paste(c("~ .", names(object$DyadCoef)[grep("missing", 
                                     names(object$DyadCoef))]), collapse=" + "))
   }
-  X_d <- model.matrix(eval(dform), dyad)[, -1]
+  X_d <- model.matrix(eval(dform), dyad)
   if(length(object$DyadCoef)==0){
     object$DyadCoef <- as.vector(0)
+  } else {
+    object$DyadCoef <- c(0, object$DyadCoef)
   }
   if(!is.null(new.data.monad)){
     nid <- ifelse(object$forms$nodeID %in% colnames(new.data.monad), object$forms$nodeID, "(nid)")

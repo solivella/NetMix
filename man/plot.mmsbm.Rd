@@ -21,10 +21,32 @@ of a shfit in monadic covariate values.}
 \item{...}{Currently ignored}
 }
 \value{
-A plot object.
+The requested plot object.
 }
 \description{
 The function provides a variety of plotting options for a fitted \code{mmsbm} object.
+}
+\examples{
+library(NetMix)
+## Load datasets
+data("lazega_dyadic")
+data("lazega_monadic")
+## Estimate model with 3 groups
+set.seed(123)
+lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
+                      ~  School + Practice + Status,
+                      senderID = "Lawyer1",
+                      receiverID = "Lawyer2",
+                      nodeID = "Lawyer",
+                      data.dyad = lazega_dyadic,
+                      data.monad = lazega_monadic,
+                      n.blocks = 3)
+
+## Plot blockmodel as network
+plot(lazega_mmsbm)
+
+## Plot blockmodel using tile plot
+plot(lazega_mmsbm, type = "blockmodel")
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)
