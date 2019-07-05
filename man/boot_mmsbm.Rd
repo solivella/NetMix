@@ -51,7 +51,7 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 
 ## Get confidence intervals for coefficients
 ## (typically requires many more iterations!)
-boot_mmsbm(lazega_mmsbm, iter = 10)
+boot_mmsbm(lazega_mmsbm, iter = 2)
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)

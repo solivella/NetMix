@@ -40,7 +40,7 @@
 #' 
 #' ## Get confidence intervals for coefficients
 #' ## (typically requires many more iterations!)
-#' boot_mmsbm(lazega_mmsbm, iter = 10)
+#' boot_mmsbm(lazega_mmsbm, iter = 2)
 
 
 boot_mmsbm <- function(fm, iter = 50, level = 0.9, full_obj = FALSE, parallel = TRUE, n.cores = 2){ 
