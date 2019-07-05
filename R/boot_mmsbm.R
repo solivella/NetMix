@@ -23,6 +23,7 @@
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
 #' @examples
+#' \dontrun{
 #' library(NetMix)
 #' ## Load datasets
 #' data("lazega_dyadic")
@@ -40,7 +41,8 @@
 #' 
 #' ## Get confidence intervals for coefficients
 #' ## (typically requires many more iterations!)
-#' boot_mmsbm(lazega_mmsbm, iter = 2)
+#' boot_mmsbm(lazega_mmsbm, iter = 10)
+#' }
 
 
 boot_mmsbm <- function(fm, iter = 50, level = 0.9, full_obj = FALSE, parallel = TRUE, n.cores = 2){ 
@@ -65,6 +67,7 @@ boot_mmsbm <- function(fm, iter = 50, level = 0.9, full_obj = FALSE, parallel = 
   `%our_do%` <- if (parallel) foreach::`%dopar%` else foreach::`%do%`
   if(parallel){
     doParallel::registerDoParallel(cores=n.cores)
+    on.exit(doParallel::stopImplicitCluster())
   }
   sims <- simulate(fm, iter)
   dyad.formula <- update.formula(fm$forms$formula.dyad, Y~.)
@@ -117,6 +120,7 @@ boot_mmsbm <- function(fm, iter = 50, level = 0.9, full_obj = FALSE, parallel = 
       return(result)
     }
   }
+  doParallel::stopImplicitCluster()
   if(!full_obj){
     monadic_coef <- vector("list", fm$n_states)
     for(i in 1:fm$n_states){
