@@ -19,6 +19,7 @@
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
 #' @examples 
+#' \dontrun{
 #' library(NetMix)
 #' ## Load datasets
 #' data("lazega_dyadic")
@@ -39,6 +40,7 @@
 #' 
 #' ## Plot blockmodel using tile plot
 #' plot(lazega_mmsbm, type = "blockmodel")
+#' }
 
 
 plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing B-matrix

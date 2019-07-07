@@ -27,6 +27,7 @@ The requested plot object.
 The function provides a variety of plotting options for a fitted \code{mmsbm} object.
 }
 \examples{
+\dontrun{
 library(NetMix)
 ## Load datasets
 data("lazega_dyadic")
@@ -47,6 +48,7 @@ plot(lazega_mmsbm)
 
 ## Plot blockmodel using tile plot
 plot(lazega_mmsbm, type = "blockmodel")
+}
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)

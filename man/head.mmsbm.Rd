@@ -27,6 +27,7 @@ List of length \code{n.groups}.  Each entry contains a sorted vector of average 
 The function lists the nodes (optionally, node-time periods) that most frequently instantiate membership in each latent group.
 }
 \examples{
+\dontrun{
 library(NetMix)
 ## Load datasets
 data("lazega_dyadic")
@@ -44,6 +45,7 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 
 ## Show top 6 lawyers in each estimated latent block
 head(lazega_mmsbm)
+}
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)

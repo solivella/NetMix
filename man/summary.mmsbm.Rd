@@ -28,6 +28,7 @@ List with named components:
 The function summarizes the output of a dynMMSBM model object
 }
 \examples{
+\dontrun{
 library(NetMix)
 ## Load datasets
 data("lazega_dyadic")
@@ -45,6 +46,7 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 
 ## Summarize estimated model
 summary(lazega_mmsbm)
+}
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)

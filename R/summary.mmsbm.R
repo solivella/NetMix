@@ -21,6 +21,7 @@
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
 #' @examples 
+#' \dontrun{
 #' library(NetMix)
 #' ## Load datasets
 #' data("lazega_dyadic")
@@ -38,11 +39,7 @@
 #' 
 #' ## Summarize estimated model
 #' summary(lazega_mmsbm)
-
-
-
-
-
+#' }
 
 summary.mmsbm <- function(object, ...){
   summ <- list(nrow(object$dyadic.data), ncol(object$BlockModel), 

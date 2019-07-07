@@ -113,6 +113,7 @@ The function estimates a dynamic mixed-membership stochastic
 blockmodel that incorporates covariates.
 }
 \examples{
+\dontrun{
 library(NetMix)
 ## Load datasets
 data("lazega_dyadic")
@@ -127,7 +128,7 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       data.dyad = lazega_dyadic,
                       data.monad = lazega_monadic,
                       n.blocks = 3)
-
+}
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)

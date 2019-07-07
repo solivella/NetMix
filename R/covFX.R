@@ -20,6 +20,7 @@
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
 #' @examples 
+#' \dontrun{
 #' library(NetMix)
 #' ## Load datasets
 #' data("lazega_dyadic")
@@ -38,7 +39,7 @@
 #' ## Compute effect of decreasing every lawyers' age by 10 years
 #' fx_list <- covFX(lazega_mmsbm, cov = "Age", shift = -10)
 #' fx_list[["Overall Avg. Effect of Age"]]
-#' 
+#' }
 
 
 

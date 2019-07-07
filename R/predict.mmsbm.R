@@ -21,6 +21,7 @@
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
 #' @examples 
+#' \dontrun{
 #' library(NetMix)
 #' ## Load datasets
 #' data("lazega_dyadic")
@@ -39,6 +40,7 @@
 #' ## Get in-sample predicted edge probabilities
 #' lazega_preds <- predict(lazega_mmsbm, type = "response")
 #' hist(lazega_preds, main="Predicted probability of edges\nin Lazega network")
+#' }
 
 
 

@@ -54,6 +54,7 @@ Obtaining samples of the last three structural features can be very computationa
 nodes.
 }
 \examples{
+\dontrun{
 library(NetMix)
 ## Load datasets
 data("lazega_dyadic")
@@ -73,7 +74,7 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 ## geodesic distances, outdegrees and indegrees
 ## (typically a larger number of samples would be taken!) 
 gof(lazega_mmsbm, seed = 123, samples = 15)
-
+}
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)

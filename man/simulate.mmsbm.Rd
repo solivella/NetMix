@@ -36,6 +36,7 @@ List of length \code{nsim} of simulated networks.
 The function generates one sample network from the posterior predictive of the model represented by a fitted \code{mmsbm} object.
 }
 \examples{
+\dontrun{
 library(NetMix)
 ## Load datasets
 data("lazega_dyadic")
@@ -53,7 +54,7 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 
 ## Simulate 10 new networks
 lazega_sim <- simulate(lazega_mmsbm, nsim = 10, seed = 123)
-
+}
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)

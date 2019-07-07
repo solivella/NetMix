@@ -34,6 +34,7 @@ The function produces expected posterior edges based
 on estimated parameters and (optionally new) predictor data
 }
 \examples{
+\dontrun{
 library(NetMix)
 ## Load datasets
 data("lazega_dyadic")
@@ -52,6 +53,7 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 ## Get in-sample predicted edge probabilities
 lazega_preds <- predict(lazega_mmsbm, type = "response")
 hist(lazega_preds, main="Predicted probability of edges\\nin Lazega network")
+}
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)

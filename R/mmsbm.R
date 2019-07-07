@@ -90,6 +90,7 @@
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
 #' @examples 
+#' \dontrun{
 #' library(NetMix)
 #' ## Load datasets
 #' data("lazega_dyadic")
@@ -104,7 +105,7 @@
 #'                       data.dyad = lazega_dyadic,
 #'                       data.monad = lazega_monadic,
 #'                       n.blocks = 3)
-#' 
+#' }
 
 mmsbm <- function(formula.dyad,
                   formula.monad=~1,

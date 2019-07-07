@@ -21,6 +21,7 @@
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
 #' @examples 
+#' \dontrun{
 #' library(NetMix)
 #' ## Load datasets
 #' data("lazega_dyadic")
@@ -38,7 +39,7 @@
 #' 
 #' ## Simulate 10 new networks
 #' lazega_sim <- simulate(lazega_mmsbm, nsim = 10, seed = 123)
-#' 
+#' }
 
 simulate.mmsbm <- function(object, 
                            nsim = 1,
