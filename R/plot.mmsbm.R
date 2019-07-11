@@ -86,8 +86,9 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     e.cols <- rgb(colRamp(e.weight), maxColorValue = 255)
     v.size <- rowMeans(x$MixedMembership)*100 + 15
     opar <- par(mar=c(0,0,0,0)+.75)
-    on.exit(par(opar))
-    layout(matrix(1:2,ncol=2), widths = c(2,1), heights = c(1,1))
+    on.exit(par(opar), add = TRUE)
+    graphics::layout(matrix(1:2,ncol=2), widths = c(2,1), heights = c(1,1))
+    on.exit(graphics::layout(matrix(1,ncol=1), widths = c(1), heights = c(1)), add = TRUE)
     igraph::plot.igraph(block.G, main = "",
          edge.width=4, edge.color=e.cols,  edge.curved = x$directed, edge.arrow.size = .65,
          vertex.size=v.size, vertex.color="gray80", vertex.frame.color="black",
