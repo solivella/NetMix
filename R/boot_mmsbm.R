@@ -23,26 +23,32 @@
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
 #' @examples
-#' \dontrun{
 #' library(NetMix)
 #' ## Load datasets
 #' data("lazega_dyadic")
 #' data("lazega_monadic")
-#' ## Estimate model with 3 groups
+#' 
+#' ## Subset to partners
+#' partners_monadic <- lazega_monadic[lazega_monadic$Status == 1, ]
+#' partner_indicator <- with(lazega_dyadic, (Lawyer1 %in% partners_monadic$Lawyer) & 
+#'                                          (Lawyer2 %in% partners_monadic$Lawyer))
+#' partners_dyadic <- lazega_dyadic[partner_indicator, ] 
+#' 
+#' ## Estimate model with 2 groups
 #' set.seed(123)
 #' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
-#'                       ~  School + Practice + Status,
+#'                       ~  School + Practice,
 #'                       senderID = "Lawyer1",
 #'                       receiverID = "Lawyer2",
 #'                       nodeID = "Lawyer",
-#'                       data.dyad = lazega_dyadic,
-#'                       data.monad = lazega_monadic,
-#'                       n.blocks = 3)
+#'                       data.dyad = partners_dyadic,
+#'                       data.monad = partners_monadic,
+#'                       n.blocks = 2)
 #' 
 #' ## Get confidence intervals for coefficients
-#' ## (typically requires many more iterations!)
-#' boot_mmsbm(lazega_mmsbm, iter = 10)
-#' }
+#' ## (typically requires many more iterations)
+#' boot_mmsbm(lazega_mmsbm, iter = 2)
+#' 
 
 
 boot_mmsbm <- function(fm, iter = 50, level = 0.9, full_obj = FALSE, parallel = TRUE, n.cores = 2){ 

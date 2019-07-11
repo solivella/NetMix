@@ -54,12 +54,11 @@ Obtaining samples of the last three structural features can be very computationa
 nodes.
 }
 \examples{
-\dontrun{
 library(NetMix)
 ## Load datasets
 data("lazega_dyadic")
 data("lazega_monadic")
-## Estimate model with 3 groups
+## Estimate model with 2 groups
 set.seed(123)
 lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       ~  School + Practice + Status,
@@ -68,13 +67,13 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       nodeID = "Lawyer",
                       data.dyad = lazega_dyadic,
                       data.monad = lazega_monadic,
-                      n.blocks = 3)
+                      n.blocks = 2)
 
 ## Plot observed (red) and simulated (gray) distributions over 
-## geodesic distances, outdegrees and indegrees
-## (typically a larger number of samples would be taken!) 
-gof(lazega_mmsbm, seed = 123, samples = 15)
-}
+## geodesic distances
+## (typically a larger number of samples would be taken) 
+gof(lazega_mmsbm, gof_stat = "Geodesics", seed = 123, samples = 5)
+
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)

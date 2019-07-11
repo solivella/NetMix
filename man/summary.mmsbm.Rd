@@ -28,12 +28,11 @@ List with named components:
 The function summarizes the output of a dynMMSBM model object
 }
 \examples{
-\dontrun{
 library(NetMix)
 ## Load datasets
 data("lazega_dyadic")
 data("lazega_monadic")
-## Estimate model with 3 groups
+## Estimate model with 2 groups
 set.seed(123)
 lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       ~  School + Practice + Status,
@@ -42,11 +41,11 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       nodeID = "Lawyer",
                       data.dyad = lazega_dyadic,
                       data.monad = lazega_monadic,
-                      n.blocks = 3)
+                      n.blocks = 2)
 
 ## Summarize estimated model
 summary(lazega_mmsbm)
-}
+
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)

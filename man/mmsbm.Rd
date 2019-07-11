@@ -102,7 +102,8 @@ Object of class \code{mmsbm}. List with named components:
                    \code{n.hmmstates} by years (or whatever time interval networks are observed at)}
       \item{LowerBound}{Value of the lower bound at final iteration}
       \item{niter}{Final number of VI iterations}
-      \item{NodeIndex}{Order in which nodes are stored in all return objects.}
+      \item{converged}{Convergence indicator; zero indicates failure to converge}
+      \item{NodeIndex}{Order in which nodes are stored in all return objects}
       \item{monadic.data, dyadic.data, directed}{Original values of parameters used during estimation}
       \item{forms}{Values of formal arguments passed in original function call}
       \item{call}{Original (unevaluated) call}
@@ -113,12 +114,11 @@ The function estimates a dynamic mixed-membership stochastic
 blockmodel that incorporates covariates.
 }
 \examples{
-\dontrun{
 library(NetMix)
 ## Load datasets
 data("lazega_dyadic")
 data("lazega_monadic")
-## Estimate model with 3 groups
+## Estimate model with 2 groups
 set.seed(123)
 lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       ~  School + Practice + Status,
@@ -127,8 +127,8 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       nodeID = "Lawyer",
                       data.dyad = lazega_dyadic,
                       data.monad = lazega_monadic,
-                      n.blocks = 3)
-}
+                      n.blocks = 2)
+
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)

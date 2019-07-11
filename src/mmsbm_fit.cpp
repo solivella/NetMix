@@ -99,9 +99,6 @@ bool conv = false,
 double newLL, oldLL,
   tol = as<double>(control["conv_tol"]);
 
-if(verbose){
-  Rprintf("Estimating model...\n");
-}
 oldLL = Model.cLL();
 newLL = 0.0;
 while(iter < EM_ITER && conv == false){
@@ -141,10 +138,6 @@ while(iter < EM_ITER && conv == false){
     
   ++iter;
 }
-if((conv == false) & verbose)
-  Rprintf("Warning: model did not converge after %i iterations.\n", iter);
-else if (verbose)
-  Rprintf("done after %i iterations.\n", iter);
 
 
 //Form return objects
@@ -167,6 +160,7 @@ res["n_states"] = N_STATE;
 res["n_blocks"] = N_BLK;
 res["LowerBound"] = newLL;
 res["niter"] = iter;
+res["converged"] = conv;
 
 
 return res;

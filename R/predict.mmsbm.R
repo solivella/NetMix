@@ -21,12 +21,11 @@
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
 #' @examples 
-#' \dontrun{
 #' library(NetMix)
 #' ## Load datasets
 #' data("lazega_dyadic")
 #' data("lazega_monadic")
-#' ## Estimate model with 3 groups
+#' ## Estimate model with 2 groups
 #' set.seed(123)
 #' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 #'                       ~  School + Practice + Status,
@@ -35,12 +34,11 @@
 #'                       nodeID = "Lawyer",
 #'                       data.dyad = lazega_dyadic,
 #'                       data.monad = lazega_monadic,
-#'                       n.blocks = 3)
+#'                       n.blocks = 2)
 #' 
 #' ## Get in-sample predicted edge probabilities
 #' lazega_preds <- predict(lazega_mmsbm, type = "response")
-#' hist(lazega_preds, main="Predicted probability of edges\nin Lazega network")
-#' }
+#' 
 
 
 

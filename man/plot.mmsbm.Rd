@@ -27,12 +27,11 @@ The requested plot object.
 The function provides a variety of plotting options for a fitted \code{mmsbm} object.
 }
 \examples{
-\dontrun{
 library(NetMix)
 ## Load datasets
 data("lazega_dyadic")
 data("lazega_monadic")
-## Estimate model with 3 groups
+## Estimate model with 2 groups
 set.seed(123)
 lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       ~  School + Practice + Status,
@@ -41,14 +40,11 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       nodeID = "Lawyer",
                       data.dyad = lazega_dyadic,
                       data.monad = lazega_monadic,
-                      n.blocks = 3)
+                      n.blocks = 2)
 
 ## Plot blockmodel as network
 plot(lazega_mmsbm)
 
-## Plot blockmodel using tile plot
-plot(lazega_mmsbm, type = "blockmodel")
-}
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)

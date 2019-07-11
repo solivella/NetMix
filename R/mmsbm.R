@@ -82,7 +82,8 @@
 #'                    \code{n.hmmstates} by years (or whatever time interval networks are observed at)}
 #'       \item{LowerBound}{Value of the lower bound at final iteration}
 #'       \item{niter}{Final number of VI iterations}
-#'       \item{NodeIndex}{Order in which nodes are stored in all return objects.}
+#'       \item{converged}{Convergence indicator; zero indicates failure to converge}
+#'       \item{NodeIndex}{Order in which nodes are stored in all return objects}
 #'       \item{monadic.data, dyadic.data, directed}{Original values of parameters used during estimation}
 #'       \item{forms}{Values of formal arguments passed in original function call}
 #'       \item{call}{Original (unevaluated) call}
@@ -90,12 +91,11 @@
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
 #' @examples 
-#' \dontrun{
 #' library(NetMix)
 #' ## Load datasets
 #' data("lazega_dyadic")
 #' data("lazega_monadic")
-#' ## Estimate model with 3 groups
+#' ## Estimate model with 2 groups
 #' set.seed(123)
 #' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 #'                       ~  School + Practice + Status,
@@ -104,8 +104,8 @@
 #'                       nodeID = "Lawyer",
 #'                       data.dyad = lazega_dyadic,
 #'                       data.monad = lazega_monadic,
-#'                       n.blocks = 3)
-#' }
+#'                       n.blocks = 2)
+#' 
 
 mmsbm <- function(formula.dyad,
                   formula.monad=~1,
@@ -154,8 +154,9 @@ mmsbm <- function(formula.dyad,
   diag(var_b) <- ctrl[["var_b"]][1]
   var_b[upper.tri(var_b)|lower.tri(var_b)] <- ctrl[["var_b"]][2]
   
-  if(ctrl$verbose)
+  if(ctrl$verbose){
     cat("Pre-processing data...\n")
+  }
   
   stopifnot(class(formula.dyad) == "formula",
             class(formula.monad) == "formula",
@@ -306,8 +307,9 @@ mmsbm <- function(formula.dyad,
   
   
   ## Create initial values
-  if(ctrl$verbose)
+  if(ctrl$verbose){
     cat("Obtaining initial values...\n")
+  }
   
   dyads <- split.data.frame(dntid, mfd[, "(tid)"])
   edges <- split(Y, mfd[, "(tid)"])
@@ -394,7 +396,7 @@ mmsbm <- function(formula.dyad,
                                   sig <- 1 - res$values[n_elem] / (res$values[n.blocks])
                                   sig <- ifelse(is.finite(sig), sig, 0)
                                   if(sig > 0.1){
-                                    target <- target[,1:(n_elem - 2)]
+                                    target <- target[,1:(n_elem - 2), drop = FALSE]
                                   }
                                 } else {
                                   target <- U
@@ -402,7 +404,7 @@ mmsbm <- function(formula.dyad,
                                 init_c <- sample(1:nrow(target), n.blocks, replace = FALSE)
                                 clust_internal <- fitted(kmeans(target,
                                                                 n.blocks,
-                                                                centers = target[init_c,],
+                                                                centers = target[init_c, ],
                                                                 nstart = 10), "classes")
                                 
                                 phi_internal <- model.matrix(~ as.factor(clust_internal) - 1)
@@ -509,6 +511,9 @@ mmsbm <- function(formula.dyad,
     stop("Nearly singular design matrix; check monadic predictors.")
   }
   ## Estimate model
+  if(ctrl$verbose){
+    cat("Estimating model...\n");
+  }
   fit <- .mmsbm_fit(t(Z),
                    t(X),
                    Y,
@@ -525,6 +530,11 @@ mmsbm <- function(formula.dyad,
                    ctrl$gamma_init,
                    ctrl
   )
+  if((!fit[["converged"]]) & ctrl$verbose)
+    warning(paste("Model did not converge after", fit[["niter"]], "iterations.\n"))
+  else if (ctrl$verbose){
+    cat("done after", fit[["niter"]], "iterations.\n");
+  }
   
   ## Add names
   colnames(fit[["Kappa"]]) <- unique(mfm[,"(tid)"])

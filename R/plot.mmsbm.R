@@ -19,12 +19,11 @@
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
 #' @examples 
-#' \dontrun{
 #' library(NetMix)
 #' ## Load datasets
 #' data("lazega_dyadic")
 #' data("lazega_monadic")
-#' ## Estimate model with 3 groups
+#' ## Estimate model with 2 groups
 #' set.seed(123)
 #' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 #'                       ~  School + Practice + Status,
@@ -33,14 +32,12 @@
 #'                       nodeID = "Lawyer",
 #'                       data.dyad = lazega_dyadic,
 #'                       data.monad = lazega_monadic,
-#'                       n.blocks = 3)
+#'                       n.blocks = 2)
 #' 
 #' ## Plot blockmodel as network
 #' plot(lazega_mmsbm)
 #' 
-#' ## Plot blockmodel using tile plot
-#' plot(lazega_mmsbm, type = "blockmodel")
-#' }
+
 
 
 plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing B-matrix
@@ -88,9 +85,9 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     e.weight <- (1/diff(range(igraph::E(block.G)$weight))) * (igraph::E(block.G)$weight - max(igraph::E(block.G)$weight)) + 1
     e.cols <- rgb(colRamp(e.weight), maxColorValue = 255)
     v.size <- rowMeans(x$MixedMembership)*100 + 15
-    layout(matrix(1:2,ncol=2), widths = c(2,1), heights = c(1,1))
     opar <- par(mar=c(0,0,0,0)+.75)
     on.exit(par(opar))
+    layout(matrix(1:2,ncol=2), widths = c(2,1), heights = c(1,1))
     igraph::plot.igraph(block.G, main = "",
          edge.width=4, edge.color=e.cols,  edge.curved = x$directed, edge.arrow.size = .65,
          vertex.size=v.size, vertex.color="gray80", vertex.frame.color="black",
@@ -99,8 +96,8 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     par(opar)
     legend_image <- as.raster(matrix(rgb(colRamp(seq(1,0,length.out=50)), maxColorValue = 255), ncol=1))
     plot(c(0,2.0),c(0.3,.7),type = 'n', axes = FALSE ,xlab = '', ylab = '')
-    title('Edge\nprobability', cex.main=0.9, adj=0, line=-0.005,font=2)
-    text(x=1.5, y = seq(0.3,.7,length.out = 5), labels = seq(round(min(igraph::E(block.G)$weight),2),
+    title('Edge\nprobability', cex.main=0.9, adj=0,font=2)
+    text(x=1.5, pos = 4, offset = 0.25, y = seq(0.3,.7,length.out = 5), labels = seq(round(min(igraph::E(block.G)$weight),2),
                                                              round(max(igraph::E(block.G)$weight),2),
                                                              length.out =5), cex = 0.75, font=2)
     rasterImage(legend_image, 0, 0.3, 1, 0.7)

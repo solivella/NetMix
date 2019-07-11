@@ -16,12 +16,11 @@
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
 #' @examples 
-#' \dontrun{
 #' library(NetMix)
 #' ## Load datasets
 #' data("lazega_dyadic")
 #' data("lazega_monadic")
-#' ## Estimate model with 3 groups
+#' ## Estimate model with 2 groups
 #' set.seed(123)
 #' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 #'                       ~  School + Practice + Status,
@@ -30,11 +29,11 @@
 #'                       nodeID = "Lawyer",
 #'                       data.dyad = lazega_dyadic,
 #'                       data.monad = lazega_monadic,
-#'                       n.blocks = 3)
+#'                       n.blocks = 2)
 #' 
 #' ## Show top 6 lawyers in each estimated latent block
 #' head(lazega_mmsbm)
-#' }
+#' 
 
 
 head.mmsbm <- function(x,  n=6, t=NULL, node=TRUE, t.correct=FALSE, ...){

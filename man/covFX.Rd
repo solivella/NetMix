@@ -29,12 +29,11 @@ List with named components:
 The function estimates the effect of a shift in monadic covariate values on the probability of edge formation in the network.
 }
 \examples{
-\dontrun{
 library(NetMix)
 ## Load datasets
 data("lazega_dyadic")
 data("lazega_monadic")
-## Estimate model with 3 groups
+## Estimate model with 2 groups
 set.seed(123)
 lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       ~  School + Practice + Age,
@@ -43,12 +42,12 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       nodeID = "Lawyer",
                       data.dyad = lazega_dyadic,
                       data.monad = lazega_monadic,
-                      n.blocks = 3)
+                      n.blocks = 2)
 
 ## Compute effect of decreasing every lawyers' age by 10 years
 fx_list <- covFX(lazega_mmsbm, cov = "Age", shift = -10)
 fx_list[["Overall Avg. Effect of Age"]]
-}
+
 }
 \author{
 Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)

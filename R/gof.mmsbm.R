@@ -34,12 +34,11 @@
 #' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
 #' @examples 
-#' \dontrun{
 #' library(NetMix)
 #' ## Load datasets
 #' data("lazega_dyadic")
 #' data("lazega_monadic")
-#' ## Estimate model with 3 groups
+#' ## Estimate model with 2 groups
 #' set.seed(123)
 #' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 #'                       ~  School + Practice + Status,
@@ -48,13 +47,13 @@
 #'                       nodeID = "Lawyer",
 #'                       data.dyad = lazega_dyadic,
 #'                       data.monad = lazega_monadic,
-#'                       n.blocks = 3)
+#'                       n.blocks = 2)
 #' 
 #' ## Plot observed (red) and simulated (gray) distributions over 
-#' ## geodesic distances, outdegrees and indegrees
-#' ## (typically a larger number of samples would be taken!) 
-#' gof(lazega_mmsbm, seed = 123, samples = 15)
-#'}
+#' ## geodesic distances
+#' ## (typically a larger number of samples would be taken) 
+#' gof(lazega_mmsbm, gof_stat = "Geodesics", seed = 123, samples = 5)
+#'
 gof <- function (x, ...) {
   UseMethod("gof", x)
 }
@@ -90,7 +89,7 @@ gof.mmsbm <- function(x,
       stop("Packages \"ergm\" and \"network\" needed to compute requested statistics. Please install them.",
            call. = FALSE)
     } else {
-      cat("Resorting to third-party package \"ergm\"; expect substantial increase in computation time.\n")
+      message("Resorting to third-party package \"ergm\"; expect substantial increase in computation time.\n")
     }
   }
   
