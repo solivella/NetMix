@@ -85,7 +85,7 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     e.weight <- (1/diff(range(igraph::E(block.G)$weight))) * (igraph::E(block.G)$weight - max(igraph::E(block.G)$weight)) + 1
     e.cols <- rgb(colRamp(e.weight), maxColorValue = 255)
     v.size <- rowMeans(x$MixedMembership)*100 + 15
-    opar <- par(mar=c(0,0,0,0)+.75)
+    opar <- par(mar=c(0,0,0,.15)+1.0)
     on.exit(par(opar), add = TRUE)
     graphics::layout(matrix(1:2,ncol=2), widths = c(2,1), heights = c(1,1))
     on.exit(graphics::layout(matrix(1,ncol=1), widths = c(1), heights = c(1)), add = TRUE)
