@@ -36,7 +36,7 @@
 #' 
 #' ## Estimate model with 2 groups
 #' set.seed(123)
-#' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
+#' lazega_mmsbm <- mmsbm(SocializeWith ~ 1,
 #'                       senderID = "Lawyer1",
 #'                       receiverID = "Lawyer2",
 #'                       nodeID = "Lawyer",
@@ -44,9 +44,9 @@
 #'                       data.monad = partners_monadic,
 #'                       n.blocks = 2)
 #' 
-#' ## Get confidence intervals for coefficients
+#' ## Get confidence intervals for intercepts
 #' ## (typically requires many more iterations)
-#' boot_mmsbm(lazega_mmsbm, iter = 5)
+#' boot_mmsbm(lazega_mmsbm, iter = 2, parallel = FALSE)
 #' 
 
 
@@ -125,7 +125,9 @@ boot_mmsbm <- function(fm, iter = 50, level = 0.9, full_obj = FALSE, parallel = 
       return(result)
     }
   }
-  doParallel::stopImplicitCluster()
+  if(parallel){
+    doParallel::stopImplicitCluster()
+  }
   if(!full_obj){
     monadic_coef <- vector("list", fm$n_states)
     for(i in 1:fm$n_states){
@@ -139,12 +141,16 @@ boot_mmsbm <- function(fm, iter = 50, level = 0.9, full_obj = FALSE, parallel = 
       monadic_coef[[i]] <- as.array(monadic_coef[[i]][complete.cases(monadic_coef[[i]]), ,drop = FALSE])
     }
     names(monadic_coef) <- paste("State",1:fm$n_states)
-    all_coef_dyad <- sapply(boot.res,
-                            function(x){
-                              c(NA,x$dyadic)
-                            })
-    all_coef_dyad <- t(apply(all_coef_dyad, 1, quantile, probs = c((1-level)/2, 0.5, 1 - (1-level)/2), na.rm=TRUE))
-    all_coef_dyad <- as.array(all_coef_dyad[complete.cases(all_coef_dyad),, drop=FALSE])
+    if(length(fm$DyadCoef) > 0) {
+      all_coef_dyad <- sapply(boot.res,
+                              function(x){
+                                c(NA,x$dyadic)
+                              })
+      all_coef_dyad <- t(apply(all_coef_dyad, 1, quantile, probs = c((1-level)/2, 0.5, 1 - (1-level)/2), na.rm=TRUE))
+      all_coef_dyad <- as.array(all_coef_dyad[complete.cases(all_coef_dyad),, drop=FALSE])
+    } else {
+      all_coef_dyad <-  NULL
+    }
     boot.res <- list(MonadCoef = monadic_coef,
                      DyadCoef = all_coef_dyad)
   }

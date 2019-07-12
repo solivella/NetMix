@@ -47,7 +47,7 @@ partners_dyadic <- lazega_dyadic[partner_indicator, ]
 
 ## Estimate model with 2 groups
 set.seed(123)
-lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
+lazega_mmsbm <- mmsbm(SocializeWith ~ 1,
                       senderID = "Lawyer1",
                       receiverID = "Lawyer2",
                       nodeID = "Lawyer",
@@ -55,9 +55,9 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       data.monad = partners_monadic,
                       n.blocks = 2)
 
-## Get confidence intervals for coefficients
+## Get confidence intervals for intercepts
 ## (typically requires many more iterations)
-boot_mmsbm(lazega_mmsbm, iter = 5)
+boot_mmsbm(lazega_mmsbm, iter = 2, parallel = FALSE)
 
 }
 \author{
