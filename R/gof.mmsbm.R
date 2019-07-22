@@ -38,10 +38,10 @@
 #' ## Load datasets
 #' data("lazega_dyadic")
 #' data("lazega_monadic")
+#' 
 #' ## Estimate model with 2 groups
 #' set.seed(123)
 #' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
-#'                       ~  School + Practice + Status,
 #'                       senderID = "Lawyer1",
 #'                       receiverID = "Lawyer2",
 #'                       nodeID = "Lawyer",
@@ -52,8 +52,9 @@
 #' ## Plot observed (red) and simulated (gray) distributions over 
 #' ## geodesic distances
 #' ## (typically a larger number of samples would be taken) 
-#' gof(lazega_mmsbm, gof_stat = "Geodesics", seed = 123, samples = 5)
+#' gof(lazega_mmsbm, gof_stat = "Geodesics", samples = 2)
 #'
+
 gof <- function (x, ...) {
   UseMethod("gof", x)
 }
@@ -138,11 +139,12 @@ gof.mmsbm <- function(x,
     )
   }
 
-  
-  ## Get networks
+
+  # Get networks
+
   el <- simulate(x, samples, seed=seed,
                  new.data.dyad,
-                 new.data.monad, 
+                 new.data.monad,
                  parametric_mm)
   if(!is.null(new.data.dyad)){
     if(is.null(x$forms$timeID)){
@@ -159,6 +161,8 @@ gof.mmsbm <- function(x,
     obs_dyad <- x$dyadic.data[,c("(sid)","(rid)","(tid)")]
     el_obs <- x$dyadic.data[x$Y==1,c("(sid)","(rid)", "(tid)")]
   }
+
+
   ## Convert to igraph objects
   nets_sim <- lapply(el,
                  function(i){
@@ -175,15 +179,14 @@ gof.mmsbm <- function(x,
                     function(y){
                       igraph::graph_from_edgelist(as.matrix(y[,c(1, 2)]), x$directed)
                     })
-  
   ## Compute for simulated nets
   sim_stats_l <- lapply(gof_stat, gof_getter, nets = unlist(nets_sim, recursive = FALSE), fm = x)
-  alpha <- (1 - level)/2 
+  alpha <- (1 - level)/2
   sim_stats <- mapply(function(z, y){
                        if(is.list(z)){
                          z <- do.call(.cbind.fill, z)
                        }
-                       z[is.na(z)] <- 0  
+                       z[is.na(z)] <- 0
                        res <- as.data.frame(t(apply(z, 1, quantile, probs = c(alpha, 0.5, level + alpha), na.rm=TRUE)))
                        names(res) <- c("LB","Est","UB")
                        res$GOF <- y
@@ -192,13 +195,13 @@ gof.mmsbm <- function(x,
                       },
                       sim_stats_l, gof_stat,
                       SIMPLIFY = FALSE)
-  sim_stats_full <-  do.call("rbind",sim_stats)  
+  sim_stats_full <-  do.call("rbind",sim_stats)
   Observed_l <- lapply(gof_stat, gof_getter, nets = net_obs, fm = x)
   obs_stats <- mapply(function(z, y){
                         if(is.list(z)){
                           z <- do.call(.cbind.fill, z)
                         }
-                      z[is.na(z)] <- 0 
+                      z[is.na(z)] <- 0
                       res <- data.frame(Observed = apply(z, 1, median, na.rm=TRUE))
                       res$GOF <- y
                       res$Val <- as.numeric(rownames(res))
@@ -206,7 +209,7 @@ gof.mmsbm <- function(x,
                       },
                       Observed_l, gof_stat,
                       SIMPLIFY = FALSE)
-  Observed <- do.call("rbind", obs_stats)  
+  Observed <- do.call("rbind", obs_stats)
   res_df <- merge(sim_stats_full, Observed)
 
   ## Plot results
@@ -214,7 +217,7 @@ gof.mmsbm <- function(x,
     ggplot2::facet_wrap(~GOF, scales="free") +
     ggplot2::geom_linerange(ggplot2::aes_string(ymin="LB", ymax="UB"), col="gray60", lwd=2) +
     ggplot2::geom_line(ggplot2::aes_string(y="Observed"), lwd=1.1, alpha=0.5, col="darkred") +
-    ggplot2::theme_bw() + 
+    ggplot2::theme_bw() +
     ggplot2::xlab("") +
     ggplot2::ylab("Density"))
 } 

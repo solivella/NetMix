@@ -84,8 +84,8 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     block.G <- igraph::graph.adjacency(plogis(adj_mat), mode=mode, weighted=TRUE)
     e.weight <- (1/diff(range(igraph::E(block.G)$weight))) * (igraph::E(block.G)$weight - max(igraph::E(block.G)$weight)) + 1
     e.cols <- rgb(colRamp(e.weight), maxColorValue = 255)
-    v.size <- rowMeans(x$MixedMembership)*100 + 15
-    opar <- par(mar=c(0,0,0,.15)+1.0)
+    v.size <- rowMeans(x$MixedMembership)*100 + 20
+    opar <- par(mar=c(0,0,0,.05)+1.0)
     on.exit(par(opar), add = TRUE)
     graphics::layout(matrix(1:2,ncol=2), widths = c(2,1), heights = c(1,1))
     on.exit(graphics::layout(matrix(1,ncol=1), widths = c(1), heights = c(1)), add = TRUE)
@@ -94,7 +94,7 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
          vertex.size=v.size, vertex.color="gray80", vertex.frame.color="black",
          vertex.label.font=2, vertex.label.cex=1, vertex.label.color="black",
          layout = igraph::layout_with_graphopt)
-    par(opar)
+    par(mar=c(5, 0, 5, 5) + 0.1)
     legend_image <- as.raster(matrix(rgb(colRamp(seq(1,0,length.out=50)), maxColorValue = 255), ncol=1))
     plot(c(0,2.0),c(0.3,.7),type = 'n', axes = FALSE ,xlab = '', ylab = '')
     title('Edge\nprobability', cex.main=0.9, adj=0,font=2)

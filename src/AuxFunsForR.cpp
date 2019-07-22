@@ -51,3 +51,4 @@ Rcpp::IntegerMatrix getZ(Rcpp::NumericMatrix pi_mat)
   }
   return(res);
 }
+

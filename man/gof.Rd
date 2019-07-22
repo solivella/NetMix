@@ -58,10 +58,10 @@ library(NetMix)
 ## Load datasets
 data("lazega_dyadic")
 data("lazega_monadic")
+
 ## Estimate model with 2 groups
 set.seed(123)
 lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
-                      ~  School + Practice + Status,
                       senderID = "Lawyer1",
                       receiverID = "Lawyer2",
                       nodeID = "Lawyer",
@@ -72,7 +72,7 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 ## Plot observed (red) and simulated (gray) distributions over 
 ## geodesic distances
 ## (typically a larger number of samples would be taken) 
-gof(lazega_mmsbm, gof_stat = "Geodesics", seed = 123, samples = 5)
+gof(lazega_mmsbm, gof_stat = "Geodesics", samples = 2)
 
 }
 \author{
