@@ -601,6 +601,43 @@ void MMModel::updatePhi()
 }
 
 /**
+ * Convergence checkers
+ */
+bool MMModel::maxDiffCheck(Array<double>& current,
+                        Rcpp::NumericVector& old,
+                        double tol)
+{
+  Rcpp::NumericVector diff(old.size());
+  std::transform(current.begin(), current.end(),
+                 old.begin(), diff.begin(),
+                 [&](double x, double y){return fabs(x - y);});
+  double max_val = *std::max_element(diff.begin(), diff.end());
+  return max_val > tol ? false : true;
+}
+
+bool MMModel::checkConv(char p,
+                        Rcpp::NumericVector& old,
+                        double tol)
+{
+  bool conv;
+  switch(p) {
+  case 'b':
+    conv = maxDiffCheck(b_t, old, tol);
+    break;
+  case 'g':
+    conv = maxDiffCheck(gamma, old, tol);
+    break;
+  case 'e':
+    conv = maxDiffCheck(beta, old, tol);
+    break;
+  case 'c':
+    conv = maxDiffCheck(e_c_t, old, tol);
+    break;
+  }
+  return conv;
+}
+
+/**
  GETTER FUNCTIONS
  */
 
@@ -652,6 +689,11 @@ NumericMatrix MMModel::getC()
     }
   }
   return res;
+}
+
+void MMModel::getC(NumericVector& res)
+{
+  std::copy(e_c_t.begin(), e_c_t.end(), res.begin());
 }
 
 NumericVector MMModel::getGamma()

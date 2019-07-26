@@ -83,7 +83,7 @@ to 1 (i.e. no HMM).}
    \item{permute}{Boolean. Should all permutations be tested to realign initial block models in dynamic case? If \code{FALSE}, realignment is 
                  done via faster graph matching algorithm, but may not be exact. Defaults to \code{TRUE}.}
    \item{threads}{Numeric integer. Number of available cores for paralellization. Defaults to 4}
-   \item{conv_tol}{Numeric value. Absolute tolerance for VI convergence. Defaults to 1e-4}
+   \item{conv_tol}{Numeric value. Absolute tolerance for VI convergence. Defaults to 1e-3}
    \item{verbose}{Boolean. Should extra information be printed as model iterates? Defaults to FALSE}
    }}
 }
@@ -100,7 +100,6 @@ Object of class \code{mmsbm}. List with named components:
       \item{TransitionKernel}{Matrix of estimated HMM transition probabilities}
       \item{Kappa}{Matrix of marginal probabilities of being in an HMM state at any given point in time. 
                    \code{n.hmmstates} by years (or whatever time interval networks are observed at)}
-      \item{LowerBound}{Value of the lower bound at final iteration}
       \item{niter}{Final number of VI iterations}
       \item{converged}{Convergence indicator; zero indicates failure to converge}
       \item{NodeIndex}{Order in which nodes are stored in all return objects}

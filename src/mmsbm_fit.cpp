@@ -96,16 +96,24 @@ int iter = 0,
 bool conv = false,
   verbose = as<bool>(control["verbose"]);
 
-double newLL, oldLL,
-  tol = as<double>(control["conv_tol"]);
+double tol = as<double>(control["conv_tol"]);
+  //,newLL, oldLL;
+  
 
-oldLL = Model.cLL();
-newLL = 0.0;
+NumericVector old_beta(N_BLK * N_STATE * x_t.nrow()),
+old_gamma(z_t.nrow()),
+old_bm(N_BLK * N_BLK),
+old_c(N_BLK * x_t.ncol());
+
+// oldLL = Model.cLL();
+// newLL = 0.0;
 while(iter < EM_ITER && conv == false){
   checkUserInterrupt();
   
   // E-STEP
+  Model.getC(old_c);
   Model.updatePhi();
+  
   
   
   if(N_STATE > 1){
@@ -115,24 +123,34 @@ while(iter < EM_ITER && conv == false){
   
   
   //M-STEP
+  Model.getBeta(old_beta);
   Model.optim_ours(true); //optimize alphaLB
   
+  Model.getGamma(old_gamma);
+  Model.getB(old_bm);
   Model.optim_ours(false); //optimize thetaLB
   
   
   
   
   //Check convergence
-  newLL = Model.cLL();
-  
-  if(fabs((newLL-oldLL)/oldLL) < tol){
+  if(//Model.checkConv('c', old_c, tol) &&
+     Model.checkConv('b', old_bm, tol) &&
+     Model.checkConv('e', old_beta, tol) &&
+     Model.checkConv('g', old_gamma, tol)){
     conv = true;
-  } else {
-    oldLL = newLL;
   }
+  
+  
+  // newLL = Model.cLL();
+  // if(fabs((newLL-oldLL)/oldLL) < tol){
+  //   conv = true;
+  // } else {
+  //   oldLL = newLL;
+  // }
   if(verbose){
-    if((iter+1) % 25 == 0) {
-      Rprintf("LB %i: %f\n", iter + 1, -newLL);
+    if((iter+1) % 50 == 0) {
+      Rprintf("Iter %i\n", iter + 1);
     }
   }
     
@@ -158,7 +176,7 @@ res["MonadCoef"] = beta_res;
 res["Kappa"] = kappa_res;
 res["n_states"] = N_STATE;
 res["n_blocks"] = N_BLK;
-res["LowerBound"] = newLL;
+//res["LowerBound"] = newLL;
 res["niter"] = iter;
 res["converged"] = conv;
 

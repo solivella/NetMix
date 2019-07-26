@@ -50,6 +50,9 @@ const T& operator[](int i) const {
   const T& operator()(int i, int j, int k) const {
     return (data[i + dims[0] * (j + dims[1] * k)]);
   }
+  const int size(){
+    data.size();
+  }
 
 private:
   std::vector<int> dims;
