@@ -1,7 +1,7 @@
 Package: NetMix
 Type: Package
 Title: Dynamic Mixed-Membership Network Regression Model
-Version: 0.1.5
+Version: 0.1.5.9001
 Date: 2019-07-25
 Encoding: UTF-8
 Author: Kosuke Imai [aut, cre],
@@ -16,7 +16,7 @@ Description: Variational EM estimation of mixed-membership stochastic blockmodel
              historical periods. In addition, the package offers a variety of utilities for 
              exploring results of estimation, including tools for conducting posterior 
              predictive checks of goodness-of-fit and several plotting functions. The package 
-             implements methods described in Olivella, Pratt and Imai (2019) ''Dynamic Stochastic
+             implements methods described in Olivella, Pratt and Imai (2019) ``Dynamic Stochastic
              Blockmodel Regression for Social Networks: Application to International Conflicts'',
              available at <http://santiagoolivella.info/wp-content/uploads/2018/07/dSBM_Reg.pdf>.
 BugReports: https://github.com/solivella/NetMix/issues 

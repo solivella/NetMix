@@ -102,8 +102,8 @@ double tol = as<double>(control["conv_tol"]);
 
 NumericVector old_beta(N_BLK * N_STATE * x_t.nrow()),
 old_gamma(z_t.nrow()),
-old_bm(N_BLK * N_BLK),
-old_c(N_BLK * x_t.ncol());
+//old_c(N_BLK * x_t.ncol()),
+old_bm(N_BLK * N_BLK);
 
 // oldLL = Model.cLL();
 // newLL = 0.0;
@@ -111,7 +111,7 @@ while(iter < EM_ITER && conv == false){
   checkUserInterrupt();
   
   // E-STEP
-  Model.getC(old_c);
+  //Model.getC(old_c);
   Model.updatePhi();
   
   

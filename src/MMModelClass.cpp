@@ -403,11 +403,11 @@ double MMModel::cLL()
 void MMModel::optim_ours(bool alpha)
 {
   if(alpha){
-    std::copy(beta_init.begin(), beta_init.end(), beta.begin());
+    //std::copy(beta_init.begin(), beta_init.end(), beta.begin());
     vmmin_ours(N_MONAD_PRED * N_BLK * N_STATE, &beta[0], &fminAlpha, alphaLBW, alphaGrW, OPT_ITER, 0,
                &maskalpha[0], -1.0e+35, 1.0e-6, 1, this, &fncountAlpha, &grcountAlpha, &m_failAlpha);
   } else {
-    std::copy(gamma_init.begin(), gamma_init.end(), theta_par.begin() + N_B_PAR);
+    //std::copy(gamma_init.begin(), gamma_init.end(), theta_par.begin() + N_B_PAR);
     vmmin_ours(N_B_PAR + N_DYAD_PRED, &theta_par[0], &fminTheta, thetaLBW, thetaGrW, OPT_ITER, 0,
                &masktheta[0], -1.0e+35, 1.0e-6, 1, this, &fncountTheta, &grcountTheta, &m_failTheta);
   }
