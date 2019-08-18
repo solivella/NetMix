@@ -22,12 +22,12 @@ Description: Variational EM estimation of mixed-membership stochastic blockmodel
 BugReports: https://github.com/solivella/NetMix/issues 
 NeedsCompilation: yes
 License: GPL (>= 2)
-Depends: R (>= 3.1.0)
+Depends: R (>= 3.5.0)
 SystemRequirements: C++11
-Suggests: doParallel (>= 1.0.14), ergm (>= 3.9.4), foreach (>= 1.4.4), ggplot2 (>= 3.1.1), network (>= 1.13)
+Suggests: ergm (>= 3.9.4), ggplot2 (>= 3.1.1), network (>= 1.13)
 Imports: clue (>= 0.3-54), graphics (>= 3.5.2),
          grDevices (>= 3.5.2), gtools (>= 3.8.1), igraph (>= 1.2.4.1),
-         lda (>= 1.4.2), Matrix (>= 1.2-15), methods (>= 3.5.2),
+         lda (>= 1.4.2), Matrix (>= 1.2-15), methods (>= 3.5.2), poisbinom (>= 1.0.1),
          Rcpp (>= 0.12.13), RSpectra (>= 0.14-0), stats (>= 3.5.2), utils (>= 3.5.2)
 LinkingTo: Rcpp
 RoxygenNote: 6.1.1

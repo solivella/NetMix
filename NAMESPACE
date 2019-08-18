@@ -8,7 +8,7 @@ importFrom("Rcpp", "evalCpp")
 importFrom("stats", "as.formula", "coef", "complete.cases", "density",
              "fitted", "kmeans", "lm.fit", "median", "model.frame",
              "model.matrix", "model.response", "na.omit", "plogis",
-             "predict", "qlogis", "quantile", "rbinom", "rgamma",
+             "predict", "dlogis", "qlogis", "quantile", "rbinom", "rgamma",
              "rmultinom", "simulate", "terms", "update", "update.formula")
 importFrom("utils", "getS3method","head")
 importClassesFrom(Matrix)
@@ -18,3 +18,5 @@ S3method(plot, mmsbm)
 S3method(predict, mmsbm)
 S3method(simulate, mmsbm)
 S3method(summary, mmsbm)
+S3method(vcov, mmsbm)
+
