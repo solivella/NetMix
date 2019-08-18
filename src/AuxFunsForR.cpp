@@ -35,7 +35,7 @@ Rcpp::IntegerMatrix getZ(Rcpp::NumericMatrix pi_mat)
 {
   int NROW = pi_mat.nrow();
   int NCOL = pi_mat.ncol();
-  int mflag, bloc;
+  int mflag, bloc; 
   double u, acc;
   Rcpp::NumericVector cprob(NROW); 
   Rcpp::IntegerMatrix res(NROW, NCOL);

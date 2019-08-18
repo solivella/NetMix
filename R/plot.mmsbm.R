@@ -16,7 +16,7 @@
 #' 
 #' @method plot mmsbm
 #'
-#' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
+#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 #' 
 #' @examples 
 #' library(NetMix)
@@ -46,33 +46,6 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
       stop("Package \"ggplot2\" needed to produce requested plot. Please install it.",
            call. = FALSE)
     }
-  }
-  if(type=="blockmodel"){
-    mode <- ifelse(eval(x$forms$directed), "directed", "undirected")
-    v.size <- rowMeans(x$MixedMembership)
-    
-    bm <- x$BlockModel
-    if(mode!="directed") {
-      bm[upper.tri(bm)] <- NA
-    }
-    
-    dm <- data.frame(Sender = rep(rownames(x$BlockModel), times = x$n_blocks),
-                     Receiver = rep(colnames(x$BlockModel), each = x$n_blocks),
-                     Val = plogis(c(bm)),
-                     Height = rep(v.size*(x$n_blocks-0.35), x$n_blocks),
-                     Width = rep(v.size*(x$n_blocks-0.35), each=x$n_blocks))
-    
-    dm <- dm[complete.cases(dm),]
-    
-    dm$Sender  <- factor(dm$Sender, levels=rev(rownames(x$BlockModel)))
-    
-    return(ggplot2::ggplot(ggplot2::aes_string(y = "Sender", x ="Receiver", 
-                                               fill="Val", width="Width", height="Height"),
-                    data = dm) + 
-      ggplot2::geom_tile(color = "white") + ggplot2::theme_bw()+
-      ggplot2::scale_size(guide='none') +
-      ggplot2::scale_fill_gradient2(low = "#deebf7", mid = "#9ecae1", high = "#3182bd",
-                           midpoint = 0.5, limit = c(0,1), name="Edge\nProbability"))
   }
   
   if(type=="groups"){

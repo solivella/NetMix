@@ -59,22 +59,21 @@ to 1 (i.e. no HMM).}
    \item{init.dyn.gibbs}{Boolean. Should a collapsed Gibbs sampler of non-regression mmsbm be used to initialize
                each time period when multiple time periods are observed (instead of a spectral or simple kmeans initialization)?
                Setting to \code{TRUE} will be result in faster estimation that is very sensitive to
-               choice of alpha (see below)}            
+               choice of alpha (see below).}            
    \item{alpha}{Numeric positive value. Concentration parameter for collapsed Gibbs sampler to find initial
-                mixed-membership values in dynamic case when \code{init.dyn.gibbs=TRUE}. Defaults to 0.5}            
-   \item{seed}{RNG seed. Defaults to \code{NULL}, which does not seed the RNG}            
-   \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3}
-   \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3}
+                mixed-membership values in dynamic case when \code{init.dyn.gibbs=TRUE}. Defaults to 0.5.}            
+   \item{seed}{RNG seed. Defaults to \code{NULL}, which does not seed the RNG.}            
+   \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3.}
+   \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3.}
    \item{mu_b}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
-               and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)}}
+               and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)}.}
    \item{var_b}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
-               and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(1.0, 1.0)}}
+               and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(1.0, 1.0)}.}
    \item{var_beta}{Numeric positive value. (Gaussian) Prior variance of monadic coefficients. Defaults to 5.0.}
    \item{var_gamma}{Numeric positive value. (Gaussian) Prior variance of dyadic coefficients. Defaults to 5.0.}
-   \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 10.3}
+   \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 10.3.}
    \item{phi_init_t}{Matrix, \code{n.blocks} by total number of nodes across years. Optional initial values for variational
-                  parameters for mixed-membership vectors. Column names must be of the form \code{nodeid\@year}
-                  }
+                  parameters for mixed-membership vectors. Column names must be of the form \code{nodeid\@year }.}
    \item{kappa_init_t}{Matrix, \code{n.hmmstates} by number of years. Optional initial values for variational 
                   parameters for state probabilities.}
    \item{b_init_t}{Matrix, \code{n.blocks} by \code{n.blocks}. Optional initial values for blockmodel.}
@@ -82,30 +81,33 @@ to 1 (i.e. no HMM).}
    \item{gamma_init}{Vector. Optional initial values for dyadic coefficients.}
    \item{permute}{Boolean. Should all permutations be tested to realign initial block models in dynamic case? If \code{FALSE}, realignment is 
                  done via faster graph matching algorithm, but may not be exact. Defaults to \code{TRUE}.}
-   \item{threads}{Numeric integer. Number of available cores for paralellization. Defaults to 4}
-   \item{conv_tol}{Numeric value. Absolute tolerance for VI convergence. Defaults to 1e-3}
-   \item{verbose}{Boolean. Should extra information be printed as model iterates? Defaults to FALSE}
+   \item{threads}{Numeric integer. Number of available cores for paralellization. Defaults to 4.}
+   \item{conv_tol}{Numeric value. Absolute tolerance for VI convergence. Defaults to 1e-3.}
+   \item{verbose}{Boolean. Should extra information be printed as model iterates? Defaults to FALSE.}
    }}
 }
 \value{
 Object of class \code{mmsbm}. List with named components:
     \describe{
       \item{MixedMembership}{Matrix of variational posterior of mean of mixed-membership vectors. \code{nodes} by \
-                             \code{n.groups}}
+                             \code{n.groups}.}
       \item{BlockModel}{\code{n.groups} by \code{n.groups} matrix of estimated tie log-odds between members
                         of corresponding latent groups. The blockmodel.}
+      \item{vcov_blockmodel}{Variance-covariance matrix of parameters in blockmodel, ordered in column-major order.}
       \item{MonadCoef}{Array of estimated coefficient values for monadic covariates. Has \code{n.groups} columns,
                        and \code{n.hmmstates} slices.}
-      \item{DyadCoef}{Vector estimated coefficient values for dyadic covariates}
-      \item{TransitionKernel}{Matrix of estimated HMM transition probabilities}
+      \item{vcov_monad}{List of variance-covariance matrices of monadic coefficients, with \code{n.hmmstates} elements.}                  
+      \item{DyadCoef}{Vector estimated coefficient values for dyadic covariates.}
+      \item{vcov_dyad}{Variance-covariance matrix of dyadic coefficients.}
+      \item{TransitionKernel}{Matrix of estimated HMM transition probabilities.}
       \item{Kappa}{Matrix of marginal probabilities of being in an HMM state at any given point in time. 
-                   \code{n.hmmstates} by years (or whatever time interval networks are observed at)}
-      \item{niter}{Final number of VI iterations}
-      \item{converged}{Convergence indicator; zero indicates failure to converge}
-      \item{NodeIndex}{Order in which nodes are stored in all return objects}
-      \item{monadic.data, dyadic.data, directed}{Original values of parameters used during estimation}
-      \item{forms}{Values of formal arguments passed in original function call}
-      \item{call}{Original (unevaluated) call}
+                   \code{n.hmmstates} by years (or whatever time interval networks are observed at).}
+      \item{niter}{Final number of VI iterations.}
+      \item{converged}{Convergence indicator; zero indicates failure to converge.}
+      \item{NodeIndex}{Order in which nodes are stored in all return objects.}
+      \item{monadic.data, dyadic.data, directed}{Original values of parameters used during estimation.}
+      \item{forms}{Values of formal arguments passed in original function call.}
+      \item{call}{Original (unevaluated) call.}
     }
 }
 \description{
@@ -130,5 +132,5 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 
 }
 \author{
-Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)
+Santiago Olivella (olivella@unc.edu), Adeline Lo (adelinel@princeton.edu), Tyler Pratt (tyler.pratt@yale.edu), Kosuke Imai (imai@harvard.edu)
 }

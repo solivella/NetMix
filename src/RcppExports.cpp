@@ -29,6 +29,41 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// calcHessBeta
+Rcpp::NumericMatrix calcHessBeta(Rcpp::NumericMatrix A, Rcpp::NumericMatrix C, Rcpp::NumericMatrix X, Rcpp::NumericVector Xi, Rcpp::NumericVector N, Rcpp::NumericMatrix beta, double var_beta);
+RcppExport SEXP _NetMix_calcHessBeta(SEXP ASEXP, SEXP CSEXP, SEXP XSEXP, SEXP XiSEXP, SEXP NSEXP, SEXP betaSEXP, SEXP var_betaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type A(ASEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type C(CSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type X(XSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Xi(XiSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type N(NSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< double >::type var_beta(var_betaSEXP);
+    rcpp_result_gen = Rcpp::wrap(calcHessBeta(A, C, X, Xi, N, beta, var_beta));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calcHessTheta
+Rcpp::NumericMatrix calcHessTheta(Rcpp::IntegerMatrix z, Rcpp::IntegerMatrix w, Rcpp::NumericVector theta, Rcpp::NumericMatrix d, Rcpp::NumericVector gamma, Rcpp::NumericMatrix B, double var_gamma, Rcpp::NumericVector var_b_vec);
+RcppExport SEXP _NetMix_calcHessTheta(SEXP zSEXP, SEXP wSEXP, SEXP thetaSEXP, SEXP dSEXP, SEXP gammaSEXP, SEXP BSEXP, SEXP var_gammaSEXP, SEXP var_b_vecSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type z(zSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type w(wSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type d(dSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type gamma(gammaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type B(BSEXP);
+    Rcpp::traits::input_parameter< double >::type var_gamma(var_gammaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type var_b_vec(var_b_vecSEXP);
+    rcpp_result_gen = Rcpp::wrap(calcHessTheta(z, w, theta, d, gamma, B, var_gamma, var_b_vec));
+    return rcpp_result_gen;
+END_RCPP
+}
 // mmsbm_fit
 List mmsbm_fit(const NumericMatrix& z_t, const NumericMatrix& x_t, const IntegerVector& y, const IntegerVector& time_id_dyad, const IntegerVector& time_id_node, const IntegerVector& nodes_per_period, const IntegerMatrix& node_id_dyad, const NumericMatrix& mu_b, const NumericMatrix& var_b, const NumericMatrix& phi_init, NumericMatrix& kappa_init_t, NumericMatrix& b_init_t, NumericVector& beta_init, NumericVector& gamma_init, List control);
 RcppExport SEXP _NetMix_mmsbm_fit(SEXP z_tSEXP, SEXP x_tSEXP, SEXP ySEXP, SEXP time_id_dyadSEXP, SEXP time_id_nodeSEXP, SEXP nodes_per_periodSEXP, SEXP node_id_dyadSEXP, SEXP mu_bSEXP, SEXP var_bSEXP, SEXP phi_initSEXP, SEXP kappa_init_tSEXP, SEXP b_init_tSEXP, SEXP beta_initSEXP, SEXP gamma_initSEXP, SEXP controlSEXP) {
@@ -58,6 +93,8 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_NetMix_approxB", (DL_FUNC) &_NetMix_approxB, 3},
     {"_NetMix_getZ", (DL_FUNC) &_NetMix_getZ, 1},
+    {"_NetMix_calcHessBeta", (DL_FUNC) &_NetMix_calcHessBeta, 7},
+    {"_NetMix_calcHessTheta", (DL_FUNC) &_NetMix_calcHessTheta, 8},
     {"_NetMix_mmsbm_fit", (DL_FUNC) &_NetMix_mmsbm_fit, 15},
     {NULL, NULL, 0}
 };

@@ -39,7 +39,10 @@ public:
   
   
   Rcpp::NumericMatrix getC();
-  void getC(Rcpp::NumericVector&);
+  void getC(Rcpp::NumericVector& res);
+  Rcpp::NumericMatrix getPhi(bool);
+  Rcpp::NumericVector getTheta();
+  Rcpp::IntegerVector getN();
   Rcpp::NumericMatrix getWmn();
   Rcpp::NumericMatrix getKappa();
   Rcpp::NumericMatrix getB();
@@ -48,12 +51,12 @@ public:
   void getGamma(Rcpp::NumericVector&);
   Rcpp::List getBeta();
   void getBeta(Rcpp::NumericVector&);
-  bool maxDiffCheck(Array<double>&,
-                    Rcpp::NumericVector&,
+  bool checkConv(char p,
+                 Rcpp::NumericVector& old,
+                 double tol);
+  bool maxDiffCheck(Array<double>& current,
+                    Rcpp::NumericVector& old,
                     double tol);
-  bool checkConv(char,
-                 Rcpp::NumericVector&,
-                 double);
   
   
 private:
@@ -127,6 +130,7 @@ private:
   
   
   void computeAlpha();
+  
   void computeTheta();
   double alphaLB();
   static double alphaLBW(int, double*, void*);

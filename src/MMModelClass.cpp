@@ -162,9 +162,6 @@ double MMModel::alphaLB()
 {
   computeAlpha();
   double res = 0.0, res_int = 0.0, alpha_row = 0.0, alpha_val = 0.0;
-#ifdef _OPENMP
-#pragma omp parallel for firstprivate(alpha_row, alpha_val, res_int) reduction(+:res)
-#endif
   for(int m = 0; m < N_STATE; ++m){
     for(int p = 0; p < N_NODE; ++p){
       alpha_row = 0.0;
@@ -281,8 +278,8 @@ double MMModel::thetaLB(bool entropy = false)
           rec_phi(g, d) * log(rec_phi(g, d));
       for(int h = 0; h < N_BLK; ++h){
         res += send_phi(g, d) * rec_phi(h, d)
-        * (y[d] ? log(theta(h, g, d))
-             : log(1.0 - theta(h, g, d)));
+        * (y[d] * log(theta(h, g, d))
+             + (1.0 - y[d]) * log(1.0 - theta(h, g, d)));
         
       }
     }
@@ -403,11 +400,11 @@ double MMModel::cLL()
 void MMModel::optim_ours(bool alpha)
 {
   if(alpha){
-    //std::copy(beta_init.begin(), beta_init.end(), beta.begin());
+    std::copy(beta_init.begin(), beta_init.end(), beta.begin());
     vmmin_ours(N_MONAD_PRED * N_BLK * N_STATE, &beta[0], &fminAlpha, alphaLBW, alphaGrW, OPT_ITER, 0,
                &maskalpha[0], -1.0e+35, 1.0e-6, 1, this, &fncountAlpha, &grcountAlpha, &m_failAlpha);
   } else {
-    //std::copy(gamma_init.begin(), gamma_init.end(), theta_par.begin() + N_B_PAR);
+    std::copy(gamma_init.begin(), gamma_init.end(), theta_par.begin() + N_B_PAR);
     vmmin_ours(N_B_PAR + N_DYAD_PRED, &theta_par[0], &fminTheta, thetaLBW, thetaGrW, OPT_ITER, 0,
                &masktheta[0], -1.0e+35, 1.0e-6, 1, this, &fncountTheta, &grcountTheta, &m_failTheta);
   }
@@ -484,7 +481,7 @@ void MMModel::updateKappa()
     for(int m = 0; m < N_STATE; ++m){
       kappa_t(m, t) = exp(kappa_vec[m] - log_denom);
       if(!std::isfinite(kappa_t(m, t))){
-        stop("Kappa value became NAN.");
+        stop("Kappa value became NaN.");
       }
       if(t < (N_TIME - 1)){
         e_wm[m] += kappa_t(m, t);
@@ -537,8 +534,11 @@ void MMModel::updatePhiInternal(int dyad, int rec,
       res += phi_o[h] * (edge * log(*te) + (1.0 - edge) * log(1.0 - *te));
     }
     phi[g] = exp(res);
-    if(ISNAN(phi[g])){
-      *err = 1;
+    if(!std::isfinite(phi[g])){
+     #ifdef _OPENMP
+     #pragma omp atomic
+     #endif
+      (*err)++;
     }
     total += phi[g];
   }
@@ -583,7 +583,7 @@ void MMModel::updatePhi()
   }
   
   if(err){
-    stop("Phi value became NaN");
+    stop("Phi value became NaN.");
   }
   
   
@@ -600,12 +600,10 @@ void MMModel::updatePhi()
   }
 }
 
-/**
- * Convergence checkers
- */
+
 bool MMModel::maxDiffCheck(Array<double>& current,
-                        Rcpp::NumericVector& old,
-                        double tol)
+                           Rcpp::NumericVector& old,
+                           double tol)
 {
   Rcpp::NumericVector diff(old.size());
   std::transform(current.begin(), current.end(),
@@ -620,6 +618,7 @@ bool MMModel::checkConv(char p,
                         double tol)
 {
   bool conv;
+  //Rprintf("Checking %c; ", p);
   switch(p) {
   case 'b':
     conv = maxDiffCheck(b_t, old, tol);
@@ -674,6 +673,14 @@ void MMModel::getBeta(NumericVector& res)
   std::copy(beta.begin(), beta.end(), res.begin());
 }
 
+NumericVector MMModel::getTheta()
+{
+  NumericVector res(theta.size());
+  std::copy(theta.begin(), theta.end(), res.begin());
+  return(res);
+}
+
+
 
 NumericMatrix MMModel::getC()
 {
@@ -694,6 +701,24 @@ NumericMatrix MMModel::getC()
 void MMModel::getC(NumericVector& res)
 {
   std::copy(e_c_t.begin(), e_c_t.end(), res.begin());
+}
+
+Rcpp::NumericMatrix MMModel::getPhi(bool send)
+{
+  Rcpp::NumericMatrix res(N_BLK, N_DYAD);
+  if(send){
+    std::copy(send_phi.begin(), send_phi.end(), res.begin());
+  } else {
+    std::copy(rec_phi.begin(), rec_phi.end(), res.begin());  
+  }
+  return(res);
+}
+
+Rcpp::IntegerVector MMModel::getN()
+{
+  Rcpp::IntegerVector res(N_NODE);
+  std::copy(tot_nodes.begin(), tot_nodes.end(), res.begin());
+  return(res);
 }
 
 NumericVector MMModel::getGamma()

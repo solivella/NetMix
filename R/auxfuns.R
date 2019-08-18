@@ -25,7 +25,7 @@
 #' @param pi_mat Numeric matrix; row-stochastic matrix of mixed-memberships. 
 #' @param ... Numeric vectors; vectors of potentially different length to be cbind-ed.
 #' 
-#' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
+#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 #'
 #' @return See individual return section for each function:
 #' \describe{

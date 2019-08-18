@@ -30,7 +30,7 @@ Defaults to \code{FALSE}. If \code{is.null(new.data.monad)=FALSE}, setting this 
 List of length \code{nsim} of simulated networks. 
         If \code{new.data.dyad = NULL}, each element is a vector of length \code{nrow(object$dyadic.data)}. 
         Else, vector of length \code{nrow(new.data.dyad)}. If \code{seed} is not NULL, return object
-        includes its value as attribute "seed". .
+        includes its value as attribute "seed".
 }
 \description{
 The function generates one sample network from the posterior predictive of the model represented by a fitted \code{mmsbm} object.
@@ -56,5 +56,5 @@ lazega_sim <- simulate(lazega_mmsbm, nsim = 5, seed = 123)
 
 }
 \author{
-Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)
+Santiago Olivella (olivella@unc.edu), Adeline Lo (adelinel@princeton.edu), Tyler Pratt (tyler.pratt@yale.edu), Kosuke Imai (imai@harvard.edu)
 }

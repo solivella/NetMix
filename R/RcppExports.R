@@ -11,6 +11,14 @@
     .Call('_NetMix_getZ', PACKAGE = 'NetMix', pi_mat)
 }
 
+.calcHessBeta <- function(A, C, X, Xi, N, beta, var_beta) {
+    .Call('_NetMix_calcHessBeta', PACKAGE = 'NetMix', A, C, X, Xi, N, beta, var_beta)
+}
+
+.calcHessTheta <- function(z, w, theta, d, gamma, B, var_gamma, var_b_vec) {
+    .Call('_NetMix_calcHessTheta', PACKAGE = 'NetMix', z, w, theta, d, gamma, B, var_gamma, var_b_vec)
+}
+
 #' @name .mmsbm_fit
 #' @title Fitter Function for dynamic MMSBM Model
 #' 

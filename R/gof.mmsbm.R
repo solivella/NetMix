@@ -31,8 +31,7 @@
 #'
 #' @return A \code{ggplot} object.
 #'    
-#' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
-#' 
+#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 #' @examples 
 #' library(NetMix)
 #' ## Load datasets

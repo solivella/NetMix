@@ -76,5 +76,5 @@ gof(lazega_mmsbm, gof_stat = "Geodesics", samples = 2)
 
 }
 \author{
-Kosuke Imai (imai@harvard.edu), Tyler Pratt (tyler.pratt@yale.edu), Santiago Olivella (olivella@unc.edu)
+Santiago Olivella (olivella@unc.edu), Adeline Lo (adelinel@princeton.edu), Tyler Pratt (tyler.pratt@yale.edu), Kosuke Imai (imai@harvard.edu)
 }

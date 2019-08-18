@@ -51,7 +51,7 @@ const T& operator[](int i) const {
     return (data[i + dims[0] * (j + dims[1] * k)]);
   }
   const int size(){
-    data.size();
+    return data.size();
   }
 
 private:

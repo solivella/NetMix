@@ -17,7 +17,7 @@
 #'       \item{Avg. Effect Dyad-Time}{Vector of estimated effects of the covariate shift on the predicted probability of edge formation for each node dyad-time unit.}
 #'     }
 #' 
-#' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
+#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 #' 
 #' @examples 
 #' library(NetMix)

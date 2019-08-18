@@ -96,70 +96,55 @@ int iter = 0,
 bool conv = false,
   verbose = as<bool>(control["verbose"]);
 
-double tol = as<double>(control["conv_tol"]);
-  //,newLL, oldLL;
-  
+double tol = as<double>(control["conv_tol"])
+  ,newLL, oldLL, change_LL;
 
-NumericVector old_beta(N_BLK * N_STATE * x_t.nrow()),
-old_gamma(z_t.nrow()),
-//old_c(N_BLK * x_t.ncol()),
-old_bm(N_BLK * N_BLK);
+NumericVector old_c(N_BLK * x_t.ncol());
 
-// oldLL = Model.cLL();
-// newLL = 0.0;
+oldLL = Model.cLL();
+newLL = 0.0;
+int inner_int = 0;
+bool int_conv = false;
 while(iter < EM_ITER && conv == false){
   checkUserInterrupt();
   
   // E-STEP
-  //Model.getC(old_c);
+  inner_int = 0;
+  int_conv = false;
   Model.updatePhi();
-  
-  
   
   if(N_STATE > 1){
     Model.updateKappa();
   }
   
   
-  
   //M-STEP
-  Model.getBeta(old_beta);
   Model.optim_ours(true); //optimize alphaLB
-  
-  Model.getGamma(old_gamma);
-  Model.getB(old_bm);
   Model.optim_ours(false); //optimize thetaLB
   
-  
-  
-  
   //Check convergence
-  if(//Model.checkConv('c', old_c, tol) &&
-     Model.checkConv('b', old_bm, tol) &&
-     Model.checkConv('e', old_beta, tol) &&
-     Model.checkConv('g', old_gamma, tol)){
+  newLL = Model.cLL();
+  change_LL = fabs((newLL-oldLL)/oldLL);
+  if(change_LL < tol){
     conv = true;
+  } else {
+    oldLL = newLL;
   }
-  
-  
-  // newLL = Model.cLL();
-  // if(fabs((newLL-oldLL)/oldLL) < tol){
-  //   conv = true;
-  // } else {
-  //   oldLL = newLL;
-  // }
   if(verbose){
     if((iter+1) % 50 == 0) {
-      Rprintf("Iter %i\n", iter + 1);
+      Rprintf("Iter %i, change in LB: %f\n", iter + 1, change_LL);
     }
   }
-    
   ++iter;
 }
 
 
 //Form return objects
 NumericMatrix phi_res = Model.getC();
+NumericMatrix send_phi = Model.getPhi(true);
+NumericMatrix rec_phi = Model.getPhi(false);
+IntegerVector tot_nodes = Model.getN();
+NumericVector theta = Model.getTheta();
 NumericMatrix A = Model.getWmn();
 NumericMatrix kappa_res = Model.getKappa();
 NumericMatrix B = Model.getB();
@@ -169,6 +154,10 @@ List beta_res = Model.getBeta();
 
 List res;
 res["MixedMembership"] = phi_res;
+res["SenderPhi"] = send_phi;
+res["ReceiverPhi"] = rec_phi;
+res["TotNodes"] = tot_nodes;
+res["Theta"] = theta;
 res["BlockModel"] = B;
 res["DyadCoef"] = gamma_res;
 res["TransitionKernel"] = A;
@@ -176,7 +165,7 @@ res["MonadCoef"] = beta_res;
 res["Kappa"] = kappa_res;
 res["n_states"] = N_STATE;
 res["n_blocks"] = N_BLK;
-//res["LowerBound"] = newLL;
+res["LowerBound"] = newLL;
 res["niter"] = iter;
 res["converged"] = conv;
 
