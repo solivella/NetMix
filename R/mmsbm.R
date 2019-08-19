@@ -418,13 +418,9 @@ mmsbm <- function(formula.dyad,
                               MixedMembership = MixedMembership)                         
         
       } else {
-        # n_prior <- (dyads_pp[i] - nodes_pp[i]) * .05
-        # a <- plogis(ctrl$mu_b) * n_prior
-        # b <- n_prior - a
-        mu <- plogis(ctrl$mu_b)
-        ivar_b <- 0.25 - dlogis(ctrl$var_b)
-        a <-  mu * (mu - mu^2 - ivar_b)/ivar_b
-        b <-  ((-1 + mu) (-mu + mu^2 + ivar_b))/ivar_b
+        n_prior <- (dyads_pp[i] - nodes_pp[i]) * .05
+        a <- plogis(ctrl$mu_b) * n_prior
+        b <- n_prior - a
         lda_beta_prior <- lapply(list(b,a),
                                  function(prior){
                                    mat <- matrix(prior[2], n.blocks, n.blocks)
@@ -448,7 +444,8 @@ mmsbm <- function(formula.dyad,
       }
     }
     block_models <- lapply(temp_res, function(x)x$BlockModel)
-    perms_temp <- .findPerm(block_models, use.perms = ctrl$permute)
+    target_ind <- which.max(sapply(soc_mats, ncol))
+    perms_temp <- .findPerm(block_models, target.mat = block_models[[target_ind]], use.perms = ctrl$permute)
     phis_temp <- lapply(temp_res, function(x)x$MixedMembership) 
     phi.ord <- as.numeric(lapply(phis_temp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get correct temporal order
     ctrl$phi_init_t <- do.call(cbind,mapply(function(phi,perm){perm %*% phi},
