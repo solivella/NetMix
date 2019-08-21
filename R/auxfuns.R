@@ -23,6 +23,7 @@
 #' @param d_id Integer matrix; two-column matrix with nr. dyads rows, containing zero-based
 #'             sender (first column) and receiver (second column) node id's for each dyad. 
 #' @param pi_mat Numeric matrix; row-stochastic matrix of mixed-memberships. 
+#' @param colPalette A function produced by \code{colorRamp}.
 #' @param ... Numeric vectors; vectors of potentially different length to be cbind-ed.
 #' 
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
@@ -50,6 +51,58 @@
   }
   return(mat)
 }
+
+## Adapted from `fields`` package under GPL
+#' @rdname auxfuns
+.bar.legend <- function(colPalette){
+  col <- rgb(colPalette(seq(0,1, length.out = 100)), maxColorValue = 255)
+  zlim <- c(0, 1)
+  opar <- par(no.readonly = TRUE)
+  on.exit(par(opar), add = TRUE)
+  stick <- TRUE
+  nlevel <- length(col)
+  midpoints <- seq(zlim[1], zlim[2], , nlevel)
+  delta <- (midpoints[2] - midpoints[1])/2
+  breaks <- c(midpoints[1] - delta, midpoints + delta)
+  legend.mar <- 5.1
+  char.size <- par()$cin[1]/par()$din[1]
+  offset <- char.size * par()$mar[4]
+  legend.width <- char.size * 1.2
+  legend.mar <- legend.mar * char.size
+  smallplot <- opar$plt
+  smallplot[2] <- 1 - legend.mar
+  smallplot[1] <- smallplot[2] - legend.width
+  pr <- (smallplot[4] - smallplot[3]) * ((1 - 0.9)/2)
+  smallplot[4] <- smallplot[4] - pr
+  smallplot[3] <- smallplot[3] + pr
+  bigplot <- opar$plt
+  bigplot[2] <- min(bigplot[2], smallplot[1] - offset)
+  dp <- smallplot[2] - smallplot[1]
+  smallplot[1] <- min(bigplot[2] + offset, smallplot[1])
+  smallplot[2] <- smallplot[1] + dp
+  
+  if ((smallplot[2] < smallplot[1]) | (smallplot[4] < smallplot[3])) {
+    stop("plot region too small to add legend\n")
+  }
+  ix <- 1:2
+  iy <- breaks
+  nBreaks <- length(breaks)
+  midpoints <- (breaks[1:(nBreaks - 1)] + breaks[2:nBreaks])/2
+  iz <- matrix(midpoints, nrow = 1, ncol = length(midpoints))
+  
+  par(new = TRUE, pty = "m", plt = smallplot, err = -1)
+  graphics::image(ix, iy, iz, xaxt = "n", yaxt = "n", xlab = "", 
+        ylab = "", col = col, breaks = breaks)
+  axis.args <- c(list(side =  4, 
+                      mgp = c(3, 1, 0), las = 2))
+  
+  do.call(graphics::axis, axis.args)
+  graphics::box()
+  legend.args <- list(text = "Edge\nProbability", side = 3, line = 0.5, cex = 1, adj = 0)
+  do.call(mtext, legend.args)
+}
+
+
 
 #' @rdname auxfuns
 .mpower <- function(mat, p){

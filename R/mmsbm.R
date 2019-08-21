@@ -354,8 +354,9 @@ mmsbm <- function(formula.dyad,
           return(x)
         })
       }
-      state_init <- fitted(kmeans(dyad_time,
-                                  n.hmmstates,
+      state_init <- fitted(kmeans(x = dyad_time,
+                                  centers = n.hmmstates,
+                                  iter.max = 15,
                                   nstart = 15), "classes")
       kappa_internal <- model.matrix(~ as.factor(state_init) - 1)
       kappa_internal <- .transf(kappa_internal)
@@ -376,7 +377,7 @@ mmsbm <- function(formula.dyad,
     temp_res <- vector("list", periods)
     for(i in 1:periods){
       if(!ctrl$init.gibbs) {
-        mn <-ncol(soc_mats[[i]]) 
+        mn <- ncol(soc_mats[[i]]) 
         if(directed){
           D_o <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
           D_i <- 1/sqrt(.colSums(soc_mats[[i]], mn, mn) + 1)
@@ -401,11 +402,16 @@ mmsbm <- function(formula.dyad,
         } else {
           target <- U
         }
-        init_c <- sample(1:nrow(target), n.blocks, replace = FALSE)
-        clust_internal <- fitted(kmeans(target,
-                                        n.blocks,
-                                        centers = jitter(target[init_c, ]),
-                                        nstart = 10), "classes")
+        if(nrow(target) > n.blocks){
+          cents <- n.blocks
+        } else {
+          init_c <- sample(1:nrow(target), n.blocks, replace = FALSE)
+          cents <- jitter(target[init_c, ])
+        }
+        clust_internal <- fitted(kmeans(x = target,
+                                        centers = cents,
+                                        iter.max = 15,
+                                        nstart = ifelse(nrow(target) > n.blocks, 10, 1)), "classes")
         
         phi_internal <- model.matrix(~ as.factor(clust_internal) - 1)
         phi_internal <- .transf(phi_internal)
@@ -511,7 +517,10 @@ mmsbm <- function(formula.dyad,
   if((!fit[["converged"]]) & ctrl$verbose)
     warning(paste("Model did not converge after", fit[["niter"]], "iterations.\n"))
   else if (ctrl$verbose){
-    cat("done after", fit[["niter"]], "iterations.\nComputing approximate vcov. matrices...")
+    cat("done after", fit[["niter"]], "iterations.\n")
+  }
+  if(ctrl$verbose){
+    cat("Computing approximate vcov. matrices...\n")
   }
   
   ##Return transposes 

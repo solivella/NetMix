@@ -5,6 +5,7 @@
 \alias{.getZ}
 \alias{auxfuns}
 \alias{.cbind.fill}
+\alias{.bar.legend}
 \alias{.mpower}
 \alias{.findPerm}
 \alias{.transf}
@@ -17,6 +18,8 @@
 .getZ(pi_mat)
 
 .cbind.fill(...)
+
+.bar.legend(colPalette)
 
 .mpower(mat, p)
 
@@ -37,6 +40,8 @@ sender (first column) and receiver (second column) node id's for each dyad.}
 \item{pi_mat}{Numeric matrix; row-stochastic matrix of mixed-memberships.}
 
 \item{...}{Numeric vectors; vectors of potentially different length to be cbind-ed.}
+
+\item{colPalette}{A function produced by \code{colorRamp}.}
 
 \item{mat}{Numeric matrix}
 

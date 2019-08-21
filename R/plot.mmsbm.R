@@ -49,32 +49,29 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
   }
   
   if(type=="groups"){
-    colRamp <- colorRamp(c("#ffffcc","#fd8d3c","#800026"))
-    mode <- ifelse(eval(x$forms$directed), "directed", "undirected")
+    colRamp <- colorRamp(c("#DCDCDC","#808080","#000000"))
+    g.mode <- ifelse(eval(x$forms$directed), "directed", "undirected")
     adj_mat <- x$BlockModel
     dimnames(adj_mat) <- list(paste("G",1:nrow(adj_mat), sep=""),
                               paste("G", 1:ncol(adj_mat), sep=""))
-    block.G <- igraph::graph.adjacency(plogis(adj_mat), mode=mode, weighted=TRUE)
+    block.G <- igraph::graph.adjacency(plogis(adj_mat), mode=g.mode, weighted=TRUE)
     e.weight <- (1/diff(range(igraph::E(block.G)$weight))) * (igraph::E(block.G)$weight - max(igraph::E(block.G)$weight)) + 1
     e.cols <- rgb(colRamp(e.weight), maxColorValue = 255)
-    v.size <- rowMeans(x$MixedMembership)*100 + 20
-    opar <- par(mar=c(0,0,0,.05)+1.0)
-    on.exit(par(opar), add = TRUE)
-    graphics::layout(matrix(1:2,ncol=2), widths = c(2,1), heights = c(1,1))
-    on.exit(graphics::layout(matrix(1,ncol=1), widths = c(1), heights = c(1)), add = TRUE)
+    times.arg <- if(g.mode == "directed") {
+      x$n_blocks
+    } else {
+      rev(seq_len(x$n_blocks))
+    }
+    v.size <- rowMeans(x$MixedMembership)*100 + 30
+    loop.rads <- rep(seq(0, -1.75*pi, length.out = x$n_blocks),
+                     times = times.arg)
     igraph::plot.igraph(block.G, main = "",
-         edge.width=4, edge.color=e.cols,  edge.curved = x$directed, edge.arrow.size = .65,
-         vertex.size=v.size, vertex.color="gray80", vertex.frame.color="black",
-         vertex.label.font=2, vertex.label.cex=1, vertex.label.color="black",
-         layout = igraph::layout_with_graphopt)
-    par(mar=c(5, 0, 5, 5) + 0.1)
-    legend_image <- as.raster(matrix(rgb(colRamp(seq(1,0,length.out=50)), maxColorValue = 255), ncol=1))
-    plot(c(0,2.0),c(0.3,.7),type = 'n', axes = FALSE ,xlab = '', ylab = '')
-    title('Edge\nprobability', cex.main=0.9, adj=0,font=2)
-    text(x=1.5, pos = 4, offset = 0.25, y = seq(0.3,.7,length.out = 5), labels = seq(round(min(igraph::E(block.G)$weight),2),
-                                                             round(max(igraph::E(block.G)$weight),2),
-                                                             length.out =5), cex = 0.75, font=2)
-    rasterImage(legend_image, 0, 0.3, 1, 0.7)
+                        edge.width=4, edge.color=e.cols,  edge.curved = x$directed, edge.arrow.size = 0.65,
+                        edge.loop.angle = loop.rads,
+                        vertex.size=v.size, vertex.color="gray80", vertex.frame.color="black",
+                        vertex.label.font=2, vertex.label.cex=1, vertex.label.color="black",
+                        layout = igraph::layout_in_circle)
+    .bar.legend(colRamp)
   }
   
   if(type=="membership"){
