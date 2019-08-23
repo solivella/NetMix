@@ -248,7 +248,7 @@ mmsbm <- function(formula.dyad,
                                    tid = as.name(timeID),
                                    sid = as.name(senderID),
                                    rid = as.name(receiverID)))
-
+  
   
   ut <- unique(mfd[["(tid)"]])
   periods <- length(ut)
@@ -535,7 +535,6 @@ mmsbm <- function(formula.dyad,
     fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]])
   }
   if(ncol(Z)>1){
-  
     names(fit[["DyadCoef"]]) <- colnames(Z) 
   }
   fit[["MonadCoef"]] <- vapply(fit[["MonadCoef"]],
@@ -553,6 +552,12 @@ mmsbm <- function(formula.dyad,
   rownames(fit[["MonadCoef"]]) <- colnames(X)
   colnames(fit[["MonadCoef"]]) <- paste("Group",1:n.blocks)
   X <- t(t(X) * X_sd + X_mean) #unscale
+  
+  ## Add other names
+  colnames(fit[["Kappa"]]) <- unique(mfm[,"(tid)"])
+  dimnames(fit[["BlockModel"]]) <- replicate(2,paste("Group",1:n.blocks), simplify = FALSE)
+  dimnames(fit[["TransitionKernel"]]) <- replicate(2,paste("State",1:n.hmmstates), simplify = FALSE)
+  colnames(fit[["MixedMembership"]]) <- ntid
   
   ## Compute approximate standard errors
   ## for monadic coefficients
@@ -597,7 +602,11 @@ mmsbm <- function(formula.dyad,
   fit$vcov_monad <- lapply(hessBeta_list,
                            function(mat){
                              if(length(mat) > 0){
-                               solve(-mat)
+                               mat <- solve(-mat)
+                               colnames(mat) <- rownames(mat) <- paste(rep(colnames(fit[["MonadCoef"]]), each = nrow(fit[["MonadCoef"]])),
+                                                                       rep(rownames(fit[["MonadCoef"]]), times = n.blocks),
+                                                                       sep=":")
+                               return(mat)
                              } else {
                                NULL
                              }
@@ -619,10 +628,17 @@ mmsbm <- function(formula.dyad,
   hessTheta <- Reduce("+", hessTheta_list)/ctrl$se_sim
   vcovTheta <- solve(-hessTheta)
   
-  fit$vcov_blockmodel <- vcovTheta[1:(n.blocks * n.blocks), 1:(n.blocks * n.blocks)]
-  if(ncol(Z)>1){
+  
+  fit$vcov_blockmodel <- vcovTheta[1:(n.blocks * n.blocks), 1:(n.blocks * n.blocks), drop = FALSE]
+  colnames(fit$vcov_blockmodel) <- rownames(fit$vcov_blockmodel) <- paste(rep(rownames(fit[["BlockModel"]]), times = n.blocks),
+                                                                          rep(colnames(fit[["BlockModel"]]), each = n.blocks),
+                                                                          sep=":")
+  
+  if(any(Z_sd > 0)){
     fit$vcov_dyad <- vcovTheta[(n.blocks * n.blocks + 1):nrow(vcovTheta),
-                               (n.blocks * n.blocks + 1):ncol(vcovTheta)]
+                               (n.blocks * n.blocks + 1):ncol(vcovTheta),
+                               drop = FALSE]
+    colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
   }
   
   
@@ -630,11 +646,7 @@ mmsbm <- function(formula.dyad,
     cat("done.\n")
   }
   
-  ## Add names
-  colnames(fit[["Kappa"]]) <- unique(mfm[,"(tid)"])
-  dimnames(fit[["BlockModel"]]) <- replicate(2,paste("Group",1:n.blocks), simplify = FALSE)
-  dimnames(fit[["TransitionKernel"]]) <- replicate(2,paste("State",1:n.hmmstates), simplify = FALSE)
-  colnames(fit[["MixedMembership"]]) <- ntid
+  
   
   
   ## Include used data in original order
