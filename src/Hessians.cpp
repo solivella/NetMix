@@ -131,7 +131,7 @@ Rcpp::NumericMatrix calcHessTheta(Rcpp::IntegerMatrix z,
 #endif          
           for(int i = 0; i < NDYAD; ++i){
             prob = theta[blk1_b + NBLK * (blk2_b + NBLK * i)]; 
-            res -= (1.0 - prob) * (prob) * z(i, blk1_b) * w(i, blk2_b);
+            res += (1.0 - prob) * (prob) * z(i, blk1_b) * w(i, blk2_b);
           }
           hess(row, col) -= res;
           var_b = blk1_b == blk2_b ? var_b_vec[0] : var_b_vec[1];
@@ -149,7 +149,7 @@ Rcpp::NumericMatrix calcHessTheta(Rcpp::IntegerMatrix z,
 #endif          
         for(int i = 0; i < NDYAD; ++i){
           prob = theta[blk1_g + NBLK * (blk2_g + NBLK * i)];
-          res -= d(i, (row - NBLK2)) * (1.0 - prob) * prob * z(i, blk1_g) * w(i, blk2_g);
+          res += d(i, (row - NBLK2)) * (1.0 - prob) * prob * z(i, blk1_g) * w(i, blk2_g);
         }
         hess(row, col) -= res;
         if((row + 1) == NPAR){
@@ -168,7 +168,7 @@ Rcpp::NumericMatrix calcHessTheta(Rcpp::IntegerMatrix z,
           for(int g = 0; g < NBLK; ++g){
             for(int h = 0; h < NBLK; ++h){
               prob = theta[g + NBLK * (h + NBLK * i)];
-              res -= d(i, (row - NBLK2)) * d(i, (col - NBLK2)) * (1.0 - prob) * prob * z(i, g) * w(i, h);
+              res += d(i, (row - NBLK2)) * d(i, (col - NBLK2)) * (1.0 - prob) * prob * z(i, g) * w(i, h);
             }
           }
         }
