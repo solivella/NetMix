@@ -62,7 +62,7 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     } else {
       rev(seq_len(x$n_blocks))
     }
-    v.size <- rowMeans(x$MixedMembership)*100 + 30
+    v.size <- rowMeans(x$MixedMembership)*100 + 20
     radian.rescale <- function(x, start=0, direction=1) {
       c.rotate <- function(x) (x + start) %% (2 * pi) * direction
       c.rotate(scales::rescale(x, c(0, 2 * pi), range(x)))
@@ -72,7 +72,7 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     igraph::plot.igraph(block.G, main = "",
                         edge.width=4, edge.color=e.cols,  edge.curved = x$directed, edge.arrow.size = 0.65,
                         edge.loop.angle = loop.rads,
-                        vertex.size=v.size, vertex.color="gray80", vertex.frame.color="black",
+                        vertex.size=v.size, vertex.color="white", vertex.frame.color="black",
                         vertex.label.font=2, vertex.label.cex=1, vertex.label.color="black",
                         layout = igraph::layout_in_circle)
     .bar.legend(colRamp)
