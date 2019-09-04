@@ -1,15 +1,15 @@
-#' Extract Variance-Covariance Matrix for a Fitted \code{mmsbm} Object
+#' Extract Regression Coefficients for a Fitted \code{mmsbm} Object
 #'
 #' 
 #'
 #' @param object An object of class \code{mmsbm}, a result of a call to \code{mmsbm}
 #' @param param Character string, which set of parameters should the vcov be extracted for? One
-#'              of \code{"MonadCoef"}, \code{"DyadCoef"}, \code{"BlockModel"} or \code{"All"} (the default).  
+#'              of \code{"MonadCoef"}, \code{"DyadCoef"} or \code{"All"} (the default).  
 #' @param ... Currently ignored
-#' @return For \code{param="DyadCoef"} and \code{param="BlockModel"}, a numeric matrix. For \code{param="MonadCoef"} a list of numeric matrices (one per HMM state) with rows/columns
-#'         ordered first by predictor and then by group. For \code{param="All"}, named list of individual return components.   
+#' @return For \code{param="DyadCoef"}, a numeric vector. For \code{param="MonadCoef"}, an array
+#'         with HMM states along the third dimension. For \code{param="All"}, named list of individual return components.   
 #'
-#' @method vcov mmsbm
+#' @method coef mmsbm
 #' 
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 #' 
@@ -30,18 +30,16 @@
 #'                       data.monad = lazega_monadic,
 #'                       n.blocks = 2)
 #' 
-#' vcov(lazega_mmsbm, "MonadCoef")
+#' coef(lazega_mmsbm, "MonadCoef")
 #' 
 
-vcov.mmsbm <- function(object,
+coef.mmsbm <- function(object,
                        param = "All",
                        ...)
 {
   switch(param,
-         MonadCoef = object$vcov_monad,
-         DyadCoef = object$vcov_dyad,
-         BlockModel = object$vcov_blockmodel,
-         All = list(MonadCoef = object$vcov_monad,
-                    DyadCoef = object$vcov_dyad,
-                    BlockModel = object$vcov_blockmodel))
+         MonadCoef = object$MonadCoef,
+         DyadCoef = object$DyadCoef,
+         All = list(MonadCoef = object$MonadCoef,
+                    DyadCoef = object$DyadCoef))
 }

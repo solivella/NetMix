@@ -8,17 +8,18 @@ using namespace Rcpp;
 inline double ftrigamma(double x)	
 {	
   double p;	
-  int i;	
+  int i;
   
-  x+=6;	
-  p=1.0/(x*x);	
-  p=(((((0.075757575757576*p-0.033333333333333)*p+0.0238095238095238)	
-         *p-0.033333333333333)*p+0.166666666666667)*p+1)/x+0.5*p;	
-  for (i=0; i<6 ;i++)	
-  {	
-    x-=1;	
-    p+=1.0/(x*x);	
-  }	
+  x+=6;
+  p=1.0/(x*x);
+  p=(((((0.075757575757576*p-0.033333333333333)*p+0.0238095238095238)
+         *p-0.033333333333333)*p+0.166666666666667)*p+1)/x+0.5*p;
+  for (i=0; i<6 ;i++)
+  {
+    x-=1;
+    p+=1.0/(x*x);
+  }
+  
   return p;	
 }	
 
@@ -48,7 +49,7 @@ Rcpp::NumericMatrix calcHessBeta(Rcpp::NumericMatrix A, // alpha, nodes by block
   int NCELL = pow(NPRED * NBLK, 2.0);
   Rcpp::NumericMatrix hess(NPRED * NBLK, NPRED * NBLK);
   int k_row = 0, k_col = 0, j_row = 0, j_col = 0;
-  double res = 0.0;
+  long res = 0.0;
   for(int c = 0; c < NCELL; ++c, ++j_row){
     if(j_row == NPRED){
       j_row = 0;
@@ -71,11 +72,11 @@ Rcpp::NumericMatrix calcHessBeta(Rcpp::NumericMatrix A, // alpha, nodes by block
     if(k_row == k_col){
       res = 0.0;
       for(int i = 0; i < NNODE; ++i){
-        res -= A(i,k_row) * X(i, j_row) * X(i, j_col)
-        * (fdigamma(A(i,k_row)) - fdigamma(A(i,k_row) + C(i,k_row))
-             - fdigamma(Xi[i]) + fdigamma(Xi[i] + N[i]) +
-             A(i, k_row) * (ftrigamma(A(i,k_row)) - ftrigamma(A(i,k_row) + C(i,k_row))
-                              - ftrigamma(Xi[i]) + ftrigamma(Xi[i] + N[i])));
+        res += A(i,k_row) * X(i, j_row) * X(i, j_col)
+        * (fdigamma(A(i,k_row) + C(i,k_row)) - fdigamma(A(i,k_row))
+             + fdigamma(Xi[i]) - fdigamma(Xi[i] + N[i]) +
+             A(i, k_row) * (ftrigamma(A(i,k_row) + C(i,k_row)) - ftrigamma(A(i,k_row))
+                              + ftrigamma(Xi[i]) - ftrigamma(Xi[i] + N[i])));
       }
       hess[c] = res;
       if(j_row == j_col){
@@ -127,7 +128,7 @@ Rcpp::NumericMatrix calcHessTheta(Rcpp::IntegerMatrix z,
         if(row == col){
           res = 0.0;
 #ifdef _OPENMP
-#pragma omp parallel for reduction(+:res)
+#pragma omp parallel for firstprivate(prob) reduction(+:res)
 #endif          
           for(int i = 0; i < NDYAD; ++i){
             prob = theta[blk1_b + NBLK * (blk2_b + NBLK * i)]; 
@@ -145,7 +146,7 @@ Rcpp::NumericMatrix calcHessTheta(Rcpp::IntegerMatrix z,
       } else if((row >= NBLK2) && (col < NBLK2)){
         res = 0.0;
 #ifdef _OPENMP
-#pragma omp parallel for reduction(+:res)
+#pragma omp parallel for firstprivate(prob) reduction(+:res)
 #endif          
         for(int i = 0; i < NDYAD; ++i){
           prob = theta[blk1_g + NBLK * (blk2_g + NBLK * i)];
@@ -162,7 +163,7 @@ Rcpp::NumericMatrix calcHessTheta(Rcpp::IntegerMatrix z,
       } else {
         res = 0.0;
 #ifdef _OPENMP
-#pragma omp parallel for reduction(+:res)
+#pragma omp parallel for firstprivate(prob) reduction(+:res)
 #endif          
         for(int i = 0; i < NDYAD; ++i){
           for(int g = 0; g < NBLK; ++g){

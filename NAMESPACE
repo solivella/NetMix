@@ -12,6 +12,7 @@ importFrom("stats", "as.formula", "coef", "complete.cases", "density",
              "rmultinom", "simulate", "terms", "update", "update.formula")
 importFrom("utils", "getS3method","head")
 importClassesFrom(Matrix)
+S3method(coef, mmsbm)
 S3method(gof, mmsbm)
 S3method(head, mmsbm)
 S3method(plot, mmsbm)

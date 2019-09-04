@@ -58,21 +58,11 @@ List mmsbm_fit(const NumericMatrix& z_t,
                List control
 )
 {
-  //Obtain nr. of cores
-  int N_THREADS = 1;
-  int requested = as<int>(control["threads"]);
-#ifdef _OPENMP
-{
-  omp_set_num_threads(requested);
-  N_THREADS = requested;
-}    
-#endif
 
 //Create model instance
 MMModel Model(z_t,
               x_t,
               y,
-              N_THREADS,
               time_id_dyad,
               time_id_node,
               nodes_per_period,
@@ -103,14 +93,10 @@ NumericVector old_c(N_BLK * x_t.ncol());
 
 oldLL = Model.cLL();
 newLL = 0.0;
-int inner_int = 0;
-bool int_conv = false;
 while(iter < EM_ITER && conv == false){
   checkUserInterrupt();
   
   // E-STEP
-  inner_int = 0;
-  int_conv = false;
   Model.updatePhi();
   
   if(N_STATE > 1){

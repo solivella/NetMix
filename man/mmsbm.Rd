@@ -6,8 +6,7 @@
 \usage{
 mmsbm(formula.dyad, formula.monad = ~1, senderID, receiverID,
   nodeID = NULL, timeID = NULL, data.dyad, data.monad = NULL,
-  n.blocks, n.hmmstates = 1, directed = TRUE,
-  missing = "indicator method", mmsbm.control = list())
+  n.blocks, n.hmmstates = 1, directed = TRUE, mmsbm.control = list())
 }
 \arguments{
 \item{formula.dyad}{A \code{formula} object. The variable in \code{data.dyad} that contains 
@@ -50,19 +49,18 @@ to 1 (i.e. no HMM).}
 
 \item{directed}{Boolean. Is the network directed? Defaults to \code{TRUE}.}
 
-\item{missing}{Means of handling missing data. One of "indicator method" (default) or "listwise deletion".}
-
 \item{mmsbm.control}{A named list of optional algorithm control parameters.
 \describe{
+   \item{seed}{Integer value. Seed the RNG. By default, a random seed is generated and returned for reproducibility purposes.}
    \item{spectral}{Boolean. Type of initialization algorithm for mixed-membership vectors in static case. If \code{TRUE} (default),
                use spectral clustering with degree correction; otherwise, use kmeans algorithm.}
-   \item{init.dyn.gibbs}{Boolean. Should a collapsed Gibbs sampler of non-regression mmsbm be used to initialize
-               each time period when multiple time periods are observed (instead of a spectral or simple kmeans initialization)?
-               Setting to \code{TRUE} will be result in faster estimation that is very sensitive to
+   \item{init_gibbs}{Boolean. Should a collapsed Gibbs sampler of non-regression mmsbm be used to initialize
+               mixed-membership vectors, instead of a spectral or simple kmeans initialization?
+               Setting to \code{TRUE} will result in slower initialization and faster model estimation. When \code{TRUE}, results are typically very sensitive to
                choice of alpha (see below).}            
    \item{alpha}{Numeric positive value. Concentration parameter for collapsed Gibbs sampler to find initial
-                mixed-membership values in dynamic case when \code{init.dyn.gibbs=TRUE}. Defaults to 0.5.}            
-   \item{seed}{RNG seed. Defaults to \code{NULL}, which does not seed the RNG.}            
+                mixed-membership values when \code{init_gibbs=TRUE}. Defaults to 1.0.}            
+   \item{missing}{Means of handling missing data. One of "indicator method" (default) or "listwise deletion".}       
    \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3.}
    \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3.}
    \item{mu_b}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
@@ -81,7 +79,6 @@ to 1 (i.e. no HMM).}
    \item{gamma_init}{Vector. Optional initial values for dyadic coefficients.}
    \item{permute}{Boolean. Should all permutations be tested to realign initial block models in dynamic case? If \code{FALSE}, realignment is 
                  done via faster graph matching algorithm, but may not be exact. Defaults to \code{TRUE}.}
-   \item{threads}{Numeric integer. Number of available cores for paralellization. Defaults to 4.}
    \item{conv_tol}{Numeric value. Absolute tolerance for VI convergence. Defaults to 1e-3.}
    \item{verbose}{Boolean. Should extra information be printed as model iterates? Defaults to FALSE.}
    }}
@@ -107,6 +104,7 @@ Object of class \code{mmsbm}. List with named components:
       \item{NodeIndex}{Order in which nodes are stored in all return objects.}
       \item{monadic.data, dyadic.data, directed}{Original values of parameters used during estimation.}
       \item{forms}{Values of formal arguments passed in original function call.}
+      \item{seed}{The value of RNG seed used during estimation.}
       \item{call}{Original (unevaluated) call.}
     }
 }

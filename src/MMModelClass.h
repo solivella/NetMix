@@ -5,9 +5,6 @@
 #include <Rcpp.h>
 #include "AuxFuns.h"
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 
 class MMModel
@@ -16,7 +13,6 @@ public:
   MMModel(const Rcpp::NumericMatrix& z_t,
           const Rcpp::NumericMatrix& x_t,
           const Rcpp::IntegerVector& y,
-          const int N_THREAD,
           const Rcpp::IntegerVector& time_id_dyad,
           const Rcpp::IntegerVector& time_id_node,
           const Rcpp::IntegerVector& nodes_per_period,
@@ -69,8 +65,8 @@ private:
   N_MONAD_PRED,
   N_DYAD_PRED,
   N_B_PAR,
-  OPT_ITER,
-  N_THREAD;
+  OPT_ITER;
+  //N_THREAD;
   
   const double eta,
   var_gamma,
@@ -126,7 +122,8 @@ private:
   beta;
   Array<double> beta_init;
   
-  std::vector< Array<double> > new_e_c_t; //For reduce op.
+  //std::vector< Array<double> > new_e_c_t; //For reduce op.
+  Array<double> new_e_c_t;
   
   
   void computeAlpha();

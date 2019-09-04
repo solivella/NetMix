@@ -19,7 +19,6 @@ using R::digamma;
 MMModel::MMModel(const NumericMatrix& z_t,
                  const NumericMatrix& x_t,
                  const IntegerVector& y,
-                 const int N_THREAD,
                  const IntegerVector& time_id_dyad,
                  const IntegerVector& time_id_node,
                  const IntegerVector& nodes_per_period,
@@ -43,7 +42,7 @@ MMModel::MMModel(const NumericMatrix& z_t,
   N_DYAD_PRED((z_t.nrow() == 1) && (sd(z_t) == 0.0) ? 0 : z_t.nrow()),
   N_B_PAR(as<int>(control["directed"]) ? N_BLK * N_BLK : N_BLK * (1 + N_BLK) / 2),
   OPT_ITER(as<int>(control["opt_iter"])),
-  N_THREAD(N_THREAD),
+  //N_THREAD(N_THREAD),
   eta(as<double>(control["eta"])),
   var_gamma(as<double>(control["var_gamma"])),
   var_beta(as<double>(control["var_beta"])),
@@ -85,7 +84,8 @@ MMModel::MMModel(const NumericMatrix& z_t,
   theta({N_BLK, N_BLK, N_DYAD}, 0.0),
   beta({N_MONAD_PRED, N_BLK, N_STATE}, beta_init_r),
   beta_init({N_MONAD_PRED, N_BLK, N_STATE}, beta_init_r),
-  new_e_c_t(N_THREAD, Array<double>({N_BLK, N_NODE}, 0.0))
+  //new_e_c_t(N_THREAD, Array<double>({N_BLK, N_NODE}, 0.0)
+  new_e_c_t({N_BLK, N_NODE}, 0.0)
 {
   //Assign initial values to  W parameters
   for(int t = 1; t < N_TIME; ++t){
@@ -170,10 +170,8 @@ double MMModel::alphaLB()
         alpha_val = alpha(g, p, m);
         alpha_row += alpha_val;
         res_int += (lgamma(alpha_val + e_c_t(g, p)) - lgamma(alpha_val));
-        
       }
       res_int += (lgamma(alpha_row) - lgamma(alpha_row + tot_nodes[p]));
-
       res += res_int * kappa_t(m, time_id_node[p]);
     }
     
@@ -203,9 +201,6 @@ void MMModel::alphaGr(int N_PAR, double *gr)
     for(int g = 0; g < N_BLK; ++g){
       for(int x = 0; x < N_MONAD_PRED; ++x){
         res = 0.0;
-  #ifdef _OPENMP
-  #pragma omp parallel for firstprivate(alpha_row) reduction(+:res)
-  #endif
           for(int p = 0; p < N_NODE; ++p){
             alpha_row = 0.0;
             for(int h = 0; h < N_BLK; ++h){
@@ -268,14 +263,12 @@ double MMModel::thetaLB(bool entropy = false)
   computeTheta();
   
   double res = 0.0;
-#ifdef _OPENMP
-#pragma omp parallel for reduction(+:res)
-#endif
   for(int d = 0; d < N_DYAD; ++d){
     for(int g = 0; g < N_BLK; ++g){
-      if(entropy)
-        res -= send_phi(g, d) * log(send_phi(g, d)) +
-          rec_phi(g, d) * log(rec_phi(g, d));
+      if(entropy){
+        res -= send_phi(g, d) * log(send_phi(g, d)) 
+          + rec_phi(g, d) * log(rec_phi(g, d));
+      }
       for(int h = 0; h < N_BLK; ++h){
         res += send_phi(g, d) * rec_phi(h, d)
         * (y[d] * log(theta(h, g, d))
@@ -554,30 +547,33 @@ void MMModel::updatePhiInternal(int dyad, int rec,
 
 void MMModel::updatePhi()
 {
-  for(int thread = 0; thread < N_THREAD; ++thread){
-    std::fill(new_e_c_t[thread].begin(), new_e_c_t[thread].end(), 0.0);
-  }
+  // for(int thread = 0; thread < N_THREAD; ++thread){
+  //   std::fill(new_e_c_t[thread].begin(), new_e_c_t[thread].end(), 0.0);
+  // }
+  std::fill(new_e_c_t.begin(), new_e_c_t.end(), 0.0);
   int err = 0;
-#ifdef _OPENMP  
-#pragma omp parallel for
-#endif
+// #ifdef _OPENMP  
+// #pragma omp parallel for
+// #endif
   for(int d = 0; d < N_DYAD; ++d){
-    int thread = 0;
-#ifdef _OPENMP
-    thread = omp_get_thread_num();
-#endif
+   // int thread = 0;
+// #ifdef _OPENMP
+//     thread = omp_get_thread_num();
+// #endif
     updatePhiInternal(d,
                       0,
                       &(send_phi(0, d)),
                       &(rec_phi(0, d)),
-                      &(new_e_c_t[thread](0, node_id_dyad(d, 0))),
+                      //&(new_e_c_t[thread](0, node_id_dyad(d, 0))),
+                      &(new_e_c_t(0, node_id_dyad(d, 0))),
                       &err
     );
     updatePhiInternal(d,
                       1,
                       &(rec_phi(0, d)),
                       &(send_phi(0, d)),
-                      &(new_e_c_t[thread](0, node_id_dyad(d, 1))),
+                      //&(new_e_c_t[thread](0, node_id_dyad(d, 1))),
+                      &(new_e_c_t(0, node_id_dyad(d, 1))),
                       &err
     );
   }
@@ -587,17 +583,18 @@ void MMModel::updatePhi()
   }
   
   
-  std::fill(e_c_t.begin(), e_c_t.end(), 0.0);
-#ifdef _OPENMP
-#pragma omp parallel for collapse(2)
-#endif
-  for(int p = 0; p < N_NODE; ++p){
-    for(int g = 0; g < N_BLK; ++g){
-      for(int i = 0; i < N_THREAD; ++i){
-        e_c_t(g, p) += (new_e_c_t[i])(g, p);
-      }
-    }
-  }
+  std::copy(new_e_c_t.begin(), new_e_c_t.end(), e_c_t.begin());
+  //std::fill(e_c_t.begin(), e_c_t.end(), 0.0);
+// #ifdef _OPENMP
+// #pragma omp parallel for collapse(2)
+// #endif
+  // for(int p = 0; p < N_NODE; ++p){
+  //   for(int g = 0; g < N_BLK; ++g){
+      //for(int i = 0; i < N_THREAD; ++i){
+        //e_c_t(g, p) += (new_e_c_t[i])(g, p);
+      //}
+  //   }
+  // }
 }
 
 
