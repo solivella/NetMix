@@ -402,16 +402,21 @@ mmsbm <- function(formula.dyad,
         } else {
           target <- U
         }
-        if(nrow(target) > n.blocks){
-          cents <- n.blocks
+        if(nrow(unique(target)) > n.blocks){
+          clust_internal <- fitted(kmeans(x = target,
+                                          centers = n.blocks,
+                                          iter.max = 15,
+                                          nstart = 10), "classes")
+          
         } else {
           init_c <- sample(1:nrow(target), n.blocks, replace = FALSE)
           cents <- jitter(target[init_c, ])
+          clust_internal <- fitted(suppressWarnings(kmeans(x = target,
+                                          centers = cents,
+                                          iter.max = 15,
+                                          algorithm = "Lloyd",
+                                          nstart = 1)), "classes")
         }
-        clust_internal <- fitted(kmeans(x = target,
-                                        centers = cents,
-                                        iter.max = 15,
-                                        nstart = ifelse(nrow(target) > n.blocks, 10, 1)), "classes")
         
         phi_internal <- model.matrix(~ as.factor(clust_internal) - 1)
         phi_internal <- .transf(phi_internal)
@@ -519,9 +524,7 @@ mmsbm <- function(formula.dyad,
   else if (ctrl$verbose){
     cat("done after", fit[["niter"]], "iterations.\n")
   }
-  if(ctrl$verbose){
-    cat("Computing approximate vcov. matrices...\n")
-  }
+  
   
   ##Return transposes 
   fit[["TransitionKernel"]] <- t(fit[["TransitionKernel"]])
@@ -558,6 +561,10 @@ mmsbm <- function(formula.dyad,
   dimnames(fit[["BlockModel"]]) <- replicate(2,paste("Group",1:n.blocks), simplify = FALSE)
   dimnames(fit[["TransitionKernel"]]) <- replicate(2,paste("State",1:n.hmmstates), simplify = FALSE)
   colnames(fit[["MixedMembership"]]) <- ntid
+  
+  if(ctrl$verbose){
+    cat("Computing approximate vcov. matrices...\n")
+  }
   
   ## Compute approximate standard errors
   ## for monadic coefficients

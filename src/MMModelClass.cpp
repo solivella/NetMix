@@ -528,9 +528,9 @@ void MMModel::updatePhiInternal(int dyad, int rec,
     }
     phi[g] = exp(res);
     if(!std::isfinite(phi[g])){
-     #ifdef _OPENMP
-     #pragma omp atomic
-     #endif
+     // #ifdef _OPENMP
+     // #pragma omp atomic
+     // #endif
       (*err)++;
     }
     total += phi[g];
