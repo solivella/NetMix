@@ -24,6 +24,7 @@
 #'             sender (first column) and receiver (second column) node id's for each dyad. 
 #' @param pi_mat Numeric matrix; row-stochastic matrix of mixed-memberships. 
 #' @param colPalette A function produced by \code{colorRamp}.
+#' @param range The range of values to label the legend.
 #' @param ... Numeric vectors; vectors of potentially different length to be cbind-ed.
 #' 
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)

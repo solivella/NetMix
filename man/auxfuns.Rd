@@ -43,6 +43,8 @@ sender (first column) and receiver (second column) node id's for each dyad.}
 
 \item{colPalette}{A function produced by \code{colorRamp}.}
 
+\item{range}{The range of values to label the legend.}
+
 \item{mat}{Numeric matrix}
 
 \item{p}{Numeric scalar; power to raise matrix to.}
