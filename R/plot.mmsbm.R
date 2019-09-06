@@ -75,7 +75,7 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
                         vertex.size=v.size, vertex.color="white", vertex.frame.color="black",
                         vertex.label.font=2, vertex.label.cex=1, vertex.label.color="black",
                         layout = igraph::layout_in_circle)
-    .bar.legend(colRamp)
+    .bar.legend(colRamp, range(igraph::E(block.G)$weight))
   }
   
   if(type=="membership"){

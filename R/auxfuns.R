@@ -54,7 +54,7 @@
 
 ## Adapted from `fields`` package under GPL
 #' @rdname auxfuns
-.bar.legend <- function(colPalette){
+.bar.legend <- function(colPalette, range){
   col <- rgb(colPalette(seq(0,1, length.out = 100)), maxColorValue = 255)
   zlim <- c(0, 1)
   opar <- par(no.readonly = TRUE)
@@ -93,7 +93,9 @@
   par(new = TRUE, pty = "m", plt = smallplot, err = -1)
   graphics::image(ix, iy, iz, xaxt = "n", yaxt = "n", xlab = "", 
         ylab = "", col = col, breaks = breaks)
-  axis.args <- c(list(side =  4, 
+  axis.args <- c(list(side =  4, at = seq(0,1, length.out = 10),
+                      labels = round(seq(range[1], range[2], length.out=10),2), 
+                      cex.axis=0.75,
                       mgp = c(3, 1, 0), las = 2))
   
   do.call(graphics::axis, axis.args)

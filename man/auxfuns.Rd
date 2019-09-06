@@ -19,7 +19,7 @@
 
 .cbind.fill(...)
 
-.bar.legend(colPalette)
+.bar.legend(colPalette, range)
 
 .mpower(mat, p)
 
