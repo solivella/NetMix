@@ -8,11 +8,11 @@
 #' 
 #' @param mat Numeric matrix
 #' @param p Numeric scalar; power to raise matrix to.
-#' @param block.list List of matrices; each element is a square, numeric matrix 
+#' @param block_list List of matrices; each element is a square, numeric matrix 
 #'                   that defines a blockmodel,
-#' @param target.mat Numeric matrix; reference blockmodel that those in block.list should 
+#' @param target_mat Numeric matrix; reference blockmodel that those in block_list should 
 #'                   be aligned to. Optional, defaults to \code{NULL}.
-#' @param use.perms Boolean; should all row/column permutations be explored when
+#' @param use_perms Boolean; should all row/column permutations be explored when
 #'                  realigning matrices? defaults to \code{TRUE}.
 #' @param X Numeric matrix; design matrix of monadic predictors.
 #' @param beta Numeric array; array of coefficients associated with monadic predictors. 
@@ -25,6 +25,16 @@
 #' @param pi_mat Numeric matrix; row-stochastic matrix of mixed-memberships. 
 #' @param colPalette A function produced by \code{colorRamp}.
 #' @param range The range of values to label the legend.
+#' @param par Vector of parameter values.
+#' @param tot_nodes Integer vector; total number of nodes each node interacts with.
+#' @param c_t Integer matrix; samples from Poisson-Binomial counts of a node instantiating a group.
+#' @param x_t,z_t Numeric matrices; transposed monadic and dyadic design matrices.
+#' @param s_mat Integer matrix; Samples of HMM states by time period. 
+#' @param t_id Integer vector; for each node, what time-period is it observed in? zero-indexed.
+#' @param var_beta,var_gamma Numeric; prior variances of monadic and dyadic coefficients.
+#' @param send_phi,rec_phi Numeric matrices; for each dyad, sampled group instantiated by sender and reciver in pair.
+#' @param mu_b_t,var_b_t Numeirc matrices; prior mean and variance for blockmodel parameters.
+#' @param directed Boolean; is the netowkr directed?
 #' @param ... Numeric vectors; vectors of potentially different length to be cbind-ed.
 #' 
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
@@ -62,7 +72,7 @@
   on.exit(par(opar), add = TRUE)
   stick <- TRUE
   nlevel <- length(col)
-  midpoints <- seq(zlim[1], zlim[2], , nlevel)
+  midpoints <- seq(zlim[1], zlim[2], length.out=nlevel)
   delta <- (midpoints[2] - midpoints[1])/2
   breaks <- c(midpoints[1] - delta, midpoints + delta)
   legend.mar <- 5.1
@@ -118,35 +128,35 @@
 }
 
 #' @rdname auxfuns
-.findPerm <- function(block.list, target.mat=NULL, use.perms=TRUE){
-  tar_nprov <- is.null(target.mat) 
+.findPerm <- function(block_list, target_mat=NULL, use_perms=TRUE){
+  tar_nprov <- is.null(target_mat) 
   if(tar_nprov){
-    target.mat <- block.list[[1]] 
+    target_mat <- block_list[[1]] 
   }
-  n <- ncol(target.mat)
-  if(use.perms){
+  n <- ncol(target_mat)
+  if(use_perms){
     all_perms <- gtools::permutations(n, n)
   } 
-  res <- lapply(seq_along(block.list),
+  res <- lapply(seq_along(block_list),
                 function(x, t_mat, tar_nprov){
-                  if(use.perms){
+                  if(use_perms){
                     norms <- apply(all_perms, 1,
                                    function(p){
-                                     base::norm(block.list[[x]][p, p]-t_mat, type="f")
+                                     base::norm(block_list[[x]][p, p]-t_mat, type="f")
                                    })
                     P <- as.matrix(as(all_perms[which.min(norms),], "pMatrix"))
                   } else {
-                    P <- as.matrix(igraph::match_vertices(plogis(block.list[[x]]),
+                    P <- as.matrix(igraph::match_vertices(plogis(block_list[[x]]),
                                                           plogis(t_mat),
                                                           m = 0,
-                                                          start = diag(ncol(block.list[[x]])),
+                                                          start = diag(ncol(block_list[[x]])),
                                                           iteration = 10)$P)
                   }
                   if(tar_nprov){
-                    t_mat <- t(P) %*% block.list[[x]] %*% P
+                    t_mat <- t(P) %*% block_list[[x]] %*% P
                   }
                   return(P)
-                }, t_mat = target.mat, tar_nprov = tar_nprov)
+                }, t_mat = target_mat, tar_nprov = tar_nprov)
   return(res)
 }
 

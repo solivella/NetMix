@@ -3,6 +3,8 @@
 \name{.approxB}
 \alias{.approxB}
 \alias{.getZ}
+\alias{.alphaLB}
+\alias{.thetaLB}
 \alias{auxfuns}
 \alias{.cbind.fill}
 \alias{.bar.legend}
@@ -17,13 +19,18 @@
 
 .getZ(pi_mat)
 
+.alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta)
+
+.thetaLB(par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma,
+  directed)
+
 .cbind.fill(...)
 
 .bar.legend(colPalette, range)
 
 .mpower(mat, p)
 
-.findPerm(block.list, target.mat = NULL, use.perms = TRUE)
+.findPerm(block_list, target_mat = NULL, use_perms = TRUE)
 
 .transf(mat)
 
@@ -39,6 +46,26 @@ sender (first column) and receiver (second column) node id's for each dyad.}
 
 \item{pi_mat}{Numeric matrix; row-stochastic matrix of mixed-memberships.}
 
+\item{par}{Vector of parameter values.}
+
+\item{tot_nodes}{Integer vector; total number of nodes each node interacts with.}
+
+\item{c_t}{Integer matrix; samples from Poisson-Binomial counts of a node instantiating a group.}
+
+\item{x_t, z_t}{Numeric matrices; transposed monadic and dyadic design matrices.}
+
+\item{s_mat}{Integer matrix; Samples of HMM states by time period.}
+
+\item{t_id}{Integer vector; for each node, what time-period is it observed in? zero-indexed.}
+
+\item{var_beta, var_gamma}{Numeric; prior variances of monadic and dyadic coefficients.}
+
+\item{send_phi, rec_phi}{Numeric matrices; for each dyad, sampled group instantiated by sender and reciver in pair.}
+
+\item{mu_b_t, var_b_t}{Numeirc matrices; prior mean and variance for blockmodel parameters.}
+
+\item{directed}{Boolean; is the netowkr directed?}
+
 \item{...}{Numeric vectors; vectors of potentially different length to be cbind-ed.}
 
 \item{colPalette}{A function produced by \code{colorRamp}.}
@@ -49,13 +76,13 @@ sender (first column) and receiver (second column) node id's for each dyad.}
 
 \item{p}{Numeric scalar; power to raise matrix to.}
 
-\item{block.list}{List of matrices; each element is a square, numeric matrix 
+\item{block_list}{List of matrices; each element is a square, numeric matrix 
 that defines a blockmodel,}
 
-\item{target.mat}{Numeric matrix; reference blockmodel that those in block.list should 
+\item{target_mat}{Numeric matrix; reference blockmodel that those in block_list should 
 be aligned to. Optional, defaults to \code{NULL}.}
 
-\item{use.perms}{Boolean; should all row/column permutations be explored when
+\item{use_perms}{Boolean; should all row/column permutations be explored when
 realigning matrices? defaults to \code{TRUE}.}
 
 \item{X}{Numeric matrix; design matrix of monadic predictors.}

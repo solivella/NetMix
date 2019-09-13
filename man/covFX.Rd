@@ -42,7 +42,8 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       nodeID = "Lawyer",
                       data.dyad = lazega_dyadic,
                       data.monad = lazega_monadic,
-                      n.blocks = 2)
+                      n.blocks = 2,
+                      mmsbm.control = list(hessian = FALSE))
 
 ## Compute effect of decreasing every lawyers' age by 10 years
 fx_list <- covFX(lazega_mmsbm, cov = "Age", shift = -10)

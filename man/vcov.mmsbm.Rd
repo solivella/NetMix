@@ -15,8 +15,8 @@ of \code{"MonadCoef"}, \code{"DyadCoef"}, \code{"BlockModel"} or \code{"All"} (t
 \item{...}{Currently ignored}
 }
 \value{
-For \code{param="DyadCoef"} and \code{param="BlockModel"}, a numeric matrix. For \code{param="MonadCoef"} a list of numeric matrices (one per HMM state) with rows/columns
-        ordered first by predictor and then by group. For \code{param="All"}, named list of individual return components.
+For \code{param="All"}, named list of individual return components. For all other values of \code{param},
+        a numeric covariance matrix.
 }
 \description{
 Extract Variance-Covariance Matrix for a Fitted \code{mmsbm} Object

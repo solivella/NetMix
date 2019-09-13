@@ -40,7 +40,8 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       nodeID = "Lawyer",
                       data.dyad = lazega_dyadic,
                       data.monad = lazega_monadic,
-                      n.blocks = 2)
+                      n.blocks = 2,
+                      mmsbm.control = list(hessian = FALSE))
 
 ## Plot blockmodel as network
 plot(lazega_mmsbm)

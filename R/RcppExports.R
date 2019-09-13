@@ -11,12 +11,14 @@
     .Call('_NetMix_getZ', PACKAGE = 'NetMix', pi_mat)
 }
 
-.calcHessBeta <- function(A, C, X, Xi, N, beta, var_beta) {
-    .Call('_NetMix_calcHessBeta', PACKAGE = 'NetMix', A, C, X, Xi, N, beta, var_beta)
+#' @rdname auxfuns
+.alphaLB <- function(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta) {
+    .Call('_NetMix_alphaLB', PACKAGE = 'NetMix', par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta)
 }
 
-.calcHessTheta <- function(z, w, theta, d, gamma, B, var_gamma, var_b_vec) {
-    .Call('_NetMix_calcHessTheta', PACKAGE = 'NetMix', z, w, theta, d, gamma, B, var_gamma, var_b_vec)
+#' @rdname auxfuns
+.thetaLB <- function(par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma, directed) {
+    .Call('_NetMix_thetaLB', PACKAGE = 'NetMix', par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma, directed)
 }
 
 #' @name .mmsbm_fit

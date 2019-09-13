@@ -63,6 +63,7 @@ to 1 (i.e. no HMM).}
    \item{missing}{Means of handling missing data. One of "indicator method" (default) or "listwise deletion".}       
    \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3.}
    \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3.}
+   \item{hessian}{Boolean indicating whether the Hessian matrix of regression coefficients should e returned. Defaults to \code{TRUE}.}
    \item{mu_b}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
                and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)}.}
    \item{var_b}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
@@ -90,12 +91,12 @@ Object of class \code{mmsbm}. List with named components:
                              \code{n.groups}.}
       \item{BlockModel}{\code{n.groups} by \code{n.groups} matrix of estimated tie log-odds between members
                         of corresponding latent groups. The blockmodel.}
-      \item{vcov_blockmodel}{Variance-covariance matrix of parameters in blockmodel, ordered in column-major order.}
+      \item{vcov_blockmodel}{If \code{hessian=TRUE}, variance-covariance matrix of parameters in blockmodel, ordered in column-major order.}
       \item{MonadCoef}{Array of estimated coefficient values for monadic covariates. Has \code{n.groups} columns,
                        and \code{n.hmmstates} slices.}
-      \item{vcov_monad}{List of variance-covariance matrices of monadic coefficients, with \code{n.hmmstates} elements.}                  
+      \item{vcov_monad}{If \code{hessian=TRUE}, variance-covariance matrix of monadic coefficients.}                  
       \item{DyadCoef}{Vector estimated coefficient values for dyadic covariates.}
-      \item{vcov_dyad}{Variance-covariance matrix of dyadic coefficients.}
+      \item{vcov_dyad}{If \code{hessian=TRUE}, variance-covariance matrix of dyadic coefficients.}
       \item{TransitionKernel}{Matrix of estimated HMM transition probabilities.}
       \item{Kappa}{Matrix of marginal probabilities of being in an HMM state at any given point in time. 
                    \code{n.hmmstates} by years (or whatever time interval networks are observed at).}
@@ -126,7 +127,8 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       nodeID = "Lawyer",
                       data.dyad = lazega_dyadic,
                       data.monad = lazega_monadic,
-                      n.blocks = 2)
+                      n.blocks = 2,
+                      mmsbm.control = list(hessian = FALSE))
 
 }
 \author{

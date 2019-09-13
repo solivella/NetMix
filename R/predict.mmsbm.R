@@ -34,7 +34,8 @@
 #'                       nodeID = "Lawyer",
 #'                       data.dyad = lazega_dyadic,
 #'                       data.monad = lazega_monadic,
-#'                       n.blocks = 2)
+#'                       n.blocks = 2,
+#'                       mmsbm.control = list(hessian = FALSE))
 #' 
 #' ## Get in-sample predicted edge probabilities
 #' lazega_preds <- predict(lazega_mmsbm, type = "response")

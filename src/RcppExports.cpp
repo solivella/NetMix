@@ -29,38 +29,39 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// calcHessBeta
-Rcpp::NumericMatrix calcHessBeta(Rcpp::NumericMatrix A, Rcpp::NumericMatrix C, Rcpp::NumericMatrix X, Rcpp::NumericVector Xi, Rcpp::NumericVector N, Rcpp::NumericMatrix beta, double var_beta);
-RcppExport SEXP _NetMix_calcHessBeta(SEXP ASEXP, SEXP CSEXP, SEXP XSEXP, SEXP XiSEXP, SEXP NSEXP, SEXP betaSEXP, SEXP var_betaSEXP) {
+// alphaLB
+double alphaLB(Rcpp::NumericVector par, Rcpp::IntegerVector tot_nodes, Rcpp::IntegerMatrix c_t, Rcpp::NumericMatrix x_t, Rcpp::IntegerMatrix s_mat, Rcpp::IntegerVector t_id, double var_beta);
+RcppExport SEXP _NetMix_alphaLB(SEXP parSEXP, SEXP tot_nodesSEXP, SEXP c_tSEXP, SEXP x_tSEXP, SEXP s_matSEXP, SEXP t_idSEXP, SEXP var_betaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type A(ASEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type C(CSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type X(XSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Xi(XiSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type N(NSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type par(parSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type tot_nodes(tot_nodesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type c_t(c_tSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x_t(x_tSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type s_mat(s_matSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type t_id(t_idSEXP);
     Rcpp::traits::input_parameter< double >::type var_beta(var_betaSEXP);
-    rcpp_result_gen = Rcpp::wrap(calcHessBeta(A, C, X, Xi, N, beta, var_beta));
+    rcpp_result_gen = Rcpp::wrap(alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta));
     return rcpp_result_gen;
 END_RCPP
 }
-// calcHessTheta
-Rcpp::NumericMatrix calcHessTheta(Rcpp::IntegerMatrix z, Rcpp::IntegerMatrix w, Rcpp::NumericVector theta, Rcpp::NumericMatrix d, Rcpp::NumericVector gamma, Rcpp::NumericMatrix B, double var_gamma, Rcpp::NumericVector var_b_vec);
-RcppExport SEXP _NetMix_calcHessTheta(SEXP zSEXP, SEXP wSEXP, SEXP thetaSEXP, SEXP dSEXP, SEXP gammaSEXP, SEXP BSEXP, SEXP var_gammaSEXP, SEXP var_b_vecSEXP) {
+// thetaLB
+double thetaLB(Rcpp::NumericVector par, Rcpp::NumericVector y, Rcpp::NumericMatrix z_t, Rcpp::IntegerMatrix send_phi, Rcpp::IntegerMatrix rec_phi, Rcpp::NumericMatrix mu_b_t, Rcpp::NumericMatrix var_b_t, double var_gamma, bool directed);
+RcppExport SEXP _NetMix_thetaLB(SEXP parSEXP, SEXP ySEXP, SEXP z_tSEXP, SEXP send_phiSEXP, SEXP rec_phiSEXP, SEXP mu_b_tSEXP, SEXP var_b_tSEXP, SEXP var_gammaSEXP, SEXP directedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type z(zSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type w(wSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type theta(thetaSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type d(dSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type gamma(gammaSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type B(BSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type par(parSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type z_t(z_tSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type send_phi(send_phiSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type rec_phi(rec_phiSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type mu_b_t(mu_b_tSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type var_b_t(var_b_tSEXP);
     Rcpp::traits::input_parameter< double >::type var_gamma(var_gammaSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type var_b_vec(var_b_vecSEXP);
-    rcpp_result_gen = Rcpp::wrap(calcHessTheta(z, w, theta, d, gamma, B, var_gamma, var_b_vec));
+    Rcpp::traits::input_parameter< bool >::type directed(directedSEXP);
+    rcpp_result_gen = Rcpp::wrap(thetaLB(par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma, directed));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -93,8 +94,8 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_NetMix_approxB", (DL_FUNC) &_NetMix_approxB, 3},
     {"_NetMix_getZ", (DL_FUNC) &_NetMix_getZ, 1},
-    {"_NetMix_calcHessBeta", (DL_FUNC) &_NetMix_calcHessBeta, 7},
-    {"_NetMix_calcHessTheta", (DL_FUNC) &_NetMix_calcHessTheta, 8},
+    {"_NetMix_alphaLB", (DL_FUNC) &_NetMix_alphaLB, 7},
+    {"_NetMix_thetaLB", (DL_FUNC) &_NetMix_thetaLB, 9},
     {"_NetMix_mmsbm_fit", (DL_FUNC) &_NetMix_mmsbm_fit, 15},
     {NULL, NULL, 0}
 };
