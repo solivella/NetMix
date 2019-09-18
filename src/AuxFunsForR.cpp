@@ -1,7 +1,7 @@
 #include <Rcpp.h>
 
 //' @rdname auxfuns
-// [[Rcpp::export(.approxB)]]
+// [[Rcpp::export(approxB)]]
 Rcpp::NumericMatrix approxB(Rcpp::NumericVector y,
                             Rcpp::IntegerMatrix d_id,
                             Rcpp::NumericMatrix pi_mat)
@@ -30,7 +30,7 @@ Rcpp::NumericMatrix approxB(Rcpp::NumericVector y,
 }
 
 //' @rdname auxfuns
-//[[Rcpp::export(.getZ)]]
+//[[Rcpp::export(getZ)]]
 Rcpp::IntegerMatrix getZ(Rcpp::NumericMatrix pi_mat)
 {
   int NROW = pi_mat.nrow();
@@ -53,7 +53,7 @@ Rcpp::IntegerMatrix getZ(Rcpp::NumericMatrix pi_mat)
 }
 
 //' @rdname auxfuns
-// [[Rcpp::export(.alphaLB)]]
+// [[Rcpp::export(alphaLB)]]
 double alphaLB(Rcpp::NumericVector par,
                Rcpp::IntegerVector tot_nodes,
                Rcpp::IntegerMatrix c_t, 
@@ -93,11 +93,11 @@ double alphaLB(Rcpp::NumericVector par,
   }
   
   
-  return -res;
+  return -res/N_NODE;
 }
 
 //' @rdname auxfuns
-// [[Rcpp::export(.thetaLB)]]
+// [[Rcpp::export(thetaLB)]]
 double thetaLB(Rcpp::NumericVector par,
                Rcpp::NumericVector y,
                Rcpp::NumericMatrix z_t,
@@ -173,7 +173,7 @@ double thetaLB(Rcpp::NumericVector par,
       res -= 0.5 * (pow(b_t(h, g) - mu_b_t(h, g), 2.0) / var_b_t(h, g));
     }
   }
-  return -res;
+  return -res/N_DYAD;
 }
 
 

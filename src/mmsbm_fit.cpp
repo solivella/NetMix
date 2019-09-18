@@ -1,4 +1,4 @@
-//' @name .mmsbm_fit
+//' @name mmsbm_fit
 //' @title Fitter Function for dynamic MMSBM Model
 //' 
 //' @description This is the interface to the C++ fitter for the dynamic mixed-membership
@@ -25,7 +25,7 @@
 //'          This function is for internal use only. End-users should always resort to \code{\link{mmsbm}}.
 //'          In particular, that interface post-processes the return value of this internal in important ways. 
 //'          
-//' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
+//' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 
 
 
@@ -40,7 +40,7 @@ using Rcpp::checkUserInterrupt;
 using Rcpp::as;
 
 
-// [[Rcpp::export(.mmsbm_fit)]]
+// [[Rcpp::export(mmsbm_fit)]]
 List mmsbm_fit(const NumericMatrix& z_t,
                const NumericMatrix& x_t,
                const IntegerVector& y,

@@ -26,7 +26,6 @@
 #' data("lazega_dyadic")
 #' data("lazega_monadic")
 #' ## Estimate model with 2 groups
-#' set.seed(123)
 #' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 #'                       ~  School + Practice + Status,
 #'                       senderID = "Lawyer1",
@@ -35,7 +34,8 @@
 #'                       data.dyad = lazega_dyadic,
 #'                       data.monad = lazega_monadic,
 #'                       n.blocks = 2,
-#'                       mmsbm.control = list(hessian = FALSE))
+#'                       mmsbm.control = list(seed = 123,
+#'                                            hessian = FALSE))
 #' 
 #' ## Get in-sample predicted edge probabilities
 #' lazega_preds <- predict(lazega_mmsbm, type = "response")
@@ -73,7 +73,7 @@ predict.mmsbm <- function(object,
   }
   dform <- object$forms$formula.dyad
   if(any(grepl("missing", names(object$DyadCoef)))){
-    dform <- update(as.formula(object$forms$formula.dyad), 
+    dform <- update(as.formula(dform), 
                     paste(c("~ .", names(object$DyadCoef)[grep("missing", 
                                     names(object$DyadCoef))]), collapse=" + "))
   }
@@ -100,14 +100,14 @@ predict.mmsbm <- function(object,
   n_blk <- object$n_blocks
   mform <- object$forms$formula.monad
   if(any(grepl("missing", rownames(object$MonadCoef)))){
-    mform <- update(as.formula(object$forms$formula.monad), 
+    mform <- update(as.formula(mform), 
                     paste(c("~ .", rownames(object$MonadCoef)[grep("missing", 
                                       rownames(object$MonadCoef))]), collapse=" + "))
   }
   if(!parametric_mm){
     p <- object$MixedMembership
   } else {
-    if(is.null(object$forms$formula.monad)){
+    if(is.null(mform)){
       X_m <- model.matrix(~ 1, data = monad)
     } else {
       X_m <- model.matrix(eval(mform), monad)

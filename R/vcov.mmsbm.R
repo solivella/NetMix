@@ -20,7 +20,6 @@
 #' data("lazega_dyadic")
 #' data("lazega_monadic")
 #' ## Estimate model with 2 groups
-#' set.seed(123)
 #' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 #'                       ~  School + Practice + Status,
 #'                       senderID = "Lawyer1",
@@ -28,7 +27,9 @@
 #'                       nodeID = "Lawyer",
 #'                       data.dyad = lazega_dyadic,
 #'                       data.monad = lazega_monadic,
-#'                       n.blocks = 2)
+#'                       n.blocks = 2,
+#'                       mmsbm.control = list(seed = 123, 
+#'                                            se_sim = 2)) # Usually requires more samples.
 #' 
 #' vcov(lazega_mmsbm, "MonadCoef")
 #' 

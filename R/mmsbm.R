@@ -86,9 +86,9 @@
 #'       \item{converged}{Convergence indicator; zero indicates failure to converge.}
 #'       \item{NodeIndex}{Order in which nodes are stored in all return objects.}
 #'       \item{monadic.data, dyadic.data, directed}{Original values of parameters used during estimation.}
-#'       \item{forms}{Values of formal arguments passed in original function call.}
+#'       \item{forms}{Values of selected formal arguments used by other methods.}
 #'       \item{seed}{The value of RNG seed used during estimation.}
-#'       \item{call}{Original (unevaluated) call.}
+#'       \item{call}{Original (unevaluated) function call.}
 #'     }
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 #' 
@@ -98,7 +98,8 @@
 #' data("lazega_dyadic")
 #' data("lazega_monadic")
 #' ## Estimate model with 2 groups
-#' set.seed(123)
+#' ## Setting to `hessian=TRUE` increases computation time
+#' ## but is needed if standard errors are to be computed. 
 #' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 #'                       ~  School + Practice + Status,
 #'                       senderID = "Lawyer1",
@@ -107,7 +108,8 @@
 #'                       data.dyad = lazega_dyadic,
 #'                       data.monad = lazega_monadic,
 #'                       n.blocks = 2,
-#'                       mmsbm.control = list(hessian = FALSE))
+#'                       mmsbm.control = list(seed = 123,
+#'                                            hessian = FALSE))
 #' 
 
 mmsbm <- function(formula.dyad,
@@ -123,6 +125,9 @@ mmsbm <- function(formula.dyad,
                   directed = TRUE,
                   mmsbm.control = list()){
   
+  cl <- match.call(expand.dots = FALSE)
+  formulas <- cl[match(c("formula.dyad","formula.monad"), names(cl))]
+  
   ## Form default control list
   ctrl <- list(blocks = n.blocks,
                states = n.hmmstates,
@@ -135,7 +140,7 @@ mmsbm <- function(formula.dyad,
                beta_init = NULL,
                gamma_init = NULL,
                spectral = TRUE,
-               init_gibbs = if (n.hmmstates > 1) TRUE else FALSE,
+               init_gibbs = ifelse(n.hmmstates > 1, TRUE, FALSE),
                alpha = 1.0,
                missing="indicator method",
                em_iter = 50,
@@ -174,8 +179,8 @@ mmsbm <- function(formula.dyad,
     stop("Monadic dataset not defined.")
   }
   
-  ## Add time variable if only one period
-  if(is.null(timeID)){
+  ## Add time variable if null or single period
+  if(is.null(timeID) || (length(unique(data.dyad[[timeID]])) == 1)){
     timeID <- "tid"
     data.dyad[timeID] <- 1
     if(!is.null(data.monad)) {
@@ -244,6 +249,7 @@ mmsbm <- function(formula.dyad,
     })
     data.dyad <- do.call("rbind", d.keep)
   }
+  
   
   mfd <- do.call(model.frame, list(formula = formula.dyad,
                                    data = data.dyad,
@@ -427,7 +433,7 @@ mmsbm <- function(formula.dyad,
         colnames(phi_internal) <- 1:n.blocks
         MixedMembership <- t(phi_internal)
         int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
-        BlockModel <- .approxB(edges[[i]], int_dyad_id, MixedMembership)
+        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
         temp_res[[i]] <- list(BlockModel = BlockModel,
                               MixedMembership = MixedMembership)                         
         
@@ -450,7 +456,7 @@ mmsbm <- function(formula.dyad,
         MixedMembership <- prop.table(ret$document_expects, 2)
         colnames(MixedMembership) <- colnames(soc_mats[[i]])
         int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
-        BlockModel <- .approxB(edges[[i]], int_dyad_id, MixedMembership)
+        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
         temp_res[[i]] <- list(BlockModel = BlockModel,
                               MixedMembership = MixedMembership)
         
@@ -481,7 +487,7 @@ mmsbm <- function(formula.dyad,
   }
   
   if(is.null(ctrl$b_init_t)){
-    ctrl$b_init_t <- qlogis(.approxB(Y, nt_id, ctrl$phi_init_t))
+    ctrl$b_init_t <- qlogis(approxB(Y, nt_id, ctrl$phi_init_t))
     if(any(is.infinite(ctrl$b_init_t))){
       which.inf <- which(is.infinite(ctrl$b_init_t))
       ctrl$b_init_t[which.inf] <- ifelse(ctrl$b_init_t[which.inf] > 0, 25, -25) 
@@ -506,7 +512,7 @@ mmsbm <- function(formula.dyad,
   }
   X_t <- t(X)
   Z_t <- t(Z)
-  fit <- .mmsbm_fit(Z_t,
+  fit <- mmsbm_fit(Z_t,
                     X_t,
                     Y,
                     t_id_d,
@@ -594,9 +600,10 @@ mmsbm <- function(formula.dyad,
         } else {
           s_matrix <- t(model.matrix(~as.factor(S_samp) - 1))
         }
-        return(optimHess(c(beta_vec), .alphaLB,
+        
+        return(optimHess(c(beta_vec), alphaLB,
                          tot_nodes = Nvec,
-                         c_t = t(C_samp), 
+                         c_t = t(C_samp),
                          x_t = X_i,
                          s_mat = s_matrix,
                          t_id = tidn,
@@ -619,8 +626,8 @@ mmsbm <- function(formula.dyad,
                                                                   sep=":") 
     
     ## and for dyadic coefficients
-    z_samples <- replicate(ctrl$se_sim, .getZ(fit[["SenderPhi"]]), simplify = FALSE)
-    w_samples <- replicate(ctrl$se_sim, .getZ(fit[["ReceiverPhi"]]), simplify = FALSE)
+    z_samples <- replicate(ctrl$se_sim, getZ(fit[["SenderPhi"]]), simplify = FALSE)
+    w_samples <- replicate(ctrl$se_sim, getZ(fit[["ReceiverPhi"]]), simplify = FALSE)
     all_theta_par <- c(
       if(directed){
         c(fit[["BlockModel"]]) }
@@ -631,15 +638,16 @@ mmsbm <- function(formula.dyad,
     hessTheta_list <- mapply(
       function(send_samp, rec_samp, y_vec, Z_d, par_theta, mu_b_mat, var_b_mat, var_g, dir_net)
       {
+       
         optimHess(par_theta,
-                  .thetaLB,
+                  thetaLB,
                   y = y_vec,
                   z_t = Z_d,
                   send_phi = send_samp,
                   rec_phi = rec_samp,
                   mu_b_t = mu_b_mat,
                   var_b_t = var_b_mat,
-                  var_gamma = var_g, 
+                  var_gamma = var_g,
                   directed = dir_net,
                   control = list(maxit = 0))
       },
@@ -677,23 +685,28 @@ mmsbm <- function(formula.dyad,
   }
   
   
-  ## Include used data in original order
-  fit$monadic.data <- mfm
-  fit$dyadic.data <- mfd
+  ## Include used data 
+  fit$monadic.data <- force(mfm)
+  fit$dyadic.data <- force(mfd)
   fit$Y <- Y
   
   ## Include node id's
   fit$NodeIndex <- nt_id
   
-  ## Include indicator for directed/undirected
-  fit$directed <- directed
+  ## Include a few formals needed by other methods
+  fit$forms <- list(directed = directed,
+                    senderID = senderID,
+                    receiverID = receiverID,
+                    timeID = timeID,
+                    nodeID = nodeID,
+                    t_id_d = t_id_d,
+                    formula.dyad = formulas[[1]],
+                    formula.monad = formulas[[2]])
   
-  ## Include original call
+  ## Include used seed
   fit$seed <- ctrl$seed
-  fit$call <- match.call()
-  fit$forms <- mget(formalArgs(sys.function()))
-  fit$forms$formula.dyad <- formula.dyad
-  fit$forms$formula.monad <- formula.monad
+  
+  fit$call <- cl
   
   ##Assign class for methods
   class(fit) <- "mmsbm"

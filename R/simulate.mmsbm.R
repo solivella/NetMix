@@ -26,7 +26,6 @@
 #' data("lazega_dyadic")
 #' data("lazega_monadic")
 #' ## Estimate model with 2 groups
-#' set.seed(123)
 #' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 #'                       ~  School + Practice + Status,
 #'                       senderID = "Lawyer1",
@@ -34,7 +33,9 @@
 #'                       nodeID = "Lawyer",
 #'                       data.dyad = lazega_dyadic,
 #'                       data.monad = lazega_monadic,
-#'                       n.blocks = 2)
+#'                       n.blocks = 2,
+#'                       mmsbm.control = list(seed = 123, 
+#'                                            hessian = FALSE))
 #' 
 #' ## Simulate 5 new networks
 #' lazega_sim <- simulate(lazega_mmsbm, nsim = 5, seed = 123)
@@ -84,11 +85,11 @@ simulate.mmsbm <- function(object,
   if(! (tid %in% c(names(dyad), names(monad)))){
     stop("Dynamic model estimated, but no timeID provided in new data.")
   }
-  X_d <- model.matrix(object$forms$formula.dyad, dyad)
+  X_d <- model.matrix(eval(object$forms$formula.dyad), dyad)
   if(is.null(object$forms$formula.monad)){
     X_m <- model.matrix(~ 1, data = monad)
   } else {
-    X_m <- model.matrix(object$forms$formula.monad, monad)
+    X_m <- model.matrix(eval(object$forms$formula.monad), monad)
   }
   if(length(object$DyadCoef)==0){
     object$DyadCoef <- as.vector(0)
@@ -134,8 +135,8 @@ simulate.mmsbm <- function(object,
       p <- object$MixedMembership
     }
     
-    z <- .getZ(p[,s_ind])
-    w <- .getZ(p[,r_ind])
+    z <- getZ(p[,s_ind])
+    w <- getZ(p[,r_ind])
     
     eta_dyad <- array(0.0, n_dyad) 
     for(i in 1:n_dyad){ 

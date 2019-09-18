@@ -104,9 +104,9 @@ Object of class \code{mmsbm}. List with named components:
       \item{converged}{Convergence indicator; zero indicates failure to converge.}
       \item{NodeIndex}{Order in which nodes are stored in all return objects.}
       \item{monadic.data, dyadic.data, directed}{Original values of parameters used during estimation.}
-      \item{forms}{Values of formal arguments passed in original function call.}
+      \item{forms}{Values of selected formal arguments used by other methods.}
       \item{seed}{The value of RNG seed used during estimation.}
-      \item{call}{Original (unevaluated) call.}
+      \item{call}{Original (unevaluated) function call.}
     }
 }
 \description{
@@ -119,7 +119,6 @@ library(NetMix)
 data("lazega_dyadic")
 data("lazega_monadic")
 ## Estimate model with 2 groups
-set.seed(123)
 lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       ~  School + Practice + Status,
                       senderID = "Lawyer1",
@@ -128,7 +127,8 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       data.dyad = lazega_dyadic,
                       data.monad = lazega_monadic,
                       n.blocks = 2,
-                      mmsbm.control = list(hessian = FALSE))
+                      mmsbm.control = list(seed = 123,
+                                           hessian = FALSE)) # Setting to TRUE increases computation time
 
 }
 \author{

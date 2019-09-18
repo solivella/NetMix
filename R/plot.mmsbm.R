@@ -24,7 +24,6 @@
 #' data("lazega_dyadic")
 #' data("lazega_monadic")
 #' ## Estimate model with 2 groups
-#' set.seed(123)
 #' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 #'                       ~  School + Practice + Status,
 #'                       senderID = "Lawyer1",
@@ -33,7 +32,8 @@
 #'                       data.dyad = lazega_dyadic,
 #'                       data.monad = lazega_monadic,
 #'                       n.blocks = 2,
-#'                       mmsbm.control = list(hessian = FALSE))
+#'                       mmsbm.control = list(seed = 123,
+#'                                            hessian = FALSE))
 #' 
 #' ## Plot blockmodel as network
 #' plot(lazega_mmsbm)
@@ -51,7 +51,7 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
   
   if(type=="groups"){
     colRamp <- colorRamp(c("#DCDCDC","#808080","#000000"))
-    g.mode <- ifelse(eval(x$forms$directed), "directed", "undirected")
+    g.mode <- ifelse(x$forms$directed, "directed", "undirected")
     adj_mat <- x$BlockModel
     dimnames(adj_mat) <- list(paste("G",1:nrow(adj_mat), sep=""),
                               paste("G", 1:ncol(adj_mat), sep=""))
@@ -71,7 +71,7 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     loop.rads <- radian.rescale(x=1:x$n_blocks, direction=-1, start=0)
     loop.rads <- rep(loop.rads, times = times.arg)
     igraph::plot.igraph(block.G, main = "",
-                        edge.width=4, edge.color=e.cols,  edge.curved = x$directed, edge.arrow.size = 0.65,
+                        edge.width=4, edge.color=e.cols,  edge.curved = x$forms$directed, edge.arrow.size = 0.65,
                         edge.loop.angle = loop.rads,
                         vertex.size=v.size, vertex.color="white", vertex.frame.color="black",
                         vertex.label.font=2, vertex.label.cex=1, vertex.label.color="black",

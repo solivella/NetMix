@@ -20,7 +20,6 @@
 #' data("lazega_dyadic")
 #' data("lazega_monadic")
 #' ## Estimate model with 2 groups
-#' set.seed(123)
 #' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 #'                       ~  School + Practice + Status,
 #'                       senderID = "Lawyer1",
@@ -29,7 +28,8 @@
 #'                       data.dyad = lazega_dyadic,
 #'                       data.monad = lazega_monadic,
 #'                       n.blocks = 2,
-#'                       mmsbm.control = list(hessian = FALSE))
+#'                       mmsbm.control = list(seed = 123,
+#'                                            hessian = FALSE))
 #' 
 #' coef(lazega_mmsbm, "MonadCoef")
 #' 

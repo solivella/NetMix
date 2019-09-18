@@ -34,7 +34,7 @@
 #' @param var_beta,var_gamma Numeric; prior variances of monadic and dyadic coefficients.
 #' @param send_phi,rec_phi Numeric matrices; for each dyad, sampled group instantiated by sender and reciver in pair.
 #' @param mu_b_t,var_b_t Numeirc matrices; prior mean and variance for blockmodel parameters.
-#' @param directed Boolean; is the netowkr directed?
+#' @param directed Boolean; is the network directed?
 #' @param ... Numeric vectors; vectors of potentially different length to be cbind-ed.
 #' 
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
