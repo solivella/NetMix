@@ -21,7 +21,7 @@
 \item{...}{Currently ignored}
 }
 \value{
-List of length \code{n.groups}.  Each entry contains a sorted vector of average latent membership probabilities of length \code{n}.
+List of length \code{n.blocks}.  Each entry contains a sorted vector of average latent membership probabilities of length \code{n}.
 }
 \description{
 The function lists the nodes (optionally, node-time periods) that most frequently instantiate membership in each latent group.

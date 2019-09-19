@@ -93,7 +93,7 @@ double alphaLB(Rcpp::NumericVector par,
   }
   
   
-  return -res/N_NODE;
+  return -res;
 }
 
 //' @rdname auxfuns
@@ -173,7 +173,7 @@ double thetaLB(Rcpp::NumericVector par,
       res -= 0.5 * (pow(b_t(h, g) - mu_b_t(h, g), 2.0) / var_b_t(h, g));
     }
   }
-  return -res/N_DYAD;
+  return -res;
 }
 
 

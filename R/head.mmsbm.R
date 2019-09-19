@@ -9,7 +9,7 @@
 #' @param t.correct Logical; indicates whether latent group memberships should be corrected for temporal trends.  If TRUE, the function returns the node-time period units with highest estimated membership in each latent group.  
 #' @param ... Currently ignored
 #'     
-#' @return List of length \code{n.groups}.  Each entry contains a sorted vector of average latent membership probabilities of length \code{n}.
+#' @return List of length \code{n.blocks}.  Each entry contains a sorted vector of average latent membership probabilities of length \code{n}.
 #
 #' @method head mmsbm
 #'

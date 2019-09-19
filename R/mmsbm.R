@@ -85,7 +85,7 @@
 #'       \item{niter}{Final number of VI iterations.}
 #'       \item{converged}{Convergence indicator; zero indicates failure to converge.}
 #'       \item{NodeIndex}{Order in which nodes are stored in all return objects.}
-#'       \item{monadic.data, dyadic.data, directed}{Original values of parameters used during estimation.}
+#'       \item{monadic.data, dyadic.data}{Model frames used during estimation (stripped of attributes).}
 #'       \item{forms}{Values of selected formal arguments used by other methods.}
 #'       \item{seed}{The value of RNG seed used during estimation.}
 #'       \item{call}{Original (unevaluated) function call.}
@@ -257,7 +257,7 @@ mmsbm <- function(formula.dyad,
                                    tid = as.name(timeID),
                                    sid = as.name(senderID),
                                    rid = as.name(receiverID)))
-  
+
   
   ut <- unique(mfd[["(tid)"]])
   periods <- length(ut)
@@ -289,8 +289,8 @@ mmsbm <- function(formula.dyad,
     ntid <- do.call(paste, c(mfm[c("(nid)","(tid)")], sep="@"))
   }
   
-  Y <- model.response(mfd)
-  X <- scale(model.matrix(terms(mfm), mfm))
+  Y <- stats::model.response(mfd)
+  X <- base::scale(model.matrix(terms(mfm), mfm))
   X_mean <- attr(X, "scaled:center")
   X_sd <- attr(X, "scaled:scale")
   if(any(X_sd==0)){
@@ -367,7 +367,7 @@ mmsbm <- function(formula.dyad,
                                   centers = n.hmmstates,
                                   iter.max = 15,
                                   nstart = 15), "classes")
-      kappa_internal <- model.matrix(~ as.factor(state_init) - 1)
+      kappa_internal <- model.matrix(~ factor(state_init, 1:n.hmmstates) - 1)
       kappa_internal <- .transf(kappa_internal)
       ctrl$kappa_init_t <- t(kappa_internal)
     } else {
@@ -427,7 +427,7 @@ mmsbm <- function(formula.dyad,
                                                            nstart = 1)), "classes")
         }
         
-        phi_internal <- model.matrix(~ as.factor(clust_internal) - 1)
+        phi_internal <- model.matrix(~ factor(clust_internal, 1:n.blocks) - 1)
         phi_internal <- .transf(phi_internal)
         rownames(phi_internal) <- rownames(soc_mats[[i]])
         colnames(phi_internal) <- 1:n.blocks
@@ -542,10 +542,10 @@ mmsbm <- function(formula.dyad,
   
   ## Rescale and name coefficients
   fit[["DyadCoef"]] <- fit[["DyadCoef"]] / Z_sd[-which(Z_sd==0)]
-  # if(length(fit[["DyadCoef"]])){
-  #   Z <- t(t(Z) * Z_sd[-1] + Z_mean[-1])
-  #   fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]])
-  # }
+  if(length(fit[["DyadCoef"]])){
+    Z <- t(t(Z) * Z_sd[-1] + Z_mean[-1])
+    fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]])
+  }
   if(ncol(Z)>1){
     names(fit[["DyadCoef"]]) <- colnames(Z) 
   }
@@ -553,9 +553,9 @@ mmsbm <- function(formula.dyad,
                                function(mat, sd_vec, mean_vec){
                                  constx <- which(sd_vec==0)
                                  mat[-constx, ] <- mat[-constx, ] / sd_vec[-constx]
-                                 # if(length(constx)!=0){
-                                 #   mat[constx, ] <- mat[constx, ] - mean_vec[-constx] %*% mat[-constx, ]
-                                 # }
+                                 if(length(constx)!=0){
+                                   mat[constx, ] <- mat[constx, ] - mean_vec[-constx] %*% mat[-constx, ]
+                                 }
                                  return(mat)
                                },
                                array(0.0, c(ncol(X), n.blocks)),
@@ -595,12 +595,11 @@ mmsbm <- function(formula.dyad,
     hessBeta_list <- mapply(
       function(C_samp, S_samp, tidn, X_i, Nvec, beta_vec, vbeta)
       {
-        if(all(S_samp==1)){
-          s_matrix <- matrix(1, nrow = 1, ncol = length(S_samp))
-        } else {
-          s_matrix <- t(model.matrix(~as.factor(S_samp) - 1))
-        }
-        
+        s_matrix <- t(model.matrix(~factor(S_samp, 1:n.hmmstates) - 1))
+        tot_in_state <- colSums(s_matrix)
+        if(any(tot_in_state) == 0){
+          warning("Some HMM states are empty; consider reducing n.hmmstates, or increasing eta.")
+        }  
         return(optimHess(c(beta_vec), alphaLB,
                          tot_nodes = Nvec,
                          c_t = t(C_samp),
@@ -686,8 +685,10 @@ mmsbm <- function(formula.dyad,
   
   
   ## Include used data 
-  fit$monadic.data <- force(mfm)
-  fit$dyadic.data <- force(mfd)
+  attr(mfm, "terms") <- NULL
+  attr(mfd, "terms") <- NULL
+  fit$monadic.data <- mfm
+  fit$dyadic.data <- mfd
   fit$Y <- Y
   
   ## Include node id's

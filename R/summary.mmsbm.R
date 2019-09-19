@@ -35,7 +35,7 @@
 #'                       data.monad = lazega_monadic,
 #'                       n.blocks = 2,
 #'                       mmsbm.control = list(seed = 123,
-#'                                            hessian = FALSE))
+#'                                            hessian = TRUE))
 #' 
 #' ## Summarize estimated model
 #' summary(lazega_mmsbm)

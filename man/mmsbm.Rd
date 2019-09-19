@@ -103,7 +103,7 @@ Object of class \code{mmsbm}. List with named components:
       \item{niter}{Final number of VI iterations.}
       \item{converged}{Convergence indicator; zero indicates failure to converge.}
       \item{NodeIndex}{Order in which nodes are stored in all return objects.}
-      \item{monadic.data, dyadic.data, directed}{Original values of parameters used during estimation.}
+      \item{monadic.data, dyadic.data}{Model frames used during estimation (stripped of attributes).}
       \item{forms}{Values of selected formal arguments used by other methods.}
       \item{seed}{The value of RNG seed used during estimation.}
       \item{call}{Original (unevaluated) function call.}
@@ -119,6 +119,8 @@ library(NetMix)
 data("lazega_dyadic")
 data("lazega_monadic")
 ## Estimate model with 2 groups
+## Setting to `hessian=TRUE` increases computation time
+## but is needed if standard errors are to be computed. 
 lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       ~  School + Practice + Status,
                       senderID = "Lawyer1",
@@ -128,7 +130,7 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       data.monad = lazega_monadic,
                       n.blocks = 2,
                       mmsbm.control = list(seed = 123,
-                                           hessian = FALSE)) # Setting to TRUE increases computation time
+                                           hessian = FALSE))
 
 }
 \author{
