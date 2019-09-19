@@ -49,5 +49,24 @@ summary.mmsbm <- function(object, ...){
   names(summ) <- c("N", "Number of Clusters", "Percent of Observations in Each Cluster",
                    "Edge Formation Probabilities", "Dyadic Coefficients", "Monadic Coefficients",
                    "Markov State Probabilities")
+  if("vcov_dyad" %in% names(object)){
+    summ$`Dyadic Coefficients` <- cbind(object$DyadCoef,
+                                        sqrt(diag(object$vcov_dyad)))
+    colnames(summ$`Dyadic Coefficients`) <- c("Coefficient", "Std. Error")
+    
+    colnames(summ$`Monadic Coefficients`) <- paste(colnames(summ$`Monadic Coefficients`), "Coefficient")
+    mse <- sqrt(diag(object$vcov_monad))
+    z <- array(dim=c(nrow(object$MonadCoef), ncol(object$MonadCoef)*2, object$n_states))
+    dimnames(z)[c(1,3)] <- dimnames(summ$`Monadic Coefficients`)[c(1,3)]
+    for(i in 1:object$n_states){
+      m <- cbind(summ$`Monadic Coefficients`[,,i],
+                 matrix(nrow=nrow(object$MonadCoef), ncol=object$n_blocks,
+                        mse[grep(paste("State", i), names(mse))], 
+                        dimnames = list(NULL, paste(colnames(object$MonadCoef), "Std. Error"))))
+      z[,,i] <- m[,c(rbind(1:ncol(object$MonadCoef), (1:ncol(object$MonadCoef))+ncol(object$MonadCoef)))]
+      colnames(z) <- colnames(m[,c(rbind(1:ncol(object$MonadCoef), (1:ncol(object$MonadCoef))+ncol(object$MonadCoef)))])
+    }
+    summ$`Monadic Coefficients` <- z
+  }
   print(summ)
 }
