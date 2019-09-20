@@ -593,12 +593,16 @@ mmsbm <- function(formula.dyad,
     C_samples <- split.data.frame(sampleC_perm[,1:n.blocks], sampleC_perm[,n.blocks + 2])
     S_samples <- replicate(ctrl$se_sim, apply(fit[["Kappa"]], 2, function(x)sample(1:n.hmmstates, 1, prob = x)), simplify = FALSE)
     hessBeta_list <- mapply(
-      function(C_samp, S_samp, tidn, X_i, Nvec, beta_vec, vbeta)
+      function(C_samp, S_samp, tidn, X_i, Nvec, beta_vec, vbeta, periods)
       {
+        if(n.hmmstates > 1) {
         s_matrix <- t(model.matrix(~factor(S_samp, 1:n.hmmstates) - 1))
+        } else {
+          s_matrix <- matrix(1, ncol=periods)
+        }
         tot_in_state <- colSums(s_matrix)
-        if(any(tot_in_state) == 0){
-          warning("Some HMM states are empty; consider reducing n.hmmstates, or increasing eta.")
+        if(isTRUE(all.equal(tot_in_state, 0.0))){
+          stop("Some HMM states are empty; consider reducing n.hmmstates, or increasing eta.")
         }  
         return(optimHess(c(beta_vec), alphaLB,
                          tot_nodes = Nvec,
@@ -614,7 +618,8 @@ mmsbm <- function(formula.dyad,
                       X_i = t(X),
                       Nvec = fit[["TotNodes"]],
                       beta_vec = fit[["MonadCoef"]], 
-                      vbeta = ctrl$var_beta),
+                      vbeta = ctrl$var_beta, 
+                      periods = periods),
       SIMPLIFY=FALSE)
     hessBeta <- Reduce("+", hessBeta_list)/ctrl$se_sim
     
@@ -637,7 +642,6 @@ mmsbm <- function(formula.dyad,
     hessTheta_list <- mapply(
       function(send_samp, rec_samp, y_vec, Z_d, par_theta, mu_b_mat, var_b_mat, var_g, dir_net)
       {
-       
         optimHess(par_theta,
                   thetaLB,
                   y = y_vec,
