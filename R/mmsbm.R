@@ -263,6 +263,9 @@ mmsbm <- function(formula.dyad,
   periods <- length(ut)
   if(periods > 1){
     ctrl$times <- periods
+    if(n.hmmstates > 1){
+      ctrl$eta <- periods * 0.05
+    }
   }
   dntid <- cbind(do.call(paste, c(mfd[c("(sid)","(tid)")], sep = "@")),
                  do.call(paste, c(mfd[c("(rid)","(tid)")], sep = "@")))
@@ -596,12 +599,12 @@ mmsbm <- function(formula.dyad,
       function(C_samp, S_samp, tidn, X_i, Nvec, beta_vec, vbeta, periods)
       {
         if(n.hmmstates > 1) {
-        s_matrix <- t(model.matrix(~factor(S_samp, 1:n.hmmstates) - 1))
+          s_matrix <- t(model.matrix(~factor(S_samp, 1:n.hmmstates) - 1))
         } else {
           s_matrix <- matrix(1, ncol=periods)
         }
-        tot_in_state <- colSums(s_matrix)
-        if(isTRUE(all.equal(tot_in_state, 0.0))){
+        tot_in_state <- rowSums(s_matrix)
+        if(any(tot_in_state == 0.0)){
           stop("Some HMM states are empty; consider reducing n.hmmstates, or increasing eta.")
         }  
         return(optimHess(c(beta_vec), alphaLB,
