@@ -670,14 +670,15 @@ mmsbm <- function(formula.dyad,
     vcovTheta <- solve(hessTheta)
     
     
-    fit$vcov_blockmodel <- vcovTheta[1:(n.blocks * n.blocks), 1:(n.blocks * n.blocks), drop = FALSE]
-    colnames(fit$vcov_blockmodel) <- rownames(fit$vcov_blockmodel) <- paste(rep(rownames(fit[["BlockModel"]]), times = n.blocks),
-                                                                            rep(colnames(fit[["BlockModel"]]), each = n.blocks),
-                                                                            sep=":")
+    N_B_PAR <- ifelse(directed, n.blocks^2 , n.blocks * (1 + n.blocks) / 2)
+    fit$vcov_blockmodel <- vcovTheta[1:N_B_PAR, 1:N_B_PAR, drop = FALSE]
+    bm_names <- outer(rownames(fit[["BlockModel"]]), colnames(fit[["BlockModel"]]), paste, sep=":")
+    colnames(fit$vcov_blockmodel) <- rownames(fit$vcov_blockmodel) <- if(directed){c(bm_names)}else{c(bm_names[lower.tri(bm_names, TRUE)])}
+    
     
     if(any(Z_sd > 0)){
-      fit$vcov_dyad <- vcovTheta[(n.blocks * n.blocks + 1):nrow(vcovTheta),
-                                 (n.blocks * n.blocks + 1):ncol(vcovTheta),
+      fit$vcov_dyad <- vcovTheta[(N_B_PAR + 1):nrow(vcovTheta),
+                                 (N_B_PAR + 1):ncol(vcovTheta),
                                  drop = FALSE]
       colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
     }
