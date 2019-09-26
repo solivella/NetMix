@@ -31,130 +31,119 @@
 
 #include "MMModelClass.h"
 
-using Rcpp::NumericMatrix;
-using Rcpp::NumericVector;
-using Rcpp::IntegerMatrix;
-using Rcpp::IntegerVector;
-using Rcpp::List;
-using Rcpp::checkUserInterrupt;
-using Rcpp::as;
 
 
 // [[Rcpp::export(mmsbm_fit)]]
-List mmsbm_fit(const NumericMatrix& z_t,
-               const NumericMatrix& x_t,
-               const IntegerVector& y,
-               const IntegerVector& time_id_dyad,
-               const IntegerVector& time_id_node,
-               const IntegerVector& nodes_per_period,
-               const IntegerMatrix& node_id_dyad,
-               const NumericMatrix& mu_b,
-               const NumericMatrix& var_b,
-               const NumericMatrix& phi_init,
-               NumericMatrix& kappa_init_t,
-               NumericMatrix& b_init_t,
-               NumericVector& beta_init,
-               NumericVector& gamma_init,
-               List control
+Rcpp::List mmsbm_fit(const arma::mat& z_t,
+                     const arma::mat& x_t,
+                     const arma::vec& y,
+                     const arma::uvec& time_id_dyad,
+                     const arma::uvec& time_id_node,
+                     const arma::uvec& nodes_per_period,
+                     const arma::umat& node_id_dyad,
+                     const arma::mat& mu_b,
+                     const arma::mat& var_b,
+                     const arma::mat& phi_init,
+                     arma::mat& kappa_init_t,
+                     arma::mat& b_init_t,
+                     arma::cube& beta_init,
+                     arma::vec& gamma_init,
+                     Rcpp::List control
 )
 {
 
-//Create model instance
-MMModel Model(z_t,
-              x_t,
-              y,
-              time_id_dyad,
-              time_id_node,
-              nodes_per_period,
-              node_id_dyad,
-              mu_b,
-              var_b,
-              phi_init,
-              kappa_init_t,
-              b_init_t,
-              beta_init,
-              gamma_init,
-              control
-);
+  //Create model instance
+  MMModel Model(z_t,
+                x_t,
+                y,
+                time_id_dyad,
+                time_id_node,
+                nodes_per_period,
+                node_id_dyad,
+                mu_b,
+                var_b,
+                phi_init,
+                kappa_init_t,
+                b_init_t,
+                beta_init,
+                gamma_init,
+                control
+  );
 
-// VARIATIONAL EM
-int iter = 0,
-  EM_ITER = as<int>(control["em_iter"]),
-  N_BLK = as<int>(control["blocks"]),
-  N_STATE = as<int>(control["states"]);
+  // VARIATIONAL EM
+  arma::uword iter = 0,
+    EM_ITER = control["em_iter"],
+                     N_BLK = control["blocks"],
+                                    N_STATE = control["states"];
 
-bool conv = false,
-  verbose = as<bool>(control["verbose"]);
+  bool conv = false,
+    verbose = Rcpp::as<bool>(control["verbose"]);
+  
+  double tol = Rcpp::as<double>(control["conv_tol"])
+    ,newLL, oldLL, change_LL;
+  
+  oldLL = Model.cLL();
+  newLL = 0.0;
 
-double tol = as<double>(control["conv_tol"])
-  ,newLL, oldLL, change_LL;
-
-NumericVector old_c(N_BLK * x_t.ncol());
-
-oldLL = Model.cLL();
-newLL = 0.0;
-while(iter < EM_ITER && conv == false){
-  checkUserInterrupt();
-  
-  // E-STEP
-  Model.updatePhi();
-  
-  if(N_STATE > 1){
-    Model.updateKappa();
-  }
-  
-  
-  //M-STEP
-  Model.optim_ours(true); //optimize alphaLB
-  Model.optim_ours(false); //optimize thetaLB
-  
-  //Check convergence
-  newLL = Model.cLL();
-  change_LL = fabs((newLL-oldLL)/oldLL);
-  if(change_LL < tol){
-    conv = true;
-  } else {
-    oldLL = newLL;
-  }
-  if(verbose){
-    if((iter+1) % 50 == 0) {
-      Rprintf("Iter %i, change in LB: %f\n", iter + 1, change_LL);
+  while(iter < EM_ITER && conv == false){
+    Rcpp::checkUserInterrupt();
+    // E-STEP
+    Model.updatePhi();
+    
+    if(N_STATE > 1){
+      Model.updateKappa();
     }
+    // 
+    // 
+    // //M-STEP
+    Model.optim_ours(true); //optimize alphaLB
+    Model.optim_ours(false); //optimize thetaLB
+    // 
+    //Check convergence
+    newLL = Model.cLL();
+    change_LL = fabs((newLL-oldLL)/oldLL);
+    if(change_LL < tol){
+      conv = true;
+    } else {
+      oldLL = newLL;
+    }
+    if(verbose){
+      if((iter+1) % 50 == 0) {
+        Rprintf("Iter %i, change in LB: %f\n", iter + 1, change_LL);
+      }
+    }
+    ++iter;
   }
-  ++iter;
-}
-
-
-//Form return objects
-NumericMatrix phi_res = Model.getC();
-NumericMatrix send_phi = Model.getPhi(true);
-NumericMatrix rec_phi = Model.getPhi(false);
-IntegerVector tot_nodes = Model.getN();
-NumericVector theta = Model.getTheta();
-NumericMatrix A = Model.getWmn();
-NumericMatrix kappa_res = Model.getKappa();
-NumericMatrix B = Model.getB();
-NumericVector gamma_res = Model.getGamma();
-List beta_res = Model.getBeta();
-
-
-List res;
-res["MixedMembership"] = phi_res;
-res["SenderPhi"] = send_phi;
-res["ReceiverPhi"] = rec_phi;
-res["TotNodes"] = tot_nodes;
-res["Theta"] = theta;
-res["BlockModel"] = B;
-res["DyadCoef"] = gamma_res;
-res["TransitionKernel"] = A;
-res["MonadCoef"] = beta_res;
-res["Kappa"] = kappa_res;
-res["n_states"] = N_STATE;
-res["n_blocks"] = N_BLK;
-res["LowerBound"] = newLL;
-res["niter"] = iter;
-res["converged"] = conv;
-
-
-return res;
+  
+  
+  //Form return objects
+  arma::mat phi_res = Model.getC();
+  arma::mat send_phi = Model.getPhi(true);
+  arma::mat rec_phi = Model.getPhi(false);
+  arma::uvec tot_nodes = Model.getN();
+  arma::mat A = Model.getWmn();
+  arma::mat kappa_res = Model.getKappa();
+  arma::mat B = Model.getB();
+  arma::vec gamma_res = Model.getGamma();
+  arma::cube beta_res = Model.getBeta();
+  
+  
+  Rcpp::List res;
+  res["MixedMembership"] = phi_res;
+  res["SenderPhi"] = send_phi;
+  res["ReceiverPhi"] = rec_phi;
+  res["TotNodes"] = tot_nodes;
+  res["BlockModel"] = B;
+  res["DyadCoef"] = gamma_res;
+  res["TransitionKernel"] = A;
+  res["MonadCoef"] = beta_res;
+  res["Kappa"] = kappa_res;
+  res["n_states"] = N_STATE;
+  res["n_blocks"] = N_BLK;
+  res["LowerBound"] = newLL;
+  res["niter"] = iter;
+  res["converged"] = conv;
+  
+  
+  return res;
 }

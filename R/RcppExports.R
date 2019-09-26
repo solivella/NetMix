@@ -3,22 +3,22 @@
 
 #' @rdname auxfuns
 approxB <- function(y, d_id, pi_mat) {
-    .Call('_NetMix_approxB', PACKAGE = 'NetMix', y, d_id, pi_mat)
+    .Call(`_NetMix_approxB`, y, d_id, pi_mat)
 }
 
 #' @rdname auxfuns
 getZ <- function(pi_mat) {
-    .Call('_NetMix_getZ', PACKAGE = 'NetMix', pi_mat)
+    .Call(`_NetMix_getZ`, pi_mat)
 }
 
 #' @rdname auxfuns
 alphaLB <- function(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta) {
-    .Call('_NetMix_alphaLB', PACKAGE = 'NetMix', par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta)
+    .Call(`_NetMix_alphaLB`, par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta)
 }
 
 #' @rdname auxfuns
 thetaLB <- function(par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma, directed) {
-    .Call('_NetMix_thetaLB', PACKAGE = 'NetMix', par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma, directed)
+    .Call(`_NetMix_thetaLB`, par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma, directed)
 }
 
 #' @name mmsbm_fit
@@ -52,6 +52,6 @@ thetaLB <- function(par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma, 
 NULL
 
 mmsbm_fit <- function(z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, mu_b, var_b, phi_init, kappa_init_t, b_init_t, beta_init, gamma_init, control) {
-    .Call('_NetMix_mmsbm_fit', PACKAGE = 'NetMix', z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, mu_b, var_b, phi_init, kappa_init_t, b_init_t, beta_init, gamma_init, control)
+    .Call(`_NetMix_mmsbm_fit`, z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, mu_b, var_b, phi_init, kappa_init_t, b_init_t, beta_init, gamma_init, control)
 }
 

@@ -1,4 +1,4 @@
-useDynLib(NetMix)
+useDynLib(NetMix, .registration = TRUE)
 exportPattern("^[[:alpha:]]+")
 importFrom("graphics", "axis", "box", "hist", "image", "layout", "legend", "lines", "par", "plot", "points",
              "rasterImage", "title", "mtext", "text")

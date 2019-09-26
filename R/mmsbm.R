@@ -151,7 +151,7 @@ mmsbm <- function(formula.dyad,
                var_b = c(1.0, 1.0),
                var_beta = 1.0,
                var_gamma = 1.0,
-               eta = 1.3,
+               eta = 1.0,
                permute = TRUE,
                conv_tol = 1e-3,
                verbose = FALSE)
@@ -263,8 +263,8 @@ mmsbm <- function(formula.dyad,
   periods <- length(ut)
   if(periods > 1){
     ctrl$times <- periods
-    if(n.hmmstates > 1){
-      ctrl$eta <- periods * 0.05
+    if((n.hmmstates > 1) & is.null(mmsbm.control$eta)){
+      ctrl$eta <- periods/n.hmmstates 
     }
   }
   dntid <- cbind(do.call(paste, c(mfd[c("(sid)","(tid)")], sep = "@")),
@@ -483,7 +483,7 @@ mmsbm <- function(formula.dyad,
       ctrl$gamma_init <- 0
     }
   }
-  if(identical(ncol(Z), 0))
+  if(ncol(Z) == 0)
     Z <- matrix(0, nrow = nrow(Z), ncol = 1)
   if(anyNA(ctrl$gamma_init)){
     stop("Singular design matrix; check dyadic predictors.")
@@ -527,7 +527,7 @@ mmsbm <- function(formula.dyad,
                     ctrl$phi_init_t,
                     ctrl$kappa_init_t,
                     ctrl$b_init_t,
-                    c(ctrl$beta_init),
+                    ctrl$beta_init,
                     ctrl$gamma_init,
                     ctrl
   )
@@ -548,20 +548,21 @@ mmsbm <- function(formula.dyad,
   if(length(fit[["DyadCoef"]])){
     Z <- t(t(Z) * Z_sd[-1] + Z_mean[-1])
     fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]])
-  }
-  if(ncol(Z)>1){
     names(fit[["DyadCoef"]]) <- colnames(Z) 
-  }
-  fit[["MonadCoef"]] <- vapply(fit[["MonadCoef"]],
-                               function(mat, sd_vec, mean_vec){
+ }
+
+  fit[["MonadCoef"]] <- vapply(1:n.hmmstates,
+                               function(ind, coefs, sd_vec, mean_vec){
+                                 mat <- coefs[,,ind, drop=FALSE]
                                  constx <- which(sd_vec==0)
-                                 mat[-constx, ] <- mat[-constx, ] / sd_vec[-constx]
+                                 mat[-constx, , 1] <- mat[-constx, , 1] / sd_vec[-constx]
                                  if(length(constx)!=0){
-                                   mat[constx, ] <- mat[constx, ] - mean_vec[-constx] %*% mat[-constx, ]
+                                   mat[constx, ,1] <- mat[constx, ,1] - mean_vec[-constx] %*% mat[-constx, , 1]
                                  }
                                  return(mat)
                                },
                                array(0.0, c(ncol(X), n.blocks)),
+                               coefs = fit[["MonadCoef"]],
                                sd_vec = X_sd,
                                mean_vec = X_mean)
   rownames(fit[["MonadCoef"]]) <- colnames(X)
@@ -607,14 +608,13 @@ mmsbm <- function(formula.dyad,
         if(any(tot_in_state == 0.0)){
           stop("Some HMM states are empty; consider reducing n.hmmstates, or increasing eta.")
         }  
-        return(optimHess(c(beta_vec), alphaLB,
+        return(optimHess(c(beta_vec),alphaLB,
                          tot_nodes = Nvec,
                          c_t = t(C_samp),
                          x_t = X_i,
                          s_mat = s_matrix,
                          t_id = tidn,
-                         var_beta = vbeta,
-                         control = list(maxit = 0)))
+                         var_beta = vbeta))
       },
       C_samples, S_samples,
       MoreArgs = list(tidn = t_id_n,
@@ -646,7 +646,7 @@ mmsbm <- function(formula.dyad,
       function(send_samp, rec_samp, y_vec, Z_d, par_theta, mu_b_mat, var_b_mat, var_g, dir_net)
       {
         optimHess(par_theta,
-                  thetaLB,
+                  thetaLB, 
                   y = y_vec,
                   z_t = Z_d,
                   send_phi = send_samp,
@@ -654,8 +654,7 @@ mmsbm <- function(formula.dyad,
                   mu_b_t = mu_b_mat,
                   var_b_t = var_b_mat,
                   var_gamma = var_g,
-                  directed = dir_net,
-                  control = list(maxit = 0))
+                  directed = dir_net)
       },
       z_samples, w_samples,
       MoreArgs = list(par_theta = all_theta_par, 
@@ -708,6 +707,7 @@ mmsbm <- function(formula.dyad,
                     timeID = timeID,
                     nodeID = nodeID,
                     t_id_d = t_id_d,
+                    hessian = ctrl$hessian,
                     formula.dyad = formulas[[1]],
                     formula.monad = formulas[[2]])
   

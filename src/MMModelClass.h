@@ -2,7 +2,13 @@
 #define MMMODEL_CLASS
 
 #include <vector>
-#include <Rcpp.h>
+
+// #ifndef DEBUG_MODE
+// #define DEBUG_MODE
+// #define ARMA_EXTRA_DEBUG
+// #endif 
+
+#include <RcppArmadillo.h>
 #include "AuxFuns.h"
 
 
@@ -10,22 +16,23 @@
 class MMModel
 {
 public:
-  MMModel(const Rcpp::NumericMatrix& z_t,
-          const Rcpp::NumericMatrix& x_t,
-          const Rcpp::IntegerVector& y,
-          const Rcpp::IntegerVector& time_id_dyad,
-          const Rcpp::IntegerVector& time_id_node,
-          const Rcpp::IntegerVector& nodes_per_period,
-          const Rcpp::IntegerMatrix& node_id_dyad,
-          const Rcpp::NumericMatrix& mu_b,
-          const Rcpp::NumericMatrix& var_b,
-          const Rcpp::NumericMatrix& phi_init,
-          Rcpp::NumericMatrix& kappa_init_t,
-          Rcpp::NumericMatrix& b_init_t,
-          Rcpp::NumericVector& beta_init_r,
-          Rcpp::NumericVector& gamma_init_r,
+  MMModel(const arma::mat& z_t,
+          const arma::mat& x_t,
+          const arma::vec& y,
+          const arma::uvec& time_id_dyad,
+          const arma::uvec& time_id_node,
+          const arma::uvec& nodes_per_period,
+          const arma::umat& node_id_dyad,
+          const arma::mat& mu_b,
+          const arma::mat& var_b,
+          const arma::mat& phi_init,
+          arma::mat& kappa_init_t,
+          arma::mat& b_init_t,
+          arma::cube& beta_init_r,
+          arma::vec& gamma_init_r,
           Rcpp::List& control
   );
+  ~MMModel();
   
   
   void updatePhi();
@@ -34,30 +41,29 @@ public:
   double cLL();
   
   
-  Rcpp::NumericMatrix getC();
-  void getC(Rcpp::NumericVector& res);
-  Rcpp::NumericMatrix getPhi(bool);
-  Rcpp::NumericVector getTheta();
-  Rcpp::IntegerVector getN();
-  Rcpp::NumericMatrix getWmn();
-  Rcpp::NumericMatrix getKappa();
-  Rcpp::NumericMatrix getB();
-  void getB(Rcpp::NumericVector&);
-  Rcpp::NumericVector getGamma();
-  void getGamma(Rcpp::NumericVector&);
-  Rcpp::List getBeta();
-  void getBeta(Rcpp::NumericVector&);
-  bool checkConv(char p,
-                 Rcpp::NumericVector& old,
-                 double tol);
-  bool maxDiffCheck(Array<double>& current,
-                    Rcpp::NumericVector& old,
-                    double tol);
+  arma::mat getC();
+  void getC(arma::mat& res);
+  arma::mat getPhi(bool);
+  arma::uvec getN();
+  arma::mat getWmn();
+  arma::mat getKappa();
+  arma::mat getB();
+  void getB(arma::mat&);
+  arma::vec getGamma();
+  void getGamma(arma::vec&);
+  arma::cube getBeta();
+  void getBeta(arma::cube&);
+  // bool checkConv(char p,
+  //                arma::vec& old,
+  //                double tol);
+  // bool maxDiffCheck(Array<double>& current,
+  //                   arma::vec& old,
+  //                   double tol);
   
   
 private:
   
-  const int N_NODE,
+  const arma::uword N_NODE,
   N_DYAD,
   N_BLK,
   N_STATE,
@@ -87,29 +93,30 @@ private:
   bool verbose,
   directed;
   
-  const Array<int> y, //vectors
-  time_id_dyad,
+  const arma::vec y;
+  
+  const arma::uvec time_id_dyad,
   time_id_node,
   n_nodes_time;
   
-  std::vector<int> tot_nodes, //vectors
-  maskalpha, 
+  arma::uvec tot_nodes; 
+  std::vector<int> maskalpha, 
   masktheta;
   
-  Array<double> theta_par,
+  arma::vec theta_par,
   e_wm,
-  gamma;
-  Array<double> gamma_init;
+  gamma,
+  gamma_init;
   
-  const Array<int> node_id_dyad; //matrix (column major)
-  Array<int> par_ind;
+  const arma::umat node_id_dyad; //matrix (column major)
+  arma::umat par_ind;
   
-  const Array<double> x_t, //matrix (column major)
+  const arma::mat x_t, //matrix (column major)
   z_t,
   mu_b_t,
   var_b_t;
   
-  Array<double> kappa_t,
+  arma::mat kappa_t,
   b_t,
   alpha_term,
   send_phi,
@@ -117,13 +124,13 @@ private:
   e_wmn_t,
   e_c_t;
   
-  Array<double> alpha, //3d array (column major)
+  arma::cube alpha, //3d array (column major)
   theta,
-  beta;
-  Array<double> beta_init;
+  beta,
+  beta_init;
   
   //std::vector< Array<double> > new_e_c_t; //For reduce op.
-  Array<double> new_e_c_t;
+  arma::mat new_e_c_t;
   
   
   void computeAlpha();
@@ -138,11 +145,11 @@ private:
   void thetaGr(int, double*);
   static void thetaGrW(int, double*, double*, void*);
   
-  void updatePhiInternal(int dyad, int rec,
-                         double *phi,
-                         double *phi_o,
-                         double *new_c,
-                         int *err);
+  void updatePhiInternal(arma::uword, arma::uword,
+                         double*,
+                         double* ,
+                         double*,
+                         arma::uword* );
   
 };
 

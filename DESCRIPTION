@@ -1,8 +1,8 @@
 Package: NetMix
 Type: Package
 Title: Dynamic Mixed-Membership Network Regression Model
-Version: 0.1.5.9010
-Date: 2019-09-18
+Version: 0.1.5.9020
+Date: 2019-09-25
 Encoding: UTF-8
 Author: Santiago Olivella [aut, cre],
   Adeline Lo [aut, cre],
@@ -28,6 +28,6 @@ Suggests: ergm (>= 3.9.4), ggplot2 (>= 3.1.1), network (>= 1.13), scales(>= 1.0.
 Imports: clue (>= 0.3-54), graphics (>= 3.5.2),
          grDevices (>= 3.5.2), gtools (>= 3.8.1), igraph (>= 1.2.4.1),
          lda (>= 1.4.2), Matrix (>= 1.2-15), methods (>= 3.5.2), poisbinom (>= 1.0.1),
-         Rcpp (>= 0.12.13), RSpectra (>= 0.14-0), stats (>= 3.5.2), utils (>= 3.5.2)
-LinkingTo: Rcpp
+         Rcpp (>= 1.0.2), RSpectra (>= 0.14-0), stats (>= 3.5.2), utils (>= 3.5.2)
+LinkingTo: Rcpp, RcppArmadillo
 RoxygenNote: 6.1.1

@@ -1,4 +1,4 @@
-#include <Rcpp.h>
+#include <RcppArmadillo.h>
 
 //' @rdname auxfuns
 // [[Rcpp::export(approxB)]]
@@ -54,24 +54,24 @@ Rcpp::IntegerMatrix getZ(Rcpp::NumericMatrix pi_mat)
 
 //' @rdname auxfuns
 // [[Rcpp::export(alphaLB)]]
-double alphaLB(Rcpp::NumericVector par,
-               Rcpp::IntegerVector tot_nodes,
-               Rcpp::IntegerMatrix c_t, 
-               Rcpp::NumericMatrix x_t,
-               Rcpp::IntegerMatrix s_mat,
-               Rcpp::IntegerVector t_id,
+double alphaLB(arma::vec par,
+               arma::uvec tot_nodes,
+               arma::umat c_t, 
+               arma::mat x_t,
+               arma::umat s_mat,
+               arma::uvec t_id,
                double var_beta)
 {
-  int N_NODE = x_t.ncol(), N_BLK = c_t.nrow(),
-    N_MONAD_PRED = x_t.nrow(),  N_STATE = s_mat.nrow();
+  arma::uword N_NODE = x_t.n_cols, N_BLK = c_t.n_rows,
+    N_MONAD_PRED = x_t.n_rows,  N_STATE = s_mat.n_rows;
   double linpred = 0.0, row_sum = 0.0, res = 0.0, res_int = 0.0;
-  for(int m = 0; m < N_STATE; ++m){
-    for(int p = 0; p < N_NODE; ++p){
+  for(arma::uword m = 0; m < N_STATE; ++m){
+    for(arma::uword p = 0; p < N_NODE; ++p){
       row_sum = 0.0;
       res_int = 0.0;
-      for(int g = 0; g < N_BLK; ++g){
+      for(arma::uword g = 0; g < N_BLK; ++g){
         linpred = 0.0;
-        for(int x = 0; x < N_MONAD_PRED; ++x){
+        for(arma::uword x = 0; x < N_MONAD_PRED; ++x){
           linpred += x_t(x, p) * par[x + N_MONAD_PRED * (g + N_BLK * m)];
         }
         linpred = exp(linpred);
@@ -84,9 +84,9 @@ double alphaLB(Rcpp::NumericVector par,
   }
   
   // Prior for beta
-  for(int m = 0; m < N_STATE; ++m){
-    for(int g = 0; g < N_BLK; ++g){
-      for(int x = 0; x < N_MONAD_PRED; ++x){
+  for(arma::uword m = 0; m < N_STATE; ++m){
+    for(arma::uword g = 0; g < N_BLK; ++g){
+      for(arma::uword x = 0; x < N_MONAD_PRED; ++x){
         res -= 0.5 * pow(par[x + N_MONAD_PRED * (g + N_BLK * m)], 2.0) / var_beta;
       }
     } 
@@ -98,21 +98,22 @@ double alphaLB(Rcpp::NumericVector par,
 
 //' @rdname auxfuns
 // [[Rcpp::export(thetaLB)]]
-double thetaLB(Rcpp::NumericVector par,
-               Rcpp::NumericVector y,
-               Rcpp::NumericMatrix z_t,
-               Rcpp::IntegerMatrix send_phi,
-               Rcpp::IntegerMatrix rec_phi,
-               Rcpp::NumericMatrix mu_b_t,
-               Rcpp::NumericMatrix var_b_t,
+double thetaLB(arma::vec par,
+               arma::vec y,
+               arma::mat z_t,
+               arma::umat send_phi,
+               arma::umat rec_phi,
+               arma::mat mu_b_t,
+               arma::mat var_b_t,
                double var_gamma, bool directed)
 {
-  int N_DYAD = z_t.ncol(), N_BLK = send_phi.nrow(),  N_DYAD_PRED = z_t.nrow();
-  Rcpp::IntegerMatrix par_ind(N_BLK, N_BLK);
-  int N_B_PAR = directed ? N_BLK * N_BLK : N_BLK * (1 + N_BLK) / 2;
-  int ind = 0;
-  for(int g = 0; g < N_BLK; ++g){
-    for(int h = 0; h < N_BLK; ++h){
+  arma::uword N_DYAD = z_t.n_cols, N_BLK = send_phi.n_rows;
+  arma::uword N_DYAD_PRED =arma::any(z_t.row(0)) ? z_t.n_rows : 0;
+  arma::umat par_ind(N_BLK, N_BLK, arma::fill::zeros);
+  arma::uword N_B_PAR = directed ? N_BLK * N_BLK : N_BLK * (1 + N_BLK) / 2;
+  arma::uword ind = 0;
+  for(arma::uword g = 0; g < N_BLK; ++g){
+    for(arma::uword h = 0; h < N_BLK; ++h){
       if(directed){
         par_ind(h, g) = ind;
         ++ind;
@@ -126,50 +127,50 @@ double thetaLB(Rcpp::NumericVector par,
       }
     }
   }
-  Rcpp::NumericVector gamma(N_DYAD_PRED);
-  Rcpp::NumericMatrix b_t(N_BLK, N_BLK);
-  Rcpp::NumericVector theta(N_BLK * N_BLK * N_DYAD);
+  arma::vec gamma(N_DYAD_PRED, arma::fill::zeros);
+  arma::mat b_t(N_BLK, N_BLK, arma::fill::zeros);
+  arma::cube theta(N_BLK, N_BLK, N_DYAD, arma::fill::zeros);
   
   
-  for(int g = 0; g < N_BLK; ++g){
-    for(int h = 0; h < N_BLK; ++h){
+  for(arma::uword g = 0; g < N_BLK; ++g){
+    for(arma::uword h = 0; h < N_BLK; ++h){
       b_t(h, g) = par[par_ind(h, g)];
     }
   }
   double linpred;
-  for(int d = 0; d < N_DYAD; ++d){
+  for(arma::uword d = 0; d < N_DYAD; ++d){
     linpred = 0.0;
-    for(int z = 0; z < N_DYAD_PRED; ++z){
+    for(arma::uword z = 0; z < N_DYAD_PRED; ++z){
       gamma[z] = par[N_B_PAR + z];
       linpred -= z_t(z, d) * gamma[z];
     }
-    for(int g = 0; g < N_BLK; ++g){
-      for(int h = 0; h < N_BLK; ++h){
-        theta[h + N_BLK * (g + N_BLK * d)] = 1./(1 + exp(linpred - b_t(h, g)));
+    for(arma::uword g = 0; g < N_BLK; ++g){
+      for(arma::uword h = 0; h < N_BLK; ++h){
+        theta(h, g, d) = 1./(1 + exp(linpred - b_t(h, g)));
       }
     }
   }
   
   double res = 0.0;
-  for(int d = 0; d < N_DYAD; ++d){
-    for(int g = 0; g < N_BLK; ++g){
-      for(int h = 0; h < N_BLK; ++h){
+  for(arma::uword d = 0; d < N_DYAD; ++d){
+    for(arma::uword g = 0; g < N_BLK; ++g){
+      for(arma::uword h = 0; h < N_BLK; ++h){
         res += send_phi(g, d) * rec_phi(h, d)
-        * (y[d] * log(theta[h + N_BLK * (g + N_BLK * d)])
-             + (1.0 - y[d]) * log(1.0 - theta[h + N_BLK * (g + N_BLK * d)]));
+        * (y[d] * log(theta(h, g, d))
+             + (1.0 - y[d]) * log(1.0 - theta(h, g, d)));
              
       }
     }
   }
   
   //Prior for gamma
-  for(int z = 0; z < N_DYAD_PRED; ++z){
+  for(arma::uword z = 0; z < N_DYAD_PRED; ++z){
     res -= 0.5 * pow(gamma[z], 2.0) / var_gamma;
   }
   
   //Prior for B
-  for(int g = 0; g < N_BLK; ++g){
-    for(int h = 0; h < N_BLK; ++h){
+  for(arma::uword g = 0; g < N_BLK; ++g){
+    for(arma::uword h = 0; h < N_BLK; ++h){
       res -= 0.5 * (pow(b_t(h, g) - mu_b_t(h, g), 2.0) / var_b_t(h, g));
     }
   }

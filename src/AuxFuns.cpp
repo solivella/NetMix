@@ -1,6 +1,6 @@
 #include "AuxFuns.h"
 
-double logSumExp(const std::vector<double>& invec)
+double logSumExp(const arma::vec& invec)
 {
   double offset = *std::max_element(invec.begin(), invec.end());
   double res = std::accumulate(invec.begin(), invec.end(),
