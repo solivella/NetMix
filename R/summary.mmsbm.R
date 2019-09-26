@@ -42,31 +42,31 @@
 #' 
 
 summary.mmsbm <- function(object, ...){
-  summ <- list(nrow(object$dyadic.data), ncol(object$BlockModel), 
-               rowMeans(object$MixedMembership),
-               exp(object$BlockModel) / (1 + exp(object$BlockModel)), 
-               object$DyadCoef, object$MonadCoef, rowMeans(object$Kappa))
-  names(summ) <- c("N", "Number of Clusters", "Percent of Observations in Each Cluster",
-                   "Edge Formation Probabilities", "Dyadic Coefficients", "Monadic Coefficients",
-                   "Markov State Probabilities")
-  if("vcov_dyad" %in% names(object)){
-    summ$`Dyadic Coefficients` <- cbind(object$DyadCoef,
-                                        sqrt(diag(object$vcov_dyad)))
-    colnames(summ$`Dyadic Coefficients`) <- c("Coefficient", "Std. Error")
-    
-    colnames(summ$`Monadic Coefficients`) <- paste(colnames(summ$`Monadic Coefficients`), "Coefficient")
-    mse <- sqrt(diag(object$vcov_monad))
-    z <- array(dim=c(nrow(object$MonadCoef), ncol(object$MonadCoef)*2, object$n_states))
-    dimnames(z)[c(1,3)] <- dimnames(summ$`Monadic Coefficients`)[c(1,3)]
-    for(i in 1:object$n_states){
-      m <- cbind(summ$`Monadic Coefficients`[,,i],
-                 matrix(nrow=nrow(object$MonadCoef), ncol=object$n_blocks,
-                        mse[grep(paste("State", i), names(mse))], 
-                        dimnames = list(NULL, paste(colnames(object$MonadCoef), "Std. Error"))))
-      z[,,i] <- m[,c(rbind(1:ncol(object$MonadCoef), (1:ncol(object$MonadCoef))+ncol(object$MonadCoef)))]
-      colnames(z) <- colnames(m[,c(rbind(1:ncol(object$MonadCoef), (1:ncol(object$MonadCoef))+ncol(object$MonadCoef)))])
+  summ <- list("Number of Dyads" = nrow(object$dyadic.data),
+               "Number of Blocks" = ncol(object$BlockModel), 
+               "Percent of Observations in Each Block" = rowMeans(object$MixedMembership),
+               "Blockmodel Matrix" = exp(object$BlockModel) / (1 + exp(object$BlockModel)),
+               "Monadic Coefficients" = object$MonadCoef)
+  if(length(object$DyadCoef)){
+    summ$`Dyadic Coefficients` <- object$DyadCoef
+  }
+  if(object$n_states > 1){
+    summ$`Markov State Probabilities` <-  rowMeans(object$Kappa)
+  }
+
+  if(object$forms$hessian){
+    if("vcov_dyad" %in% names(object)){
+      summ$`Dyadic Coefficients` <- cbind(object$DyadCoef,
+                                          sqrt(diag(object$vcov_dyad)))
+      colnames(summ$`Dyadic Coefficients`) <- c("Coefficient", "Std. Error")
     }
-    summ$`Monadic Coefficients` <- z
+    
+    mse <- sqrt(diag(object$vcov_monad))
+    summ$`Monadic Coefficients` <- cbind(c(summ$`Monadic Coefficients`),
+                                         mse)
+    colnames(summ$`Monadic Coefficients`) <- c("Coefficient", "Std. Error")
+    rownames(summ$`Monadic Coefficients`) <- rownames(object$vcov_monad)
+
   }
   print(summ)
 }
