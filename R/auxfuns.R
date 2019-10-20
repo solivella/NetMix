@@ -31,10 +31,18 @@
 #' @param x_t,z_t Numeric matrices; transposed monadic and dyadic design matrices.
 #' @param s_mat Integer matrix; Samples of HMM states by time period. 
 #' @param t_id Integer vector; for each node, what time-period is it observed in? zero-indexed.
-#' @param var_beta,var_gamma Numeric; prior variances of monadic and dyadic coefficients.
+#' @param mu_beta,var_beta Numeric arrays; prior mean and variances of monadic coefficients.
+#' @param mu_gamma,var_gamma Numeric vectors; prior mean and variances of dyadic coefficients.
 #' @param send_phi,rec_phi Numeric matrices; for each dyad, sampled group instantiated by sender and reciver in pair.
 #' @param mu_b_t,var_b_t Numeirc matrices; prior mean and variance for blockmodel parameters.
 #' @param directed Boolean; is the network directed?
+#' @param orig Object to be transformed.
+#' @param is_var Boolean. Is the object to be transformed a variance term?
+#' @param is_array Boolean. Is the object to be transformed an array?
+#' @param des.mat Numeric matrix. Design matrix corresponding to transformed object.
+#' @param nblock Number of groups in model, defaults to \code{NULL}.
+#' @param nstate Number of hidden Markov states in model, defaults to \code{NULL}.
+#' @param devs Vector of standard deviations to use in transformation of variances. Defaults to \code{NULL}.
 #' @param ... Numeric vectors; vectors of potentially different length to be cbind-ed.
 #' 
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
@@ -61,6 +69,41 @@
     mat[rownames(nm[[x]]), x] <- nm[[x]]
   }
   return(mat)
+}
+
+
+#' @rdname auxfuns
+.transf_muvar <- function(orig, is_var, is_array, des.mat, nblock=NULL, nstate=NULL,devs=NULL){
+  if(is_array){
+    tmp <- array(ifelse(is_var,1.0, 0.0), c(ncol(des.mat), nblock, nstate))
+    rownames(tmp) <- colnames(des.mat)
+  } else {
+    tmp <- array(ifelse(is_var,1.0, 0.0), ncol(des.mat))
+    names(tmp) <- colnames(des.mat)
+  }
+  if(length(orig) == 0){
+    if(length(dim(tmp))==1){
+      non_miss <- !grepl("_missing", colnames(des.mat))
+      tmp[non_miss] <- orig
+    } else {
+      tmp[non_miss,,] <- orig
+    }
+  } else {
+    if(length(dim(tmp))==1){
+      tmp[names(orig)] <- orig
+    } else {
+      tmp[rownames(orig),,] <- orig
+    }
+  }
+  if(is_var){
+    if(length(dim(tmp))==1){
+      tmp <- sqrt(tmp)/devs
+    } else {
+      tmp <- sqrt(tmp)/rep(devs, nblock*nstate)
+    }
+    tmp <- tmp^2
+  }
+  return(tmp)
 }
 
 ## Adapted from `fields`` package under GPL

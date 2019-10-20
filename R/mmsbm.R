@@ -51,15 +51,23 @@
 #'                    and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)}.}
 #'        \item{var_b}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
 #'                    and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(1.0, 1.0)}.}
-#'        \item{var_beta}{Numeric positive value. (Gaussian) Prior variance of monadic coefficients. Defaults to 5.0.}
-#'        \item{var_gamma}{Numeric positive value. (Gaussian) Prior variance of dyadic coefficients. Defaults to 5.0.}
+#'        \item{mu_beta}{Either single numeric value, in which case the same prior mean is applied to all monadic coefficients, or
+#'                       an array with that is \code{npredictors} by \code{n.blocks} by \code{n.hmmstates}, where \code{npredictors}
+#'                       is the number of monadic predictors for which a prior mean is being set (prior means need not be set for all)
+#'                       predictors). The rows in the array should be named to identify which variables a prior mean is being set for.
+#'                       Defaults to a common prior mean of 0.0 for all monadic coefficients.}            
+#'        \item{var_beta}{See \code{mu_beta}. Defaults to a single common prior variance of 1.0 for all monadic coefficients.}
+#'        \item{mu_gamma}{Either a single numeric value, in which case the same prior mean is applied to all dyadic coefficients, or
+#'                        a named vector of numeric values (with names corresponding to the name of the variable 
+#'                       for which a prior mean is being set). Defaults to a copmmon prior mean of 0.0 for all dyadic coefficients.}
+#'        \item{var_gamma}{See \code{mu_gamma}. Defaults to a single common prior variance of 1.0 for all dyadic coefficients.}
 #'        \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 10.3.}
 #'        \item{phi_init_t}{Matrix, \code{n.blocks} by total number of nodes across years. Optional initial values for variational
 #'                       parameters for mixed-membership vectors. Column names must be of the form \code{nodeid\@year }.}
 #'        \item{kappa_init_t}{Matrix, \code{n.hmmstates} by number of years. Optional initial values for variational 
 #'                       parameters for state probabilities.}
 #'        \item{b_init_t}{Matrix, \code{n.blocks} by \code{n.blocks}. Optional initial values for blockmodel.}
-#'        \item{beta_init}{Array, predictors by \code{n.blocks} by \code{n.hmmstates}. Optional initial values for monadic coefficients.}
+#'        \item{beta_init}{Array, \code{predictors} by \code{n.blocks} by \code{n.hmmstates}. Optional initial values for monadic coefficients. If }
 #'        \item{gamma_init}{Vector. Optional initial values for dyadic coefficients.}
 #'        \item{permute}{Boolean. Should all permutations be tested to realign initial block models in dynamic case? If \code{FALSE}, realignment is 
 #'                      done via faster graph matching algorithm, but may not be exact. Defaults to \code{TRUE}.}
@@ -149,6 +157,8 @@ mmsbm <- function(formula.dyad,
                opt_iter = 10e3,
                mu_b = c(1.0, 0.0),
                var_b = c(1.0, 1.0),
+               mu_beta = 0.0,
+               mu_gamma = 0.0,
                var_beta = 1.0,
                var_gamma = 1.0,
                eta = 1.0,
@@ -257,7 +267,7 @@ mmsbm <- function(formula.dyad,
                                    tid = as.name(timeID),
                                    sid = as.name(senderID),
                                    rid = as.name(receiverID)))
-
+  
   
   ut <- unique(mfd[["(tid)"]])
   periods <- length(ut)
@@ -309,6 +319,15 @@ mmsbm <- function(formula.dyad,
     Z <- Z[,-constz, drop = FALSE]
   }
   n_dyad_pred <- ncol(Z)
+  
+  ## Modify prior means and variances to match transformed model matrix
+  
+  ctrl$mu_gamma <- .transf_muvar(ctrl$mu_gamma, FALSE, FALSE, Z)
+  ctrl$var_gamma <- .transf_muvar(ctrl$var_gamma, TRUE, FALSE, Z, devs=Z_sd[-which(Z_sd==0)])
+  ctrl$mu_beta <- .transf_muvar(ctrl$mu_beta, FALSE, TRUE, X, n.blocks, n.hmmstates)
+  ctrl$var_beta <- .transf_muvar(ctrl$var_beta, TRUE, TRUE, X, n.blocks, n.hmmstates, c(1,X_sd[-1]))
+  
+  
   
   nt_id <- cbind(match(dntid[,1], ntid) - 1, match(dntid[,2], ntid) - 1)
   t_id_d <- match(mfd[["(tid)"]], ut) - 1
@@ -378,6 +397,10 @@ mmsbm <- function(formula.dyad,
       state_init <- apply(ctrl$kappa_init_t, 2, which.max)
     }
   } else {
+    if(isFALSE(all.equal(colSums(ctrl$kappa_init_t), rep(1.0, ncol(ctrl$kappa_init_t)), check.names = FALSE)) || any(ctrl$kappa_init_t < 0.0)){
+      stop("Elements in kappa_init_t must be positive, and its columns must sum to one.")
+    }
+    ctrl$kappa_init_t <- t(.transf(t(ctrl$kappa_init_t)))
     state_init <- apply(ctrl$kappa_init_t, 2, which.max)
   } 
   if(identical(n.hmmstates, 1)){
@@ -460,6 +483,9 @@ mmsbm <- function(formula.dyad,
         colnames(MixedMembership) <- colnames(soc_mats[[i]])
         int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
         BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
+        if(any(is.nan(BlockModel))){
+          BlockModel[is.nan(BlockModel)] <- 0.0
+        }
         temp_res[[i]] <- list(BlockModel = BlockModel,
                               MixedMembership = MixedMembership)
         
@@ -474,6 +500,12 @@ mmsbm <- function(formula.dyad,
     ctrl$phi_init_t <- do.call(cbind,mapply(function(phi,perm){perm %*% phi},
                                             phis_temp[order(phi.ord)], perms_temp, SIMPLIFY = FALSE)) 
     rownames(ctrl$phi_init_t) <- 1:n.blocks
+  } else{
+    if(isFALSE(all.equal(colSums(ctrl$phi_init_t), rep(1.0, ncol(ctrl$phi_init_t)), check.names = FALSE)) || any(ctrl$phi_init_t < 0.0)){
+      stop("Elements in phi_init_t must be positive, and its columns must sum to one.")
+    }
+    ctrl$phi_init_t <- t(.transf(t(ctrl$phi_init_t)))
+    
   } 
   
   if(is.null(ctrl$gamma_init)){
@@ -516,20 +548,20 @@ mmsbm <- function(formula.dyad,
   X_t <- t(X)
   Z_t <- t(Z)
   fit <- mmsbm_fit(Z_t,
-                    X_t,
-                    Y,
-                    t_id_d,
-                    t_id_n,
-                    nodes_pp,
-                    nt_id,
-                    mu_b,
-                    var_b,
-                    ctrl$phi_init_t,
-                    ctrl$kappa_init_t,
-                    ctrl$b_init_t,
-                    ctrl$beta_init,
-                    ctrl$gamma_init,
-                    ctrl
+                   X_t,
+                   Y,
+                   t_id_d,
+                   t_id_n,
+                   nodes_pp,
+                   nt_id,
+                   mu_b,
+                   var_b,
+                   ctrl$phi_init_t,
+                   ctrl$kappa_init_t,
+                   ctrl$b_init_t,
+                   ctrl$beta_init,
+                   ctrl$gamma_init,
+                   ctrl
   )
   if((!fit[["converged"]]) & ctrl$verbose)
     warning(paste("Model did not converge after", fit[["niter"]], "iterations.\n"))
@@ -549,8 +581,8 @@ mmsbm <- function(formula.dyad,
     Z <- t(t(Z) * Z_sd[-1] + Z_mean[-1])
     fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]])
     names(fit[["DyadCoef"]]) <- colnames(Z) 
- }
-
+  }
+  
   fit[["MonadCoef"]] <- vapply(1:n.hmmstates,
                                function(ind, coefs, sd_vec, mean_vec){
                                  mat <- coefs[,,ind, drop=FALSE]
@@ -597,7 +629,7 @@ mmsbm <- function(formula.dyad,
     C_samples <- split.data.frame(sampleC_perm[,1:n.blocks], sampleC_perm[,n.blocks + 2])
     S_samples <- replicate(ctrl$se_sim, apply(fit[["Kappa"]], 2, function(x)sample(1:n.hmmstates, 1, prob = x)), simplify = FALSE)
     hessBeta_list <- mapply(
-      function(C_samp, S_samp, tidn, X_i, Nvec, beta_vec, vbeta, periods)
+      function(C_samp, S_samp, tidn, X_i, Nvec, beta_vec, vbeta, mbeta, periods)
       {
         if(n.hmmstates > 1) {
           s_matrix <- t(model.matrix(~factor(S_samp, 1:n.hmmstates) - 1))
@@ -614,7 +646,8 @@ mmsbm <- function(formula.dyad,
                          x_t = X_i,
                          s_mat = s_matrix,
                          t_id = tidn,
-                         var_beta = vbeta))
+                         var_beta = vbeta,
+                         mu_beta = mbeta))
       },
       C_samples, S_samples,
       MoreArgs = list(tidn = t_id_n,
@@ -622,6 +655,7 @@ mmsbm <- function(formula.dyad,
                       Nvec = fit[["TotNodes"]],
                       beta_vec = fit[["MonadCoef"]], 
                       vbeta = ctrl$var_beta, 
+                      mbeta = ctrl$mu_beta,
                       periods = periods),
       SIMPLIFY=FALSE)
     hessBeta <- Reduce("+", hessBeta_list)/ctrl$se_sim
@@ -643,7 +677,7 @@ mmsbm <- function(formula.dyad,
       }, 
       fit[["DyadCoef"]])
     hessTheta_list <- mapply(
-      function(send_samp, rec_samp, y_vec, Z_d, par_theta, mu_b_mat, var_b_mat, var_g, dir_net)
+      function(send_samp, rec_samp, y_vec, Z_d, par_theta, mu_b_mat, var_b_mat, var_g, mu_g, dir_net)
       {
         optimHess(par_theta,
                   thetaLB, 
@@ -654,6 +688,7 @@ mmsbm <- function(formula.dyad,
                   mu_b_t = mu_b_mat,
                   var_b_t = var_b_mat,
                   var_gamma = var_g,
+                  mu_gamma = mu_g,
                   directed = dir_net)
       },
       z_samples, w_samples,
@@ -663,6 +698,7 @@ mmsbm <- function(formula.dyad,
                       mu_b_mat = mu_b,
                       var_b_mat = var_b,
                       var_g = ctrl$var_gamma, 
+                      mu_g = ctrl$mu_gamma,
                       dir_net = directed),
       SIMPLIFY = FALSE)
     

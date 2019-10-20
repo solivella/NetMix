@@ -31,8 +31,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // alphaLB
-double alphaLB(arma::vec par, arma::uvec tot_nodes, arma::umat c_t, arma::mat x_t, arma::umat s_mat, arma::uvec t_id, double var_beta);
-RcppExport SEXP _NetMix_alphaLB(SEXP parSEXP, SEXP tot_nodesSEXP, SEXP c_tSEXP, SEXP x_tSEXP, SEXP s_matSEXP, SEXP t_idSEXP, SEXP var_betaSEXP) {
+double alphaLB(arma::vec par, arma::uvec tot_nodes, arma::umat c_t, arma::mat x_t, arma::umat s_mat, arma::uvec t_id, arma::cube var_beta, arma::cube mu_beta);
+RcppExport SEXP _NetMix_alphaLB(SEXP parSEXP, SEXP tot_nodesSEXP, SEXP c_tSEXP, SEXP x_tSEXP, SEXP s_matSEXP, SEXP t_idSEXP, SEXP var_betaSEXP, SEXP mu_betaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -42,14 +42,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type x_t(x_tSEXP);
     Rcpp::traits::input_parameter< arma::umat >::type s_mat(s_matSEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type t_id(t_idSEXP);
-    Rcpp::traits::input_parameter< double >::type var_beta(var_betaSEXP);
-    rcpp_result_gen = Rcpp::wrap(alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta));
+    Rcpp::traits::input_parameter< arma::cube >::type var_beta(var_betaSEXP);
+    Rcpp::traits::input_parameter< arma::cube >::type mu_beta(mu_betaSEXP);
+    rcpp_result_gen = Rcpp::wrap(alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta));
     return rcpp_result_gen;
 END_RCPP
 }
 // thetaLB
-double thetaLB(arma::vec par, arma::vec y, arma::mat z_t, arma::umat send_phi, arma::umat rec_phi, arma::mat mu_b_t, arma::mat var_b_t, double var_gamma, bool directed);
-RcppExport SEXP _NetMix_thetaLB(SEXP parSEXP, SEXP ySEXP, SEXP z_tSEXP, SEXP send_phiSEXP, SEXP rec_phiSEXP, SEXP mu_b_tSEXP, SEXP var_b_tSEXP, SEXP var_gammaSEXP, SEXP directedSEXP) {
+double thetaLB(arma::vec par, arma::vec y, arma::mat z_t, arma::umat send_phi, arma::umat rec_phi, arma::mat mu_b_t, arma::mat var_b_t, arma::vec var_gamma, arma::vec mu_gamma, bool directed);
+RcppExport SEXP _NetMix_thetaLB(SEXP parSEXP, SEXP ySEXP, SEXP z_tSEXP, SEXP send_phiSEXP, SEXP rec_phiSEXP, SEXP mu_b_tSEXP, SEXP var_b_tSEXP, SEXP var_gammaSEXP, SEXP mu_gammaSEXP, SEXP directedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -60,9 +61,10 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::umat >::type rec_phi(rec_phiSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type mu_b_t(mu_b_tSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type var_b_t(var_b_tSEXP);
-    Rcpp::traits::input_parameter< double >::type var_gamma(var_gammaSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type var_gamma(var_gammaSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type mu_gamma(mu_gammaSEXP);
     Rcpp::traits::input_parameter< bool >::type directed(directedSEXP);
-    rcpp_result_gen = Rcpp::wrap(thetaLB(par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma, directed));
+    rcpp_result_gen = Rcpp::wrap(thetaLB(par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma, mu_gamma, directed));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -95,8 +97,8 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_NetMix_approxB", (DL_FUNC) &_NetMix_approxB, 3},
     {"_NetMix_getZ", (DL_FUNC) &_NetMix_getZ, 1},
-    {"_NetMix_alphaLB", (DL_FUNC) &_NetMix_alphaLB, 7},
-    {"_NetMix_thetaLB", (DL_FUNC) &_NetMix_thetaLB, 9},
+    {"_NetMix_alphaLB", (DL_FUNC) &_NetMix_alphaLB, 8},
+    {"_NetMix_thetaLB", (DL_FUNC) &_NetMix_thetaLB, 10},
     {"_NetMix_mmsbm_fit", (DL_FUNC) &_NetMix_mmsbm_fit, 15},
     {NULL, NULL, 0}
 };

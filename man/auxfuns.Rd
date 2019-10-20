@@ -7,6 +7,7 @@
 \alias{thetaLB}
 \alias{auxfuns}
 \alias{.cbind.fill}
+\alias{.transf_muvar}
 \alias{.bar.legend}
 \alias{.mpower}
 \alias{.findPerm}
@@ -19,12 +20,15 @@ approxB(y, d_id, pi_mat)
 
 getZ(pi_mat)
 
-alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta)
+alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 
 thetaLB(par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma,
-  directed)
+  mu_gamma, directed)
 
 .cbind.fill(...)
+
+.transf_muvar(orig, is_var, is_array, des.mat, nblock = NULL,
+  nstate = NULL, devs = NULL)
 
 .bar.legend(colPalette, range)
 
@@ -58,15 +62,31 @@ sender (first column) and receiver (second column) node id's for each dyad.}
 
 \item{t_id}{Integer vector; for each node, what time-period is it observed in? zero-indexed.}
 
-\item{var_beta, var_gamma}{Numeric; prior variances of monadic and dyadic coefficients.}
+\item{mu_beta, var_beta}{Numeric arrays; prior mean and variances of monadic coefficients.}
 
 \item{send_phi, rec_phi}{Numeric matrices; for each dyad, sampled group instantiated by sender and reciver in pair.}
 
 \item{mu_b_t, var_b_t}{Numeirc matrices; prior mean and variance for blockmodel parameters.}
 
+\item{mu_gamma, var_gamma}{Numeric vectors; prior mean and variances of dyadic coefficients.}
+
 \item{directed}{Boolean; is the network directed?}
 
 \item{...}{Numeric vectors; vectors of potentially different length to be cbind-ed.}
+
+\item{orig}{Object to be transformed.}
+
+\item{is_var}{Boolean. Is the object to be transformed a variance term?}
+
+\item{is_array}{Boolean. Is the object to be transformed an array?}
+
+\item{des.mat}{Numeric matrix. Design matrix corresponding to transformed object.}
+
+\item{nblock}{Number of groups in model, defaults to \code{NULL}.}
+
+\item{nstate}{Number of hidden Markov states in model, defaults to \code{NULL}.}
+
+\item{devs}{Vector of standard deviations to use in transformation of variances. Defaults to \code{NULL}.}
 
 \item{colPalette}{A function produced by \code{colorRamp}.}
 

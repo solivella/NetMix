@@ -60,7 +60,8 @@ double alphaLB(arma::vec par,
                arma::mat x_t,
                arma::umat s_mat,
                arma::uvec t_id,
-               double var_beta)
+               arma::cube var_beta,
+               arma::cube mu_beta)
 {
   arma::uword N_NODE = x_t.n_cols, N_BLK = c_t.n_rows,
     N_MONAD_PRED = x_t.n_rows,  N_STATE = s_mat.n_rows;
@@ -87,7 +88,7 @@ double alphaLB(arma::vec par,
   for(arma::uword m = 0; m < N_STATE; ++m){
     for(arma::uword g = 0; g < N_BLK; ++g){
       for(arma::uword x = 0; x < N_MONAD_PRED; ++x){
-        res -= 0.5 * pow(par[x + N_MONAD_PRED * (g + N_BLK * m)], 2.0) / var_beta;
+        res -= 0.5 * pow(par[x + N_MONAD_PRED * (g + N_BLK * m)] - mu_beta(x, g, m), 2.0) / var_beta(x, g, m);
       }
     } 
   }
@@ -105,7 +106,9 @@ double thetaLB(arma::vec par,
                arma::umat rec_phi,
                arma::mat mu_b_t,
                arma::mat var_b_t,
-               double var_gamma, bool directed)
+               arma::vec var_gamma,
+               arma::vec mu_gamma,
+               bool directed)
 {
   arma::uword N_DYAD = z_t.n_cols, N_BLK = send_phi.n_rows;
   arma::uword N_DYAD_PRED =arma::any(z_t.row(0)) ? z_t.n_rows : 0;
@@ -165,7 +168,7 @@ double thetaLB(arma::vec par,
   
   //Prior for gamma
   for(arma::uword z = 0; z < N_DYAD_PRED; ++z){
-    res -= 0.5 * pow(gamma[z], 2.0) / var_gamma;
+    res -= 0.5 * pow(gamma[z] - mu_gamma[z], 2.0) / var_gamma[z];
   }
   
   //Prior for B

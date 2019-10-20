@@ -33,8 +33,10 @@ MMModel::MMModel(const arma::mat& z_t,
   OPT_ITER(control["opt_iter"]),
   //N_THREAD(N_THREAD),
   eta(Rcpp::as<double>(control["eta"])),
-  var_gamma(Rcpp::as<double>(control["var_gamma"])),
-  var_beta(Rcpp::as<double>(control["var_beta"])),
+  var_gamma(Rcpp::as<arma::vec>(control["var_gamma"])),
+  mu_gamma(Rcpp::as<arma::vec>(control["mu_gamma"])),
+  var_beta(Rcpp::as<arma::cube>(control["var_beta"])),
+  mu_beta(Rcpp::as<arma::cube>(control["mu_beta"])),
   fminAlpha(0.0),
   fminTheta(0.0),
   fncountAlpha(0),
@@ -165,9 +167,10 @@ double MMModel::alphaLB()
     }
     
     //Prior for beta
+    
     for(arma::uword g = 0; g < N_BLK; ++g){
       for(arma::uword x = 0; x < N_MONAD_PRED; ++x){
-        res -= 0.5 * pow(beta(x, g, m), 2.0) / var_beta;
+        res -= 0.5 * pow(beta(x, g, m) - mu_beta(x, g, m), 2.0) / var_beta(x, g, m);
       }
     }
   }
@@ -199,7 +202,7 @@ void MMModel::alphaGr(int N_PAR, double *gr)
                       + R::digamma(alpha(g, p, m) + e_c_t(g, p)) - R::digamma(alpha(g, p, m)))
               * kappa_t(m,  time_id_node[p]) * alpha(g, p, m) * x_t(x, p);
           }
-          prior_gr = beta(x, g, m) / var_beta;
+          prior_gr = (beta(x, g, m) - mu_beta(x, g, m)) / var_beta(x, g, m);
           gr[x + N_MONAD_PRED * (g + N_BLK * m)] = -(res - prior_gr);
         }
       }
@@ -270,7 +273,7 @@ double MMModel::thetaLB(bool entropy = false)
   
   //Prior for gamma
   for(arma::uword z = 0; z < N_DYAD_PRED; ++z){
-    res -= 0.5 * pow(gamma[z], 2.0) / var_gamma;
+    res -= 0.5 * pow(gamma[z] - mu_gamma[z], 2.0) / var_gamma[z];
   }
   
   //Prior for B
@@ -315,7 +318,7 @@ void MMModel::thetaGr(int N_PAR, double *gr)
     }
   }
   for(arma::uword z = 0; z < N_DYAD_PRED; ++z){
-    gr[N_B_PAR + z] += gamma[z] / var_gamma;
+    gr[N_B_PAR + z] += (gamma[z] - mu_gamma[z]) / var_gamma[z];
   }
   for(arma::uword g = 0; g < N_BLK; ++g){
     for(arma::uword h = 0; h < N_BLK; ++h){
@@ -547,6 +550,8 @@ void MMModel::updatePhi()
 // #pragma omp parallel for
 // #endif
   for(arma::uword d = 0; d < N_DYAD; ++d){
+    Rcpp::checkUserInterrupt();
+    
    // int thread = 0;
 // #ifdef _OPENMP
 //     thread = omp_get_thread_num();

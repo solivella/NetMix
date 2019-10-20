@@ -74,9 +74,11 @@ private:
   OPT_ITER;
   //N_THREAD;
   
-  const double eta,
-  var_gamma,
-  var_beta;
+  const double eta;
+  const arma::vec var_gamma,
+  mu_gamma;
+  const arma::cube var_beta,
+  mu_beta;
   
   double fminAlpha,
   fminTheta;

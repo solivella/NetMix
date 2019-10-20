@@ -68,15 +68,23 @@ to 1 (i.e. no HMM).}
                and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)}.}
    \item{var_b}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
                and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(1.0, 1.0)}.}
-   \item{var_beta}{Numeric positive value. (Gaussian) Prior variance of monadic coefficients. Defaults to 5.0.}
-   \item{var_gamma}{Numeric positive value. (Gaussian) Prior variance of dyadic coefficients. Defaults to 5.0.}
+   \item{mu_beta}{Either single numeric value, in which case the same prior mean is applied to all monadic coefficients, or
+                  an array with that is \code{npredictors} by \code{n.blocks} by \code{n.hmmstates}, where \code{npredictors}
+                  is the number of monadic predictors for which a prior mean is being set (prior means need not be set for all)
+                  predictors). The rows in the array should be named to identify which variables a prior mean is being set for.
+                  Defaults to a common prior mean of 0.0 for all monadic coefficients.}            
+   \item{var_beta}{See \code{mu_beta}. Defaults to a single common prior variance of 1.0 for all monadic coefficients.}
+   \item{mu_gamma}{Either a single numeric value, in which case the same prior mean is applied to all dyadic coefficients, or
+                   a named vector of numeric values (with names corresponding to the name of the variable 
+                  for which a prior mean is being set). Defaults to a copmmon prior mean of 0.0 for all dyadic coefficients.}
+   \item{var_gamma}{See \code{mu_gamma}. Defaults to a single common prior variance of 1.0 for all dyadic coefficients.}
    \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 10.3.}
    \item{phi_init_t}{Matrix, \code{n.blocks} by total number of nodes across years. Optional initial values for variational
                   parameters for mixed-membership vectors. Column names must be of the form \code{nodeid\@year }.}
    \item{kappa_init_t}{Matrix, \code{n.hmmstates} by number of years. Optional initial values for variational 
                   parameters for state probabilities.}
    \item{b_init_t}{Matrix, \code{n.blocks} by \code{n.blocks}. Optional initial values for blockmodel.}
-   \item{beta_init}{Array, predictors by \code{n.blocks} by \code{n.hmmstates}. Optional initial values for monadic coefficients.}
+   \item{beta_init}{Array, \code{predictors} by \code{n.blocks} by \code{n.hmmstates}. Optional initial values for monadic coefficients. If }
    \item{gamma_init}{Vector. Optional initial values for dyadic coefficients.}
    \item{permute}{Boolean. Should all permutations be tested to realign initial block models in dynamic case? If \code{FALSE}, realignment is 
                  done via faster graph matching algorithm, but may not be exact. Defaults to \code{TRUE}.}

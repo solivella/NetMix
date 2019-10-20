@@ -30,6 +30,4 @@ void vmmin_ours(int,
 		int*,
 		int*);
 
-
-
 #endif // AUX_HPP
