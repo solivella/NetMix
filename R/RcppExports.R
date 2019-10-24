@@ -51,7 +51,7 @@ thetaLB <- function(par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma, 
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 NULL
 
-mmsbm_fit <- function(z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, mu_b, var_b, phi_init, kappa_init_t, b_init_t, beta_init, gamma_init, control) {
-    .Call(`_NetMix_mmsbm_fit`, z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, mu_b, var_b, phi_init, kappa_init_t, b_init_t, beta_init, gamma_init, control)
+mmsbm_fit <- function(z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, phi_init, kappa_init_t, b_init_t, beta_init, gamma_init, control) {
+    .Call(`_NetMix_mmsbm_fit`, z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, phi_init, kappa_init_t, b_init_t, beta_init, gamma_init, control)
 }
 
