@@ -7,5 +7,5 @@ NetMix: Dynamic Mixed-Membership Network Regression Model. Variational EM estima
 To install the latest CRAN version, copy and paste the following in a running R console:
 `install.packages("NetMix")`.
 
-For the latest development version, copy and paste the following (assuming you have the `devtools` package installed):
-`devtools::install_github("solivella/NetMix")`
+For the latest development version, copy and paste the following (assuming you have the `remotes` package installed):
+`remotes::install_github("solivella/NetMix")`
