@@ -4,7 +4,6 @@
 \alias{approxB}
 \alias{getZ}
 \alias{alphaLB}
-\alias{thetaLB}
 \alias{auxfuns}
 \alias{.cbind.fill}
 \alias{.transf_muvar}
@@ -21,9 +20,6 @@ approxB(y, d_id, pi_mat)
 getZ(pi_mat)
 
 alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
-
-thetaLB(par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma,
-  mu_gamma, directed)
 
 .cbind.fill(...)
 
@@ -56,21 +52,13 @@ sender (first column) and receiver (second column) node id's for each dyad.}
 
 \item{c_t}{Integer matrix; samples from Poisson-Binomial counts of a node instantiating a group.}
 
-\item{x_t, z_t}{Numeric matrices; transposed monadic and dyadic design matrices.}
+\item{x_t}{Numeric matrix; transposed monadic design matrices.}
 
 \item{s_mat}{Integer matrix; Samples of HMM states by time period.}
 
 \item{t_id}{Integer vector; for each node, what time-period is it observed in? zero-indexed.}
 
 \item{mu_beta, var_beta}{Numeric arrays; prior mean and variances of monadic coefficients.}
-
-\item{send_phi, rec_phi}{Numeric matrices; for each dyad, sampled group instantiated by sender and reciver in pair.}
-
-\item{mu_b_t, var_b_t}{Numeirc matrices; prior mean and variance for blockmodel parameters.}
-
-\item{mu_gamma, var_gamma}{Numeric vectors; prior mean and variances of dyadic coefficients.}
-
-\item{directed}{Boolean; is the network directed?}
 
 \item{...}{Numeric vectors; vectors of potentially different length to be cbind-ed.}
 

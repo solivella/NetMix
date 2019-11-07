@@ -16,11 +16,6 @@ alphaLB <- function(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta) {
     .Call(`_NetMix_alphaLB`, par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 }
 
-#' @rdname auxfuns
-thetaLB <- function(par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma, mu_gamma, directed) {
-    .Call(`_NetMix_thetaLB`, par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma, mu_gamma, directed)
-}
-
 #' @name mmsbm_fit
 #' @title Fitter Function for dynamic MMSBM Model
 #' 

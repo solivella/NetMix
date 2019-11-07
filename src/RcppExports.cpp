@@ -48,26 +48,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// thetaLB
-double thetaLB(arma::vec par, arma::vec y, arma::mat z_t, arma::umat send_phi, arma::umat rec_phi, arma::mat mu_b_t, arma::mat var_b_t, arma::vec var_gamma, arma::vec mu_gamma, bool directed);
-RcppExport SEXP _NetMix_thetaLB(SEXP parSEXP, SEXP ySEXP, SEXP z_tSEXP, SEXP send_phiSEXP, SEXP rec_phiSEXP, SEXP mu_b_tSEXP, SEXP var_b_tSEXP, SEXP var_gammaSEXP, SEXP mu_gammaSEXP, SEXP directedSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type par(parSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type y(ySEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type z_t(z_tSEXP);
-    Rcpp::traits::input_parameter< arma::umat >::type send_phi(send_phiSEXP);
-    Rcpp::traits::input_parameter< arma::umat >::type rec_phi(rec_phiSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type mu_b_t(mu_b_tSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type var_b_t(var_b_tSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type var_gamma(var_gammaSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type mu_gamma(mu_gammaSEXP);
-    Rcpp::traits::input_parameter< bool >::type directed(directedSEXP);
-    rcpp_result_gen = Rcpp::wrap(thetaLB(par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma, mu_gamma, directed));
-    return rcpp_result_gen;
-END_RCPP
-}
 // mmsbm_fit
 Rcpp::List mmsbm_fit(const arma::mat& z_t, const arma::mat& x_t, const arma::vec& y, const arma::uvec& time_id_dyad, const arma::uvec& time_id_node, const arma::uvec& nodes_per_period, const arma::umat& node_id_dyad, const arma::mat& mu_b, const arma::mat& var_b, const arma::cube& mu_beta, const arma::cube& var_beta, const arma::vec& mu_gamma, const arma::vec& var_gamma, const arma::mat& phi_init, arma::mat& kappa_init_t, arma::mat& b_init_t, arma::cube& beta_init, arma::vec& gamma_init, Rcpp::List control);
 RcppExport SEXP _NetMix_mmsbm_fit(SEXP z_tSEXP, SEXP x_tSEXP, SEXP ySEXP, SEXP time_id_dyadSEXP, SEXP time_id_nodeSEXP, SEXP nodes_per_periodSEXP, SEXP node_id_dyadSEXP, SEXP mu_bSEXP, SEXP var_bSEXP, SEXP mu_betaSEXP, SEXP var_betaSEXP, SEXP mu_gammaSEXP, SEXP var_gammaSEXP, SEXP phi_initSEXP, SEXP kappa_init_tSEXP, SEXP b_init_tSEXP, SEXP beta_initSEXP, SEXP gamma_initSEXP, SEXP controlSEXP) {
@@ -102,7 +82,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_NetMix_approxB", (DL_FUNC) &_NetMix_approxB, 3},
     {"_NetMix_getZ", (DL_FUNC) &_NetMix_getZ, 1},
     {"_NetMix_alphaLB", (DL_FUNC) &_NetMix_alphaLB, 8},
-    {"_NetMix_thetaLB", (DL_FUNC) &_NetMix_thetaLB, 10},
     {"_NetMix_mmsbm_fit", (DL_FUNC) &_NetMix_mmsbm_fit, 19},
     {NULL, NULL, 0}
 };

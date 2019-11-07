@@ -28,14 +28,10 @@
 #' @param par Vector of parameter values.
 #' @param tot_nodes Integer vector; total number of nodes each node interacts with.
 #' @param c_t Integer matrix; samples from Poisson-Binomial counts of a node instantiating a group.
-#' @param x_t,z_t Numeric matrices; transposed monadic and dyadic design matrices.
+#' @param x_t Numeric matrix; transposed monadic design matrices.
 #' @param s_mat Integer matrix; Samples of HMM states by time period. 
 #' @param t_id Integer vector; for each node, what time-period is it observed in? zero-indexed.
 #' @param mu_beta,var_beta Numeric arrays; prior mean and variances of monadic coefficients.
-#' @param mu_gamma,var_gamma Numeric vectors; prior mean and variances of dyadic coefficients.
-#' @param send_phi,rec_phi Numeric matrices; for each dyad, sampled group instantiated by sender and reciver in pair.
-#' @param mu_b_t,var_b_t Numeirc matrices; prior mean and variance for blockmodel parameters.
-#' @param directed Boolean; is the network directed?
 #' @param orig Object to be transformed.
 #' @param is_var Boolean. Is the object to be transformed a variance term?
 #' @param is_array Boolean. Is the object to be transformed an array?

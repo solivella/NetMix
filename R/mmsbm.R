@@ -680,20 +680,29 @@ mmsbm <- function(formula.dyad,
         fit[["BlockModel"]][lower.tri(fit[["BlockModel"]], diag = TRUE)]
       }, 
       fit[["DyadCoef"]])
+    group_mat <- matrix(1:(n.blocks^2), n.blocks, n.blocks)
+    lambda_vec <- c(c(var_b), ctrl$var_gamma)
+    if(!directed){
+      group_mat[upper.tri(group_mat)] <- group_mat[lower.tri(group_mat)]
+      lambda_vec <- c(c(var_b[lower.tri(var_b, TRUE)]), ctrl$var_gamma)
+    } 
     hessTheta_list <- mapply(
-      function(send_samp, rec_samp, y_vec, Z_d, par_theta, mu_b_mat, var_b_mat, var_g, mu_g, dir_net)
+      function(send_samp, rec_samp, y_vec, Z_d, par_theta, mu_b_mat, var_b_mat, var_g, mu_g, dir_net, group_mat, lambda_vec)
       {
-        optimHess(par_theta,
-                  thetaLB, 
-                  y = y_vec,
-                  z_t = Z_d,
-                  send_phi = send_samp,
-                  rec_phi = rec_samp,
-                  mu_b_t = mu_b_mat,
-                  var_b_t = var_b_mat,
-                  var_gamma = var_g,
-                  mu_gamma = mu_g,
-                  directed = dir_net)
+        samp_ind <- sample(1:ncol(Z_d), floor(ncol(Z_d)*0.25))
+        group_vec <- model.matrix(~as.factor(diag(t(send_samp[, samp_ind]) %*% group_mat %*% rec_samp[,samp_ind]))-1)
+        mod_Z <- group_vec
+        if(any(Z!=0)){
+          mod_Z <- cbind(mod_Z, Z[samp_ind,])
+        }
+        if(directed){
+          mod_gamma <- c(c(fit$BlockModel),fit$DyadCoef)
+        } else {
+          mod_gamma <- c(c(fit$BlockModel[lower.tri(fit$BlockModel, TRUE)]),fit$DyadCoef)
+        }
+        s_eta <- plogis(mod_Z %*% mod_gamma)
+        D_mat <- diag(c(s_eta*(1-s_eta)))
+        ((t(mod_Z) %*% D_mat %*% mod_Z) - diag(1/lambda_vec))*4
       },
       z_samples, w_samples,
       MoreArgs = list(par_theta = all_theta_par, 
@@ -703,7 +712,9 @@ mmsbm <- function(formula.dyad,
                       var_b_mat = var_b,
                       var_g = ctrl$var_gamma, 
                       mu_g = ctrl$mu_gamma,
-                      dir_net = directed),
+                      dir_net = directed,
+                      group_mat = group_mat,
+                      lambda_vec),
       SIMPLIFY = FALSE)
     
     hessTheta <- Reduce("+", hessTheta_list)/ctrl$se_sim
