@@ -62,6 +62,10 @@
 #'                       for which a prior mean is being set). Defaults to a copmmon prior mean of 0.0 for all dyadic coefficients.}
 #'        \item{var_gamma}{See \code{mu_gamma}. Defaults to a single common prior variance of 1.0 for all dyadic coefficients.}
 #'        \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 10.3.}
+#'        \item{se_sim}{Number of samples from variational posterior of latent variables on which approximation to variance-covariance
+#'                      matrices are based. Defaults to 10.}
+#'        \item{dyad_vcov_samp}{Number of dyads to sample in computation of variance-covariance of dyadic and blockmodel parameters. 
+#'                              Defaults to 1000.}
 #'        \item{phi_init_t}{Matrix, \code{n.blocks} by total number of nodes across years. Optional initial values for variational
 #'                       parameters for mixed-membership vectors. Column names must be of the form \code{nodeid\@year }.}
 #'        \item{kappa_init_t}{Matrix, \code{n.hmmstates} by number of years. Optional initial values for variational 
@@ -154,6 +158,7 @@ mmsbm <- function(formula.dyad,
                em_iter = 50,
                hessian = TRUE,
                se_sim = 10,
+               dyad_vcov_samp = 1000,
                opt_iter = 10e3,
                mu_b = c(1.0, 0.0),
                var_b = c(1.0, 1.0),
@@ -689,7 +694,8 @@ mmsbm <- function(formula.dyad,
     hessTheta_list <- mapply(
       function(send_samp, rec_samp, y_vec, Z_d, par_theta, mu_b_mat, var_b_mat, var_g, mu_g, dir_net, group_mat, lambda_vec)
       {
-        samp_ind <- sample(1:ncol(Z_d), floor(ncol(Z_d)*0.25))
+        n_samp <- min(ctrl$dyad_vcov_samp, floor(ncol(Z_d)*0.25))
+        samp_ind <- sample(1:ncol(Z_d), n_samp)
         group_vec <- model.matrix(~as.factor(diag(t(send_samp[, samp_ind]) %*% group_mat %*% rec_samp[,samp_ind]))-1)
         mod_Z <- group_vec
         if(any(Z!=0)){
@@ -702,7 +708,7 @@ mmsbm <- function(formula.dyad,
         }
         s_eta <- plogis(mod_Z %*% mod_gamma)
         D_mat <- diag(c(s_eta*(1-s_eta)))
-        ((t(mod_Z) %*% D_mat %*% mod_Z) - diag(1/lambda_vec))*4
+        ((t(mod_Z) %*% D_mat %*% mod_Z) - diag(1/lambda_vec))*(ncol(Z_d)/n_samp)
       },
       z_samples, w_samples,
       MoreArgs = list(par_theta = all_theta_par, 
