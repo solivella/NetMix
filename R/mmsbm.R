@@ -649,14 +649,21 @@ mmsbm <- function(formula.dyad,
         if(any(tot_in_state == 0.0)){
           stop("Some HMM states are empty; consider reducing n.hmmstates, or increasing eta.")
         }  
-        return(optimHess(c(beta_vec),alphaLB,
+        hess_tmp <- optimHess(c(beta_vec),alphaLB,
                          tot_nodes = Nvec,
                          c_t = t(C_samp),
                          x_t = X_i,
                          s_mat = s_matrix,
                          t_id = tidn,
                          var_beta = vbeta,
-                         mu_beta = mbeta))
+                         mu_beta = mbeta)
+        vc_tmp <- MASS::ginv(hess_tmp) 
+        ev <- eigen(vc_tmp)$value
+        if(any(ev<0)){
+          vc_tmp <- vc_tmp - diag(min(ev)-1e-4, ncol(vc_tmp))
+        }
+        ch_vc <- chol(vc_tmp)
+        return(t(ch_vc) %*% ch_vc)
       },
       C_samples, S_samples,
       MoreArgs = list(tidn = t_id_n,
@@ -667,9 +674,8 @@ mmsbm <- function(formula.dyad,
                       mbeta = ctrl$mu_beta,
                       periods = periods),
       SIMPLIFY=FALSE)
-    hessBeta <- Reduce("+", hessBeta_list)/ctrl$se_sim
+    fit$vcov_monad <- Reduce("+", hessBeta_list)/ctrl$se_sim
     
-    fit$vcov_monad <- solve(hessBeta)
     colnames(fit$vcov_monad) <- rownames(fit$vcov_monad) <- paste(rep(paste("State",1:n.hmmstates), each = prod(dim(fit[["MonadCoef"]])[1:2])),
                                                                   rep(colnames(fit[["MonadCoef"]]), each = nrow(fit[["MonadCoef"]]), times = n.hmmstates),
                                                                   rep(rownames(fit[["MonadCoef"]]), times = n.blocks*n.hmmstates),
@@ -708,7 +714,14 @@ mmsbm <- function(formula.dyad,
         }
         s_eta <- plogis(mod_Z %*% mod_gamma)
         D_mat <- diag(c(s_eta*(1-s_eta)))
-        ((t(mod_Z) %*% D_mat %*% mod_Z) - diag(1/lambda_vec))*(ncol(Z_d)/n_samp)
+        hess_tmp <- ((t(mod_Z) %*% D_mat %*% mod_Z) - diag(1/lambda_vec))*(ncol(Z_d)/n_samp)
+        vc_tmp <- MASS::ginv(hess_tmp) 
+        ev <- eigen(vc_tmp)$value
+        if(any(ev<0)){
+          vc_tmp <- vc_tmp - diag(min(ev) - 1e-4, ncol(vc_tmp))
+        }
+        ch_vc <- chol(vc_tmp)
+        return(t(ch_vc) %*% ch_vc)
       },
       z_samples, w_samples,
       MoreArgs = list(par_theta = all_theta_par, 
@@ -723,9 +736,8 @@ mmsbm <- function(formula.dyad,
                       lambda_vec),
       SIMPLIFY = FALSE)
     
-    hessTheta <- Reduce("+", hessTheta_list)/ctrl$se_sim
-    vcovTheta <- solve(hessTheta)
-    
+    vcovTheta <- Reduce("+", hessTheta_list)/ctrl$se_sim
+
     
     N_B_PAR <- ifelse(directed, n.blocks^2 , n.blocks * (1 + n.blocks) / 2)
     fit$vcov_blockmodel <- vcovTheta[1:N_B_PAR, 1:N_B_PAR, drop = FALSE]

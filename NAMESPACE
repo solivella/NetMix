@@ -2,6 +2,7 @@ useDynLib(NetMix, .registration = TRUE)
 exportPattern("^[[:alpha:]]+")
 importFrom("graphics", "axis", "box", "hist", "image", "layout", "legend", "lines", "par", "plot", "points",
              "rasterImage", "title", "mtext", "text")
+importFrom("MASS", "ginv")
 importFrom("grDevices", "as.raster", "colorRamp", "rgb")
 importFrom("methods", "as", "formalArgs")
 importFrom("Rcpp", "evalCpp")
