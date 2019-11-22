@@ -703,9 +703,11 @@ mmsbm <- function(formula.dyad,
         n_samp <- min(ctrl$dyad_vcov_samp, floor(ncol(Z_d)*0.25))
         samp_ind <- sample(1:ncol(Z_d), n_samp)
         tries <- 0
+        if(any(Z!=0)){
         while(any(apply(Z[samp_ind,], 2, sd) == 0.0) & (tries < 100)){
           samp_ind <- sample(1:ncol(Z_d), n_samp)
           tries <- tries + 1
+        }
         }
         if(tries >= 100){
           stop("Bad sample for dyadic vcov computation; too little variation in dyadic covariates.")
