@@ -10,7 +10,7 @@ importFrom("stats", "as.formula", "coef", "complete.cases", "density",
              "fitted", "kmeans", "lm.fit", "median", "model.frame",
              "model.matrix", "model.response", "na.omit", "optimHess", "plogis",
              "predict", "dlogis", "qlogis", "quantile", "rbinom", "rgamma",
-             "rmultinom", "simulate", "terms", "update", "update.formula")
+             "rmultinom", "sd", "simulate", "terms", "update", "update.formula")
 importFrom("utils", "getS3method","head")
 importClassesFrom(Matrix)
 S3method(coef, mmsbm)

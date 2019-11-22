@@ -703,19 +703,20 @@ mmsbm <- function(formula.dyad,
         n_samp <- min(ctrl$dyad_vcov_samp, floor(ncol(Z_d)*0.25))
         samp_ind <- sample(1:ncol(Z_d), n_samp)
         tries <- 0
-        if(any(Z!=0)){
-        while(any(apply(Z[samp_ind,], 2, sd) == 0.0) & (tries < 100)){
+        if(any(Z_d!=0)){
+        while(any(apply(Z_d[,samp_ind,drop=FALSE], 1, stats::sd) == 0.0) & (tries < 100)){
           samp_ind <- sample(1:ncol(Z_d), n_samp)
           tries <- tries + 1
         }
+          
         }
         if(tries >= 100){
           stop("Bad sample for dyadic vcov computation; too little variation in dyadic covariates.")
         }
-        group_vec <- model.matrix(~factor(diag(t(send_samp[, samp_ind]) %*% group_mat %*% rec_samp[,samp_ind]), levels = 1:n.blocks)-1)
+        group_vec <- model.matrix(~factor(diag(t(send_samp[, samp_ind]) %*% group_mat %*% rec_samp[,samp_ind]), levels = c(group_mat))-1)
         mod_Z <- group_vec
-        if(any(Z!=0)){
-          mod_Z <- cbind(mod_Z, Z[samp_ind,])
+        if(any(Z_d!=0)){
+          mod_Z <- cbind(mod_Z, t(Z_d[,samp_ind, drop=FALSE]))
         }
         if(directed){
           mod_gamma <- c(c(fit$BlockModel),fit$DyadCoef)
