@@ -657,7 +657,7 @@ mmsbm <- function(formula.dyad,
                          t_id = tidn,
                          var_beta = vbeta,
                          mu_beta = mbeta)
-        vc_tmp <- MASS::ginv(hess_tmp) 
+        vc_tmp <- solve(hess_tmp) 
         ev <- eigen(vc_tmp)$value
         if(any(ev<0)){
           vc_tmp <- vc_tmp - diag(min(ev)-1e-4, ncol(vc_tmp))
@@ -702,7 +702,15 @@ mmsbm <- function(formula.dyad,
       {
         n_samp <- min(ctrl$dyad_vcov_samp, floor(ncol(Z_d)*0.25))
         samp_ind <- sample(1:ncol(Z_d), n_samp)
-        group_vec <- model.matrix(~as.factor(diag(t(send_samp[, samp_ind]) %*% group_mat %*% rec_samp[,samp_ind]))-1)
+        tries <- 0
+        while(any(apply(Z[samp_ind,], 2, sd) == 0.0) & (tries < 100)){
+          samp_ind <- sample(1:ncol(Z_d), n_samp)
+          tries <- tries + 1
+        }
+        if(tries >= 100){
+          stop("Bad sample for dyadic vcov computation; too little variation in dyadic covariates.")
+        }
+        group_vec <- model.matrix(~factor(diag(t(send_samp[, samp_ind]) %*% group_mat %*% rec_samp[,samp_ind]), levels = 1:n.blocks)-1)
         mod_Z <- group_vec
         if(any(Z!=0)){
           mod_Z <- cbind(mod_Z, Z[samp_ind,])
@@ -715,7 +723,7 @@ mmsbm <- function(formula.dyad,
         s_eta <- plogis(mod_Z %*% mod_gamma)
         D_mat <- diag(c(s_eta*(1-s_eta)))
         hess_tmp <- ((t(mod_Z) %*% D_mat %*% mod_Z) - diag(1/lambda_vec))*(ncol(Z_d)/n_samp)
-        vc_tmp <- MASS::ginv(hess_tmp) 
+        vc_tmp <- solve(hess_tmp) 
         ev <- eigen(vc_tmp)$value
         if(any(ev<0)){
           vc_tmp <- vc_tmp - diag(min(ev) - 1e-4, ncol(vc_tmp))
