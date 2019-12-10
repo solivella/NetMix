@@ -657,7 +657,7 @@ mmsbm <- function(formula.dyad,
                          t_id = tidn,
                          var_beta = vbeta,
                          mu_beta = mbeta)
-        vc_tmp <- solve(hess_tmp) 
+        vc_tmp <- Matrix::forceSymmetric(solve(hess_tmp))
         ev <- eigen(vc_tmp)$value
         if(any(ev<0)){
           vc_tmp <- vc_tmp - diag(min(ev)-1e-4, ncol(vc_tmp))
@@ -713,7 +713,7 @@ mmsbm <- function(formula.dyad,
         if(tries >= 100){
           stop("Bad sample for dyadic vcov computation; too little variation in dyadic covariates.")
         }
-        group_vec <- model.matrix(~factor(diag(t(send_samp[, samp_ind]) %*% group_mat %*% rec_samp[,samp_ind]), levels = c(group_mat))-1)
+        group_vec <- model.matrix(~factor(diag(t(send_samp[, samp_ind]) %*% group_mat %*% rec_samp[,samp_ind]), levels = unique(c(group_mat)))-1)
         mod_Z <- group_vec
         if(any(Z_d!=0)){
           mod_Z <- cbind(mod_Z, t(Z_d[,samp_ind, drop=FALSE]))
@@ -726,7 +726,7 @@ mmsbm <- function(formula.dyad,
         s_eta <- plogis(mod_Z %*% mod_gamma)
         D_mat <- diag(c(s_eta*(1-s_eta)))
         hess_tmp <- ((t(mod_Z) %*% D_mat %*% mod_Z) - diag(1/lambda_vec))*(ncol(Z_d)/n_samp)
-        vc_tmp <- solve(hess_tmp) 
+        vc_tmp <- Matrix::forceSymmetric(solve(hess_tmp)) 
         ev <- eigen(vc_tmp)$value
         if(any(ev<0)){
           vc_tmp <- vc_tmp - diag(min(ev) - 1e-4, ncol(vc_tmp))
@@ -744,7 +744,7 @@ mmsbm <- function(formula.dyad,
                       mu_g = ctrl$mu_gamma,
                       dir_net = directed,
                       group_mat = group_mat,
-                      lambda_vec),
+                      lambda_vec = lambda_vec),
       SIMPLIFY = FALSE)
     
     vcovTheta <- Reduce("+", hessTheta_list)/ctrl$se_sim
