@@ -7,9 +7,17 @@
 \usage{
 gof(x, ...)
 
-\method{gof}{mmsbm}(x, gof_stat = c("Geodesics", "Degree"),
-  level = 0.95, samples = 50, new.data.dyad = NULL,
-  new.data.monad = NULL, parametric_mm = FALSE, seed = NULL, ...)
+\method{gof}{mmsbm}(
+  x,
+  gof_stat = c("Geodesics", "Degree"),
+  level = 0.95,
+  samples = 50,
+  new.data.dyad = NULL,
+  new.data.monad = NULL,
+  parametric_mm = FALSE,
+  seed = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.}
@@ -41,14 +49,14 @@ The function generates a variety of plots that serve as posterior predictive che
 Goodness of fit of network models has typically been established by evaluating how the structural characteristics of predicted networks 
 compare to those of the observed network. When estimated in a Bayesian framework, this approach is equivalent to 
 conducting posterior preditive checks on these structural quantities of interest. When \code{new.data.dyad} and/or \code{new.data.monad} are
-passed that are different from those used in estimation, this is equivalent to conducting posterior predictive checks out-of-sample.
+passed that are different from those used in estimation, this is equivalent to conducting posterior predictive checks out-of-sample. 
 
 The set of structural features used to determine goodness of fit is somewhat arbitrary, and chosen mostly to incorporate various 
 first order, second order, and (to the extent possible) third-order characteristics of the network. "Geodesics" focuses on the distribution over 
 observed and predicted geodesic distances between nodes; "Indegree" and "Outdegree" focuses on the distribution over incoming and outgoing connections 
 per node; "3-motifs" focus on a distribution over possible connectivity patterns between triads (i.e. the triadic census); "Dyad Shared Partners" focuses on the distribution
 over the number of shared partners between any two dayds; "Edge Shared Partners" is similarly defined, but w.r.t. edges, rather than dyads; and finally
-"Incoming K-stars" focuses on a frequency distribution over stars with k=1,... spokes.
+"Incoming K-stars" focuses on a frequency distribution over stars with k=1,... spokes. 
 
 Obtaining samples of the last three structural features can be very computationally expensive, and is discouraged on networks with more than 50
 nodes.

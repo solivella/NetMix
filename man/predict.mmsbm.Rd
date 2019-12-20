@@ -4,9 +4,15 @@
 \alias{predict.mmsbm}
 \title{Predict edges based on estimated mmsbm model}
 \usage{
-\method{predict}{mmsbm}(object, new.data.dyad = NULL,
-  new.data.monad = NULL, parametric_mm = FALSE, forecast = FALSE,
-  type = c("link", "response"), ...)
+\method{predict}{mmsbm}(
+  object,
+  new.data.dyad = NULL,
+  new.data.monad = NULL,
+  parametric_mm = FALSE,
+  forecast = FALSE,
+  type = c("link", "response"),
+  ...
+)
 }
 \arguments{
 \item{object}{Object of class \code{mmsbm}.}

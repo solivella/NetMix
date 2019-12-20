@@ -4,9 +4,15 @@
 \alias{simulate.mmsbm}
 \title{Simulate a complete sociomatrix from an \code{mmsbm} object}
 \usage{
-\method{simulate}{mmsbm}(object, nsim = 1, seed = NULL,
-  new.data.dyad = NULL, new.data.monad = NULL, parametric_mm = FALSE,
-  ...)
+\method{simulate}{mmsbm}(
+  object,
+  nsim = 1,
+  seed = NULL,
+  new.data.dyad = NULL,
+  new.data.monad = NULL,
+  parametric_mm = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}}

@@ -10,8 +10,6 @@
 
 \item{y}{Numeric vector; vector of edge values. Must have same number of elements as \code{ncol(x_t)}}
 
-\item{time_id_dyad}{Integer vector; zero-based time-period identifier for each dyad.}
-
 \item{time_id_dyad}{Integer vector; zero-based time-period identifier for each node.}
 
 \item{nodes_per_period}{Integer vector; total number of unique nodes observed in each time period.}

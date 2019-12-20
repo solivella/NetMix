@@ -4,8 +4,7 @@
 \alias{head.mmsbm}
 \title{Identify nodes with most frequent membership in latent groups}
 \usage{
-\method{head}{mmsbm}(x, n = 6, t = NULL, node = TRUE,
-  t.correct = FALSE, ...)
+\method{head}{mmsbm}(x, n = 6, t = NULL, node = TRUE, t.correct = FALSE, ...)
 }
 \arguments{
 \item{x}{An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.}

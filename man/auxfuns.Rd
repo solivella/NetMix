@@ -23,8 +23,15 @@ alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 
 .cbind.fill(...)
 
-.transf_muvar(orig, is_var, is_array, des.mat, nblock = NULL,
-  nstate = NULL, devs = NULL)
+.transf_muvar(
+  orig,
+  is_var,
+  is_array,
+  des.mat,
+  nblock = NULL,
+  nstate = NULL,
+  devs = NULL
+)
 
 .bar.legend(colPalette, range)
 
