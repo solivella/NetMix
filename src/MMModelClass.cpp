@@ -190,9 +190,8 @@ double MMModel::alphaLB()
 
 void MMModel::alphaGr(int N_PAR, double *gr)
 {
-  //computeAlpha();
   double res=0.0, alpha_row=0.0, prior_gr=0.0;
-  
+  arma::uword U_NPAR = N_PAR;
   for(arma::uword m = 0; m < N_STATE; ++m){
     for(arma::uword g = 0; g < N_BLK; ++g){
       for(arma::uword x = 0; x < N_MONAD_PRED; ++x){
@@ -211,7 +210,7 @@ void MMModel::alphaGr(int N_PAR, double *gr)
         }
       }
     }
-  for(arma::uword i = 0; i < N_PAR; ++i){
+  for(arma::uword i = 0; i < U_NPAR; ++i){
     gr[i] /= N_NODE;
   }
 
@@ -257,7 +256,7 @@ void MMModel::computeAlpha()
 double MMModel::thetaLB(bool entropy = false)
 {
   computeTheta();
-  
+ 
   double res = 0.0;
   for(arma::uword d = 0; d < N_DYAD; ++d){
     for(arma::uword g = 0; g < N_BLK; ++g){
@@ -297,9 +296,11 @@ double MMModel::thetaLB(bool entropy = false)
  */
 void MMModel::thetaGr(int N_PAR, double *gr)
 {
+  arma::uword U_NPAR = N_PAR;
   double res_local, res = 0.0;
-  for(arma::uword i = 0; i < N_PAR; ++i)
+  for(arma::uword i = 0; i < U_NPAR; ++i){
     gr[i] = 0.0;
+  }
   
   arma::uword npar;
   for(arma::uword d = 0; d < N_DYAD; ++d){
@@ -333,7 +334,7 @@ void MMModel::thetaGr(int N_PAR, double *gr)
       gr[npar] += (b_t(h, g) - mu_b_t(h, g)) / var_b_t(h, g);
     }
   }
-  for(arma::uword i = 0; i < N_PAR; ++i)
+  for(arma::uword i = 0; i < U_NPAR; ++i)
     gr[i] /= N_DYAD;
 }
 
