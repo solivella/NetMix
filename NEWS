@@ -1,0 +1,11 @@
+NetMix 0.5
+--------------------------------------
+- Add standard error computation
+  for regression coefficients and 
+  blockmodel parameters
+  
+- Fix minor bugs  
+
+NetMix 0.4
+--------------------------------------
+- First version on CRAN

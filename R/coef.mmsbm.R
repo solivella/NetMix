@@ -11,7 +11,7 @@
 #'
 #' @method coef mmsbm
 #' 
-#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
+#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (aylo@@wisc.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 #' 
 #' 
 #' @examples 
@@ -21,7 +21,7 @@
 #' data("lazega_monadic")
 #' ## Estimate model with 2 groups
 #' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
-#'                       ~  School + Practice + Status,
+#'                       ~  School,
 #'                       senderID = "Lawyer1",
 #'                       receiverID = "Lawyer2",
 #'                       nodeID = "Lawyer",

@@ -102,7 +102,7 @@
 #'       \item{seed}{The value of RNG seed used during estimation.}
 #'       \item{call}{Original (unevaluated) function call.}
 #'     }
-#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
+#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (aylo@@wisc.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 #' 
 #' @examples 
 #' library(NetMix)

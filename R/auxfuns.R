@@ -41,7 +41,7 @@
 #' @param devs Vector of standard deviations to use in transformation of variances. Defaults to \code{NULL}.
 #' @param ... Numeric vectors; vectors of potentially different length to be cbind-ed.
 #' 
-#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
+#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (aylo@@wisc.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 #'
 #' @return See individual return section for each function:
 #' \describe{

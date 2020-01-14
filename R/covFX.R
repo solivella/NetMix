@@ -17,7 +17,7 @@
 #'       \item{Avg. Effect Dyad-Time}{Vector of estimated effects of the covariate shift on the predicted probability of edge formation for each node dyad-time unit.}
 #'     }
 #' 
-#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
+#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (aylo@@wisc.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 #' 
 #' @examples 
 #' library(NetMix)
@@ -26,7 +26,7 @@
 #' data("lazega_monadic")
 #' ## Estimate model with 2 groups
 #' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
-#'                       ~  School + Practice + Age,
+#'                       ~  Age,
 #'                       senderID = "Lawyer1",
 #'                       receiverID = "Lawyer2",
 #'                       nodeID = "Lawyer",

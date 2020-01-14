@@ -79,11 +79,11 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                                            hessian = FALSE))
 
 ## Plot observed (red) and simulated (gray) distributions over 
-## geodesic distances
+## indegrees
 ## (typically a larger number of samples would be taken) 
-gof(lazega_mmsbm, gof_stat = "Geodesics", samples = 2)
+gof(lazega_mmsbm, gof_stat = "Indegree", samples = 2)
 
 }
 \author{
-Santiago Olivella (olivella@unc.edu), Adeline Lo (adelinel@princeton.edu), Tyler Pratt (tyler.pratt@yale.edu), Kosuke Imai (imai@harvard.edu)
+Santiago Olivella (olivella@unc.edu), Adeline Lo (aylo@wisc.edu), Tyler Pratt (tyler.pratt@yale.edu), Kosuke Imai (imai@harvard.edu)
 }
