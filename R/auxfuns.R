@@ -19,6 +19,7 @@
 #'             It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.
 #' @param pi_l List of mixed-membership matrices. 
 #' @param kappa Numeric matrix; matrix of marginal HMM state probabilities.
+#' @param C_mat Numeric matrix; matrix of posterior counts of block instantiations per node. 
 #' @param y Numeric vector; vector of edge values.
 #' @param d_id Integer matrix; two-column matrix with nr. dyads rows, containing zero-based
 #'             sender (first column) and receiver (second column) node id's for each dyad. 
@@ -49,8 +50,8 @@
 #'       \item{.mpower}{Matrix; the result of raising \code{mat} to the \code{p} power.}
 #'       \item{.findPerm}{List of permuted blockmodel matrices}
 #'       \item{.transf}{Matrix with transformed mixed-membership vectors along its rows, s.t. no element is equal to 0.0 or 1.0.}
-#'       \item{.pi.hat}{List of predicted mixed-membership matrices, one element per HMM state.}
-#'       \item{.e.pi }{Matrix of expected mixed-membership vectors along its rows, with expectation computed over marginal 
+#'       \item{.compute.alpha}{List of predicted alpha matrices, one element per HMM state.}
+#'       \item{.e.pi}{Matrix of expected mixed-membership vectors along its rows, with expectation computed over marginal 
 #'                     distribution over HMM states for each time period.}
 #'     }
 #' 
@@ -205,7 +206,7 @@
 }
 
 #' @rdname auxfuns
-.pi.hat <- function(X, beta){
+.compute.alpha <- function(X, beta){
   if(dim(beta)[3]==1){
     mu <- exp(X %*% beta[,,1])
     pi.states <- list(t(mu))
@@ -219,7 +220,12 @@
 }
 
 #' @rdname auxfuns
-.e.pi <- function(pi_l, kappa){
+.e.pi <- function(alpha_list, kappa, C_mat = NULL){
+  if(is.null(C_mat)){
+    pi_l <- alpha_list
+  } else {
+    pi_l <- lapply(alpha_list, function(x) x + C_mat)
+  }
   if(is.null(dim(kappa))){
     return(pi_l[[1]])
   } else {

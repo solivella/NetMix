@@ -45,8 +45,8 @@ public:
   double cLL();
   
   
+  arma::mat getPostMM();
   arma::mat getC();
-  void getC(arma::mat& res);
   arma::mat getPhi(bool);
   arma::uvec getN();
   arma::mat getWmn();
@@ -78,7 +78,9 @@ private:
   OPT_ITER;
   //N_THREAD;
   
-  const double eta;
+  const double eta,
+  forget_rate,
+  batch_size;
   const arma::vec var_gamma,
   mu_gamma;
   const arma::cube var_beta,
@@ -105,7 +107,7 @@ private:
   time_id_node,
   n_nodes_time;
   
-  arma::uvec tot_nodes; 
+  arma::uvec tot_nodes, samp_nodes; 
   std::vector<int> maskalpha, 
   masktheta;
   

@@ -43,6 +43,9 @@
 #'                    choice of alpha (see below).}            
 #'        \item{alpha}{Numeric positive value. Concentration parameter for collapsed Gibbs sampler to find initial
 #'                     mixed-membership values when \code{init_gibbs=TRUE}. Defaults to 1.0.}            
+#'        \item{forget_rate}{Value between (0.5,1], controlling speed of decay of weight of prior
+#'                            parameter values in stochastic optimization of M-step. Defaults to 0.75.}
+#'        \item{batch_size}{Proportion of nodes sampled in each E-step. Defaults to 0.25.}                                 
 #'        \item{missing}{Means of handling missing data. One of "indicator method" (default) or "listwise deletion".}       
 #'        \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3.}
 #'        \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3.}
@@ -82,11 +85,11 @@
 #' @return Object of class \code{mmsbm}. List with named components:
 #'     \describe{
 #'       \item{MixedMembership}{Matrix of variational posterior of mean of mixed-membership vectors. \code{nodes} by \
-#'                              \code{n.groups}.}
-#'       \item{BlockModel}{\code{n.groups} by \code{n.groups} matrix of estimated tie log-odds between members
+#'                              \code{n.blocks}.}
+#'       \item{BlockModel}{\code{n.blocks} by \code{n.blocks} matrix of estimated tie log-odds between members
 #'                         of corresponding latent groups. The blockmodel.}
 #'       \item{vcov_blockmodel}{If \code{hessian=TRUE}, variance-covariance matrix of parameters in blockmodel, ordered in column-major order.}
-#'       \item{MonadCoef}{Array of estimated coefficient values for monadic covariates. Has \code{n.groups} columns,
+#'       \item{MonadCoef}{Array of estimated coefficient values for monadic covariates. Has \code{n.blocks} columns,
 #'                        and \code{n.hmmstates} slices.}
 #'       \item{vcov_monad}{If \code{hessian=TRUE}, variance-covariance matrix of monadic coefficients.}                  
 #'       \item{DyadCoef}{Vector estimated coefficient values for dyadic covariates.}
@@ -154,6 +157,8 @@ mmsbm <- function(formula.dyad,
                spectral = TRUE,
                init_gibbs = ifelse(n.hmmstates > 1, TRUE, FALSE),
                alpha = 1.0,
+               forget_rate = 0.75,
+               batch_size = 0.25,
                missing="indicator method",
                em_iter = 50,
                hessian = TRUE,
@@ -788,6 +793,7 @@ mmsbm <- function(formula.dyad,
                     timeID = timeID,
                     nodeID = nodeID,
                     t_id_d = t_id_d,
+                    n.blocks = n.blocks,
                     hessian = ctrl$hessian,
                     formula.dyad = formulas[[1]],
                     formula.monad = formulas[[2]])

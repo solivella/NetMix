@@ -37,6 +37,8 @@ MMModel::MMModel(const arma::mat& z_t,
   OPT_ITER(control["opt_iter"]),
   //N_THREAD(N_THREAD),
   eta(Rcpp::as<double>(control["eta"])),
+  forget_rate(Rcpp::as<double>(control["forget_rate"])),
+  batch_size(Rcpp::as<double>(control["batch_size"])),
   var_gamma(var_gamma),
   mu_gamma(mu_gamma),
   var_beta(var_beta),
@@ -554,6 +556,9 @@ void MMModel::updatePhi()
 // #ifdef _OPENMP  
 // #pragma omp parallel for
 // #endif
+
+// Sample nodes for stochastic variational update
+
   for(arma::uword d = 0; d < N_DYAD; ++d){
     Rcpp::checkUserInterrupt();
     
@@ -599,40 +604,7 @@ void MMModel::updatePhi()
 }
 
 
-// bool MMModel::maxDiffCheck(arma::vec& current,
-//                            arma::vec& old,
-//                            double tol)
-// {
-//   arma::vec diff(old.size());
-//   std::transform(current.begin(), current.end(),
-//                  old.begin(), diff.begin(),
-//                  [&](double x, double y){return fabs(x - y);});
-//   double max_val = *std::max_element(diff.begin(), diff.end());
-//   return max_val > tol ? false : true;
-// }
-// 
-// bool MMModel::checkConv(char p,
-//                         arma::vec& old,
-//                         double tol)
-// {
-//   bool conv;
-//   //Rprintf("Checking %c; ", p);
-//   switch(p) {
-//   case 'b':
-//     conv = maxDiffCheck(b_t, old, tol);
-//     break;
-//   case 'g':
-//     conv = maxDiffCheck(gamma, old, tol);
-//     break;
-//   case 'e':
-//     conv = maxDiffCheck(beta, old, tol);
-//     break;
-//   case 'c':
-//     conv = maxDiffCheck(e_c_t, old, tol);
-//     break;
-//   }
-//   return conv;
-// }
+
 
 /**
  GETTER FUNCTIONS
@@ -659,26 +631,32 @@ void MMModel::getBeta(arma::cube& res)
   std::copy(beta.begin(), beta.end(), res.begin());
 }
 
-arma::mat MMModel::getC()
+arma::mat MMModel::getPostMM()
 {
   arma::mat res(N_BLK, N_NODE);
+  arma::vec e_alpha(N_BLK);
   double row_total;
   for(arma::uword p = 0; p < N_NODE; ++p){
+    e_alpha.zeros();
     row_total = 0.0;
     for(arma::uword g = 0; g < N_BLK; ++g){
-      row_total += e_c_t(g, p);
+      for(arma::uword m = 0; m < N_STATE; ++m){
+        e_alpha[g] += alpha(g, p, m) * kappa_t(m, time_id_node[p]);
+      }
+      row_total += e_alpha[g] + e_c_t(g, p);
     }
     for(arma::uword g = 0; g < N_BLK; ++g){
-      res(g, p) = e_c_t(g, p) / row_total;
+      res(g, p) = (e_alpha[g] + e_c_t(g, p)) / row_total;
     }
   }
   return res;
 }
 
-void MMModel::getC(arma::mat& res)
+arma::mat MMModel::getC()
 {
-  std::copy(e_c_t.begin(), e_c_t.end(), res.begin());
+  return e_c_t.t();
 }
+
 
 arma::mat MMModel::getPhi(bool send)
 {

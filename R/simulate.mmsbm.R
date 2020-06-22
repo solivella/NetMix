@@ -8,9 +8,6 @@
 #' @param new.data.dyad An optional \code{data.frame} object. If not \code{NULL}, use these 
 #'                      dyadic predictor values instead of those used to fit the original model.
 #' @param new.data.monad An optional \code{data.frame} object. See \code{new.data.dyad}. 
-#' @param parametric_mm Boolean. Should the variational posterior be used for sampling the mixed-memberships (\code{FALSE}), 
-#'                      or should the mixed-meberships be formed using the parameters in the monadic regression equation (\code{TRUE})?
-#'                      Defaults to \code{FALSE}. If \code{is.null(new.data.monad)=FALSE}, setting this to \code{FALSE} will produce an error.  
 #' @param ... Currently ignored
 #' @return List of length \code{nsim} of simulated networks. 
 #'         If \code{new.data.dyad = NULL}, each element is a vector of length \code{nrow(object$dyadic.data)}. 
@@ -46,7 +43,6 @@ simulate.mmsbm <- function(object,
                            seed = NULL,
                            new.data.dyad = NULL,
                            new.data.monad  = NULL, 
-                           parametric_mm = FALSE,
                            ...)
 {
   if(!is.null(seed)){
@@ -77,10 +73,12 @@ simulate.mmsbm <- function(object,
     } else {
       tid <- object$forms$timeID
     }
+    C_mat <- matrix(0, ncol = object$forms$n.blocks, nrow = nrow(monad))
   } else {
     nid <- "(nid)"
     tid <- "(tid)"
     monad <- object$monadic.data
+    C_mat <- object$CountMatrix
   }
   if(! (tid %in% c(names(dyad), names(monad)))){
     stop("Dynamic model estimated, but no timeID provided in new data.")
@@ -119,21 +117,23 @@ simulate.mmsbm <- function(object,
                                    return(rmultinom(1, 1, new_kappa))
                                  }}))
     colnames(states) <- unique_t
-    states_ind <- states[,match(monad[,tid], colnames(object$Kappa))]
-    if(parametric_mm){
-      a <- .pi.hat(X_m, object$MonadCoef)
-      pind <- lapply(a,
-                     function(x){
-                       apply(x, 2,
-                             function(alpha){
-                               res <- rgamma(n_blk, alpha, 1)
-                               res/sum(res)
-                             }
-                       )})
-      p <- .e.pi(pind, states_ind)
-    } else {
-      p <- object$MixedMembership
-    }
+    states_ind <- matrix(states[,match(monad[,tid], colnames(object$Kappa))], nrow = nrow(object$Kappa))
+    
+    alpha_mats <- .compute.alpha(X_m, object$MonadCoef)
+    
+    pi_l <- lapply(alpha_mats,
+                   function(x){
+                     apply(x + t(C_mat), 2,
+                           function(alpha){
+                             res <- rgamma(n_blk, alpha, 1)
+                             res/sum(res)}
+                           )})
+    n_states <- nrow(states_ind)
+    pi.states <- lapply(1:n_states,
+                        function(m){
+                          pi_l[[m]] * rep(states_ind[m,], each=nrow(pi_l[[m]])) 
+                        })
+    p <- Reduce("+", pi.states)
     
     z <- getZ(p[,s_ind])
     w <- getZ(p[,r_ind])
@@ -142,6 +142,8 @@ simulate.mmsbm <- function(object,
     for(i in 1:n_dyad){ 
       eta_dyad[i] <- z[,i] %*% object$BlockModel %*% w[,i]
     }
+    
+    
     eta_dyad <- eta_dyad + c(X_d %*% (object$DyadCoef))
     
     probs <- plogis(eta_dyad)

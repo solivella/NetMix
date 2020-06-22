@@ -1,15 +1,15 @@
 Package: NetMix
 Type: Package
 Title: Dynamic Mixed-Membership Network Regression Model
-Version: 0.1.6.9001
-Date: 2020-01-14
+Version: 0.2.0.9001
+Date: 2020-06-10
 Encoding: UTF-8
 Author: Santiago Olivella [aut, cre],
   Adeline Lo [aut, cre],
 	Tyler Pratt [aut, cre],
 	Kosuke Imai [aut, cre]
 Maintainer: Santiago Olivella <olivella@unc.edu>
-Description: Variational EM estimation of mixed-membership stochastic blockmodel for networks,
+Description: Stochastic Variational EM estimation of mixed-membership stochastic blockmodel for networks,
              incorporating node-level predictors of mixed-membership vectors, as well as 
              dyad-level predictors. For networks observed over time, the model defines a hidden
              Markov process that allows the effects of node-level predictors to evolve in discrete,
