@@ -224,7 +224,7 @@
   if(is.null(C_mat)){
     pi_l <- alpha_list
   } else {
-    pi_l <- lapply(alpha_list, function(x) x + C_mat)
+    pi_l <- lapply(alpha_list, function(x) x + t(C_mat))
   }
   if(is.null(dim(kappa))){
     return(pi_l[[1]])

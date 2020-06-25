@@ -85,7 +85,7 @@ predict.mmsbm <- function(object,
     } else {
       tid <- object$forms$timeID
     }
-    C_mat <- NULL
+    C_mat <- matrix(0, ncol = object$forms$n.blocks, nrow = nrow(monad))
   } else {
     nid <- "(nid)"
     tid <- "(tid)"
@@ -119,7 +119,7 @@ predict.mmsbm <- function(object,
       p <- .e.pi(alpha, new_kappa1, C_mat)
     } else {
       if(!(tid %in% colnames(monad))){tid <- "(tid)"}
-      p <- .e.pi(alpha, object$Kappa[,as.character(monad[,tid])], t(C_mat))
+      p <- .e.pi(alpha, object$Kappa[,as.character(monad[,tid])], C_mat)
     }
   
   
