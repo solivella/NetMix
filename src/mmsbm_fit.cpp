@@ -90,11 +90,14 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
   double tol = Rcpp::as<double>(control["conv_tol"])
     ,newLL, oldLL, change_LL;
   
-  oldLL = Model.cLL();
+  oldLL = Model.cLB();
   newLL = 0.0;
 
   while(iter < EM_ITER && conv == false){
     Rcpp::checkUserInterrupt();
+    // Sample batch of dyads for stochastic VI
+    Model.sampleDyads(iter);
+    
     // E-STEP
     Model.updatePhi();
     
@@ -108,7 +111,7 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
     Model.optim_ours(false); //optimize thetaLB
     // 
     //Check convergence
-    newLL = Model.cLL();
+    newLL = Model.cLB();
     change_LL = fabs((newLL-oldLL)/oldLL);
     if(change_LL < tol){
       conv = true;
@@ -116,8 +119,8 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
       oldLL = newLL;
     }
     if(verbose){
-      if((iter+1) % 50 == 0) {
-        Rprintf("Iter %i, change in LB: %f\n", iter + 1, change_LL);
+      if((iter+1) % 1 == 0) {
+        Rprintf("Iter %i, LB: %f\n", iter + 1, newLL);
       }
     }
     ++iter;

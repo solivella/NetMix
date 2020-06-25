@@ -45,6 +45,8 @@
 #'                     mixed-membership values when \code{init_gibbs=TRUE}. Defaults to 1.0.}            
 #'        \item{forget_rate}{Value between (0.5,1], controlling speed of decay of weight of prior
 #'                            parameter values in stochastic optimization of M-step. Defaults to 0.75.}
+#'        \item{delay}{Non-negative value, controlling weight of past iterations in stochastic optimization of
+#'                     M-step. Defaults to 1.0.}                    
 #'        \item{batch_size}{Proportion of nodes sampled in each E-step. Defaults to 0.25.}                                 
 #'        \item{missing}{Means of handling missing data. One of "indicator method" (default) or "listwise deletion".}       
 #'        \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3.}
@@ -70,7 +72,7 @@
 #'        \item{dyad_vcov_samp}{Number of dyads to sample in computation of variance-covariance of dyadic and blockmodel parameters. 
 #'                              Defaults to 1000.}
 #'        \item{phi_init_t}{Matrix, \code{n.blocks} by total number of nodes across years. Optional initial values for variational
-#'                       parameters for mixed-membership vectors. Column names must be of the form \code{nodeid\@year }.}
+#'                       parameters for mixed-membership vectors. Column names must have a \code{nodeid@year} format.}
 #'        \item{kappa_init_t}{Matrix, \code{n.hmmstates} by number of years. Optional initial values for variational 
 #'                       parameters for state probabilities.}
 #'        \item{b_init_t}{Matrix, \code{n.blocks} by \code{n.blocks}. Optional initial values for blockmodel.}
@@ -158,6 +160,7 @@ mmsbm <- function(formula.dyad,
                init_gibbs = ifelse(n.hmmstates > 1, TRUE, FALSE),
                alpha = 1.0,
                forget_rate = 0.75,
+               delay = 1.0,
                batch_size = 0.25,
                missing="indicator method",
                em_iter = 50,
@@ -345,7 +348,8 @@ mmsbm <- function(formula.dyad,
   nodes_pp <- c(by(mfm, mfm[["(tid)"]], nrow))
   dyads_pp <- c(by(mfd, mfd[["(tid)"]], nrow))
   
-  
+  ## Translate batch size to number of nodes
+  ctrl$batch_size = max(1, floor(ctrl$batch_size * sum(nodes_pp)))
   
   ## Create initial values
   if(ctrl$verbose){
@@ -485,8 +489,8 @@ mmsbm <- function(formula.dyad,
                                  })
         ret <- lda::mmsb.collapsed.gibbs.sampler(network = soc_mats[[i]],
                                                  K = n.blocks,
-                                                 num.iterations = 100L,
-                                                 burnin = 50L,
+                                                 num.iterations = 50L,
+                                                 burnin = 25L,
                                                  alpha = ctrl$alpha,
                                                  beta.prior = lda_beta_prior)
         MixedMembership <- prop.table(ret$document_expects, 2)

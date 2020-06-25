@@ -39,10 +39,11 @@ public:
   ~MMModel();
   
   
+  void sampleDyads(arma::uword iter);
   void updatePhi();
   void updateKappa();
   void optim_ours(bool);
-  double cLL();
+  double cLB();
   
   
   arma::mat getPostMM();
@@ -75,19 +76,23 @@ private:
   N_MONAD_PRED,
   N_DYAD_PRED,
   N_B_PAR,
-  OPT_ITER;
+  OPT_ITER,
+  N_NODE_BATCH;
   //N_THREAD;
   
   const double eta,
   forget_rate,
-  batch_size;
+  delay;
+  
   const arma::vec var_gamma,
   mu_gamma;
   const arma::cube var_beta,
   mu_beta;
   
   double fminAlpha,
-  fminTheta;
+  fminTheta,
+  reweightFactor,
+  step_size;
   
   
   int fncountAlpha,
@@ -107,11 +112,15 @@ private:
   time_id_node,
   n_nodes_time;
   
-  arma::uvec tot_nodes, samp_nodes; 
+  arma::uvec tot_nodes,
+  node_in_batch,
+  dyad_in_batch,
+  node_batch;
+  
   std::vector<int> maskalpha, 
   masktheta;
   
-  arma::vec theta_par,
+  arma::vec theta_par, thetaold,
   e_wm,
   gamma,
   gamma_init;
@@ -134,21 +143,21 @@ private:
   
   arma::cube alpha, //3d array (column major)
   theta,
-  beta,
+  beta, betaold,
   beta_init;
   
   //std::vector< Array<double> > new_e_c_t; //For reduce op.
   arma::mat new_e_c_t;
   
   
-  void computeAlpha();
+  void computeAlpha(bool);
   
-  void computeTheta();
-  double alphaLB();
+  void computeTheta(bool);
+  double alphaLB(bool);
   static double alphaLBW(int, double*, void*);
   void alphaGr(int, double*);
   static void alphaGrW(int, double*, double*, void*);
-  double thetaLB(bool);
+  double thetaLB(bool, bool);
   static double thetaLBW(int, double*, void*);
   void thetaGr(int, double*);
   static void thetaGrW(int, double*, double*, void*);
