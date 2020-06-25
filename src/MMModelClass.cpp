@@ -299,9 +299,7 @@ double MMModel::thetaLB(bool entropy = false, bool svi = true)
     }
   }
   
-  res *= -1; //VMMIN minimizes.
-  return res / N_DYAD;
-  //return res;
+  return -res/N_DYAD;
 }
 
 
