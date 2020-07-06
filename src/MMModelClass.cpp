@@ -181,7 +181,7 @@ double MMModel::alphaLB(bool svi = true)
       res += res_int * kappa_t(m, time_id_node[p]);
       }
     }
-    res *= N_NODE/N_NODE_BATCH;
+    res *=  (1. * N_NODE)/N_NODE_BATCH;
     //Prior for beta
     
     for(arma::uword g = 0; g < N_BLK; ++g){
@@ -220,7 +220,7 @@ void MMModel::alphaGr(int N_PAR, double *gr)
               * kappa_t(m,  time_id_node[p]) * alpha(g, p, m) * x_t(x, p);
           }
         }
-        res *= N_NODE / N_NODE_BATCH;
+        res *= (1. * N_NODE) / N_NODE_BATCH;
         prior_gr = (beta(x, g, m) - mu_beta(x, g, m)) / var_beta(x, g, m);
         gr[x + N_MONAD_PRED * (g + N_BLK * m)] = -(res - prior_gr);
       }
@@ -656,7 +656,7 @@ void MMModel::sampleDyads(arma::uword iter)
     dyad_in_batch[d] = (arma::any(node_batch == node_id_dyad(d, 0)) 
                           | arma::any(node_batch == node_id_dyad(d, 1))) ? 1 : 0;
   }
-  reweightFactor = N_DYAD / arma::sum(dyad_in_batch);
+  reweightFactor = (1. * N_DYAD) / arma::sum(dyad_in_batch);
   step_size = 1.0 / pow(delay + iter, forget_rate);
 }
 
