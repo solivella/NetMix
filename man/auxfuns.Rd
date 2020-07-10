@@ -11,7 +11,7 @@
 \alias{.mpower}
 \alias{.findPerm}
 \alias{.transf}
-\alias{.pi.hat}
+\alias{.compute.alpha}
 \alias{.e.pi}
 \title{Internal functions and generics for \code{mmsbm} package}
 \usage{
@@ -41,9 +41,9 @@ alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 
 .transf(mat)
 
-.pi.hat(X, beta)
+.compute.alpha(X, beta)
 
-.e.pi(pi_l, kappa)
+.e.pi(alpha_list, kappa, C_mat = NULL)
 }
 \arguments{
 \item{y}{Numeric vector; vector of edge values.}
@@ -105,9 +105,11 @@ realigning matrices? defaults to \code{TRUE}.}
 \item{beta}{Numeric array; array of coefficients associated with monadic predictors. 
 It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.}
 
-\item{pi_l}{List of mixed-membership matrices.}
-
 \item{kappa}{Numeric matrix; matrix of marginal HMM state probabilities.}
+
+\item{C_mat}{Numeric matrix; matrix of posterior counts of block instantiations per node.}
+
+\item{pi_l}{List of mixed-membership matrices.}
 }
 \value{
 See individual return section for each function:
@@ -116,8 +118,8 @@ See individual return section for each function:
       \item{.mpower}{Matrix; the result of raising \code{mat} to the \code{p} power.}
       \item{.findPerm}{List of permuted blockmodel matrices}
       \item{.transf}{Matrix with transformed mixed-membership vectors along its rows, s.t. no element is equal to 0.0 or 1.0.}
-      \item{.pi.hat}{List of predicted mixed-membership matrices, one element per HMM state.}
-      \item{.e.pi }{Matrix of expected mixed-membership vectors along its rows, with expectation computed over marginal 
+      \item{.compute.alpha}{List of predicted alpha matrices, one element per HMM state.}
+      \item{.e.pi}{Matrix of expected mixed-membership vectors along its rows, with expectation computed over marginal 
                     distribution over HMM states for each time period.}
     }
 }

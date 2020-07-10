@@ -9,6 +9,7 @@
 // #endif 
 
 #include <RcppArmadillo.h>
+#include <omp.h>
 #include "AuxFuns.h"
 
 
@@ -77,8 +78,8 @@ private:
   N_DYAD_PRED,
   N_B_PAR,
   OPT_ITER,
-  N_NODE_BATCH;
-  //N_THREAD;
+  N_NODE_BATCH,
+  N_THREAD;
   
   const double eta,
   forget_rate,

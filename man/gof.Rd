@@ -14,7 +14,6 @@ gof(x, ...)
   samples = 50,
   new.data.dyad = NULL,
   new.data.monad = NULL,
-  parametric_mm = FALSE,
   seed = NULL,
   ...
 )
@@ -34,8 +33,6 @@ gof(x, ...)
 \item{new.data.dyad}{See \code{\link{simulate.mmsbm}}. Enables out-of-sample checking.}
 
 \item{new.data.monad}{See \code{\link{simulate.mmsbm}}. Enables out-of-sample checking.}
-
-\item{parametric_mm}{See \code{\link{simulate.mmsbm}}.}
 
 \item{seed}{See \code{\link{simulate.mmsbm}}.}
 }

@@ -36,7 +36,7 @@ MMModel::MMModel(const arma::mat& z_t,
   N_B_PAR(Rcpp::as<bool>(control["directed"]) ? N_BLK * N_BLK : N_BLK * (1 + N_BLK) / 2),
   OPT_ITER(control["opt_iter"]),
   N_NODE_BATCH(control["batch_size"]),
-  //N_THREAD(N_THREAD),
+  N_THREAD(control["threads"]),
   eta(Rcpp::as<double>(control["eta"])),
   forget_rate(Rcpp::as<double>(control["forget_rate"])),
   delay(Rcpp::as<double>(control["delay"])),
@@ -92,6 +92,9 @@ MMModel::MMModel(const arma::mat& z_t,
   //new_e_c_t(N_THREAD, Array<double>({N_BLK, N_NODE}, 0.0)
   new_e_c_t(N_BLK, N_NODE, arma::fill::zeros)
 {
+  
+  //Set number of parallel threads
+  omp_set_num_threads(N_THREAD);
   
   //Assign initial values to  W parameters
   for(arma::uword t = 1; t < N_TIME; ++t){
@@ -168,6 +171,7 @@ double MMModel::alphaLB(bool svi = true)
   computeAlpha(svi);
   double res = 0.0, res_int = 0.0, alpha_row = 0.0, alpha_val = 0.0;
   for(arma::uword m = 0; m < N_STATE; ++m){
+#pragma omp parallel for firstprivate(alpha_val, alpha_row, res_int) reduction(+: res)
     for(arma::uword p = 0; p < N_NODE; ++p){
       if((node_in_batch[p] == 1) | (svi == false)){
       alpha_row = 0.0;
@@ -209,6 +213,7 @@ void MMModel::alphaGr(int N_PAR, double *gr)
     for(arma::uword g = 0; g < N_BLK; ++g){
       for(arma::uword x = 0; x < N_MONAD_PRED; ++x){
         res = 0.0;
+#pragma omp parallel for firstprivate(alpha_row) reduction(+: res)
         for(arma::uword p = 0; p < N_NODE; ++p){
           if(node_in_batch[p] == 1) {
             alpha_row = 0.0;
@@ -270,6 +275,7 @@ double MMModel::thetaLB(bool entropy = false, bool svi = true)
   computeTheta(svi);
   
   double res = 0.0;
+#pragma omp parallel for reduction(+: res)
   for(arma::uword d = 0; d < N_DYAD; ++d){
     if((dyad_in_batch[d] == 1) | (svi == false)){
     for(arma::uword g = 0; g < N_BLK; ++g){
@@ -316,8 +322,8 @@ void MMModel::thetaGr(int N_PAR, double *gr)
     gr[i] = 0.0;
   }
   
-  arma::uword npar;
-  for(arma::uword d = 0; d < N_DYAD; ++d){
+  arma::uword npar = 0;
+    for(arma::uword d = 0; d < N_DYAD; ++d){
     if(dyad_in_batch[d] == 1){
       res = 0.0;
       for(arma::uword g = 0; g < N_BLK; ++g){

@@ -71,6 +71,11 @@ to 1 (i.e. no HMM).}
                choice of alpha (see below).}            
    \item{alpha}{Numeric positive value. Concentration parameter for collapsed Gibbs sampler to find initial
                 mixed-membership values when \code{init_gibbs=TRUE}. Defaults to 1.0.}            
+   \item{forget_rate}{Value between (0.5,1], controlling speed of decay of weight of prior
+                       parameter values in stochastic optimization of M-step. Defaults to 0.75.}
+   \item{delay}{Non-negative value, controlling weight of past iterations in stochastic optimization of
+                M-step. Defaults to 1.0.}                    
+   \item{batch_size}{Proportion of nodes sampled in each E-step. Defaults to 0.25.}                                 
    \item{missing}{Means of handling missing data. One of "indicator method" (default) or "listwise deletion".}       
    \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3.}
    \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3.}
@@ -95,7 +100,7 @@ to 1 (i.e. no HMM).}
    \item{dyad_vcov_samp}{Number of dyads to sample in computation of variance-covariance of dyadic and blockmodel parameters. 
                          Defaults to 1000.}
    \item{phi_init_t}{Matrix, \code{n.blocks} by total number of nodes across years. Optional initial values for variational
-                  parameters for mixed-membership vectors. Column names must be of the form \code{nodeid\@year }.}
+                  parameters for mixed-membership vectors. Column names must have a \code{nodeid@year} format.}
    \item{kappa_init_t}{Matrix, \code{n.hmmstates} by number of years. Optional initial values for variational 
                   parameters for state probabilities.}
    \item{b_init_t}{Matrix, \code{n.blocks} by \code{n.blocks}. Optional initial values for blockmodel.}
@@ -111,11 +116,11 @@ to 1 (i.e. no HMM).}
 Object of class \code{mmsbm}. List with named components:
     \describe{
       \item{MixedMembership}{Matrix of variational posterior of mean of mixed-membership vectors. \code{nodes} by \
-                             \code{n.groups}.}
-      \item{BlockModel}{\code{n.groups} by \code{n.groups} matrix of estimated tie log-odds between members
+                             \code{n.blocks}.}
+      \item{BlockModel}{\code{n.blocks} by \code{n.blocks} matrix of estimated tie log-odds between members
                         of corresponding latent groups. The blockmodel.}
       \item{vcov_blockmodel}{If \code{hessian=TRUE}, variance-covariance matrix of parameters in blockmodel, ordered in column-major order.}
-      \item{MonadCoef}{Array of estimated coefficient values for monadic covariates. Has \code{n.groups} columns,
+      \item{MonadCoef}{Array of estimated coefficient values for monadic covariates. Has \code{n.blocks} columns,
                        and \code{n.hmmstates} slices.}
       \item{vcov_monad}{If \code{hessian=TRUE}, variance-covariance matrix of monadic coefficients.}                  
       \item{DyadCoef}{Vector estimated coefficient values for dyadic covariates.}
