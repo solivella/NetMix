@@ -238,3 +238,52 @@
   }
 }
 
+#Create sociomatrix for bipartite
+.createSocioB <- function(dyads, all.nodes1, all.nodes2, directed){
+  res <- lapply(dyads,
+                function(dyad_df,
+                         nnode1 = length(all.nodes1),
+                         nnode2 = length(all.nodes2),
+                         nodes1 = all.nodes1,
+                         nodes2 = all.nodes2)
+                  #if bipartite:
+                  #need adj_mat to be composed of nnode1=length(all.nodes1), nnode2=length(all.nodes2), and dimnames are nodes1, nodes2
+                  # then create two sets of node_names
+                  #create function here that takes 1 and 2 always; then double up in input ifit is bipartite (outside this fn, so remove bipartite arg)
+                {
+                  indeces <- as.matrix(dyad_df[,c("(sid)","(rid)")])
+                  time_ind <- unique(dyad_df[,"(tid)"])
+                  adj_mat <-  matrix(NA,
+                                     nnode1,
+                                     nnode2,
+                                     dimnames = list(nodes1,
+                                                     nodes2))
+                  adj_mat[indeces] <- dyad_df[,4] # out of bounds
+                  if(!directed){
+                    adj_mat[indeces[,c(2,1)]] <- dyad_df[,4]
+                  }
+                  diag(adj_mat) <- 0
+                  adj_mat[is.na(adj_mat)] <- sample(0:1, sum(is.na(adj_mat)), replace = TRUE)
+                  if(!directed){
+                    mat_ind <- which(upper.tri(adj_mat), arr.ind = TRUE)
+                    adj_mat[mat_ind[,c(2,1)]] <- adj_mat[upper.tri(adj_mat)]
+                  }
+                  node_names1 <- paste(nodes1, "@", time_ind, sep="")
+                  node_names2 <- paste(nodes2, "@", time_ind, sep="")
+                  dimnames(adj_mat) <- list(node_names1,
+                                            node_names2)
+                  return(adj_mat)
+                })
+  return(res)
+}
+
+#' @rdname auxfuns
+.vertboot2 <- function(m1, boot_rep){#m1 <- igraph::as_adjacency_matrix(graph_ex) or m1 <- as.matrix(m1)
+  res <- list()
+  for (i in 1:boot_rep) {
+    blist1 <- sample(0:(dim(m1)[1]-1), replace = TRUE) #blist is sampling or rows in C indexing
+    blist2 <- sample(0:(dim(m1)[2]-1), replace = TRUE)
+    res <- c(res, list(vertboot_matrix_rcpp2(m1,blist1, blist2)))
+  }
+  res
+}
