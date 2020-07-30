@@ -43,8 +43,10 @@ predict.mmsbmB <- function(object,
       tid <- object$forms$timeID
     }
   } else {
-    sid <- "(sid)" #ifelse(!is.null(object$forms$nodeID1),object$forms$nodeID1,"(sid)") 
-    rid <- "(rid)" #ifelse(!is.null(object$forms$nodeID2),object$forms$nodeID2,"(rid)") 
+    #sid <- "(sid)" #
+    sid <- ifelse(!is.null(object$forms$nodeID1),object$forms$nodeID1,"(sid)") 
+    #rid <- "(rid)" #
+    rid <- ifelse(!is.null(object$forms$nodeID2),object$forms$nodeID2,"(rid)") 
     if(!is.null(new.data.monad1)|!is.null(new.data.monad2)){
       tid <-  object$forms$timeID  
     }else {tid <- "(tid)"}
@@ -57,7 +59,7 @@ predict.mmsbmB <- function(object,
                                                                names(object$DyadCoef))]), collapse=" + "))
   }
   X_d <- model.matrix(eval(dform), dyad)
-  if(length(object$DyadCoef)==0){
+  if(length(object$DyadCoef)==0|length(labels(terms(object$forms$formula.dyad)))==0){
     object$DyadCoef <- as.vector(0)
   } else {
     object$DyadCoef <- c(0, object$DyadCoef)

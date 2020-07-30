@@ -395,7 +395,7 @@ mmsbmB <- function(formula.dyad,
   ctrl$batch_size1 = max(1, floor(ctrl$batch_size1 * sum(nodes_pp1)))
   cat("batch_size1 is:",ctrl$batch_size1,"\n")
   ctrl$batch_size2 = max(1, floor(ctrl$batch_size2 * sum(nodes_pp2)))
-  
+  cat("batch_size2 is:",ctrl$batch_size2,"\n")
   ## Create initial values
   if(ctrl$verbose){
     cat("Obtaining initial values...\n")
@@ -412,9 +412,9 @@ mmsbmB <- function(formula.dyad,
   edges <- split(Y, mfd[, "(tid)"])
   #create sociomatrix
   if(ctrl$bipartite){
-    soc_mats <- .createSocio(dyads,all.nodes1,all.nodes2, ctrl$directed)
+    soc_mats <- .createSocioB(dyads,all.nodes1,all.nodes2, ctrl$directed)
   }else{
-    soc_mats <- .createSocio(dyads,all.nodes,all.nodes, ctrl$directed)
+    soc_mats <- .createSocioB(dyads,all.nodes,all.nodes, ctrl$directed)
   }
   
   #null Kappa
@@ -850,8 +850,8 @@ mmsbmB <- function(formula.dyad,
   names(fit$monadic2.data)[which(names(fit$monadic2.data)=="(nid2)")]<-nodeID2
   names(fit$monadic2.data)[which(names(fit$monadic2.data)=="(tid)")]<-timeID
   fit$dyadic.data <- mfd#rename back to nodeID1, nodeID2, timeID
-  names(fit$dyadic.data)[which(names(fit$dyadic.data)=="(nid1)")]<-nodeID1
-  names(fit$dyadic.data)[which(names(fit$dyadic.data)=="(nid2)")]<-nodeID2
+  names(fit$dyadic.data)[which(names(fit$dyadic.data)=="(sid)")]<-nodeID1
+  names(fit$dyadic.data)[which(names(fit$dyadic.data)=="(rid)")]<-nodeID2
   names(fit$dyadic.data)[which(names(fit$dyadic.data)=="(tid)")]<-timeID
   fit$Y <- Y
   

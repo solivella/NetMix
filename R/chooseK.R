@@ -116,24 +116,17 @@ chooseK<-function(formula.dyad,
                                 data.dyad = train.data.dyad, data.monad1 = train.data.monad1, data.monad2 = train.data.monad2, #training data
                                 n.blocks1 = ktry[i,1], n.blocks2 = ktry[i,2], #k to try
                                 n.hmmstates = n.hmmstates, directed = FALSE, nodes2 = nrow(train.data.monad2), npred2 = npred2,
-                                mmsbm.control = list(mu_b = c(5,-5)*-1,
-                                                     var_b = c(1, 1),
-                                                     spectral = TRUE,
-                                                     verbose=TRUE,
-                                                     em_iter = 100,
-                                                     conv_tol = 1e-5,
-                                                     bipartite = TRUE,
-                                                     batch_size1 = .80, batch_size2 = .80
-                                ))
+                                mmsbm.control = mmsbm.control)
     ## Testing
     if (!is.null(test.data.monad1)){new.data.monad1<-test.data.monad1
     }else{new.data.monad1<-train.data.monad1}
     if (!is.null(test.data.monad2)){new.data.monad2<-test.data.monad2
     }else{new.data.monad2<-train.data.monad2}
-    pred[[i]]<-predict.mmsbmB(object=train_models[[i]], new.data.dyad = test.data.dyad,
+    pred[[i]]<-predict.mmsbmB(object=train_models[[i]], 
+                              new.data.dyad = test.data.dyad,
                               new.data.monad1  = new.data.monad1, 
                               new.data.monad2  = new.data.monad2,
-                              parametric_mm = ifelse(!is.null(test.data.monad1)|!is.null(test.data.monad2),TRUE,FALSE),
+                              parametric_mm = TRUE,
                               forecast = FALSE,
                               type = "response")
     
