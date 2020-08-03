@@ -87,4 +87,14 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL,...){ # network graph showing 
                                 stat="identity", position="stack") + 
              ggplot2::guides(fill=ggplot2::guide_legend(title="HMM State")))
   }
+  
+  if(type=="block"){
+    adj_mat <- x$BlockModel
+    dimnames(adj_mat) <- list(paste("G",1:nrow(adj_mat), sep=""),
+                              paste("H", 1:ncol(adj_mat), sep=""))  
+    melt_block<-melt(plogis(adj_mat))
+    colnames(melt_block)<-c("G","H","Probability")
+    return(ggplot2::ggplot(data = melt_block, aes(x=H, y=G, fill=`Probability`)) + 
+             ggplot2::geom_tile() + ggplot2::geom_text(aes(label=round(`Probability`,3)), col="white"))
+  }
 }
