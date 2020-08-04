@@ -9,7 +9,7 @@
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (aylo@@wisc.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 #' 
 
-covGroupB<-function(fm, cov=NULL, family=NULL){
+covGroupB<-function(fm, cov=NULL, family=NULL, groupassign="expected"){
   if (!requireNamespace("sm", quietly = TRUE)) {
     stop("Package \"sm\" needed to produce requested plot. Please install it.",
          call. = FALSE)
@@ -42,10 +42,25 @@ covGroupB<-function(fm, cov=NULL, family=NULL){
     sm.density.compare(covariate, groups, col=tmp_col, xlab=paste(cov))
     legend("topright", levels(groups.label), fill=tmp_col)
   }
-  if(class(covariate)=="factor"){
+  if(class(covariate)=="factor"& groupassign=="max"){
     groups<-apply(tmp_membership,2,which.max)
     group<-as.factor(rep(1:tmp_blk,length(levels(covariate))))
     p <-c(prop.table(table(groups,covariate),1))
+    value<-rep(levels(covariate),each=length(unique(group)))#repeat by number of groups
+    data <- data.frame(group,p,value)
+    pos<-"fill"#"dodge"/"stack"/"fill"
+    tmp_plot<-ggplot(data, aes(fill=group, y=value, x=p)) + ggtitle("Group proportions in each covariate level") +
+      geom_bar(position=pos, stat="identity") + theme_bw() + scale_fill_viridis(discrete = T, option = "E", alpha=0.75)
+    return(tmp_plot)
+  }
+  if(class(covariate)=="factor"& groupassign=="expected"){
+    tmp_d<-vector("list",length(levels(covariate)))
+    for(i in 1:length(levels(covariate))){
+      tmp_d[[i]]<-apply(tmp_membership[,which(covariate==levels(covariate)[i])],1,sum)/table(covariate)[i]
+    }
+    
+    group<-as.factor(rep(1:tmp_blk,length(levels(covariate))))
+    p <-unlist(tmp_d)
     value<-rep(levels(covariate),each=length(unique(group)))#repeat by number of groups
     data <- data.frame(group,p,value)
     pos<-"fill"#"dodge"/"stack"/"fill"
