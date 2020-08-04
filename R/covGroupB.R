@@ -5,7 +5,7 @@
 #' @param fm An object of class \code{mmsbmB}, a result of a call to \code{mmsbmB}. 
 #' @param cov Character string identifying the monadic covariate to be shifted.  
 #' @param family number 1 or 2 identifying the node family from which to find the monadic covariate/latent groups  
-#'
+#' @param groupassign takes values 'expected' or 'max', for method of assigning groups 
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (aylo@@wisc.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 #' 
 
