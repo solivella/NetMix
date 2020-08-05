@@ -19,7 +19,6 @@
 #'             It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.
 #' @param pi_l List of mixed-membership matrices. 
 #' @param kappa Numeric matrix; matrix of marginal HMM state probabilities.
-#' @param C_mat Numeric matrix; matrix of posterior counts of block instantiations per node. 
 #' @param y Numeric vector; vector of edge values.
 #' @param d_id Integer matrix; two-column matrix with nr. dyads rows, containing zero-based
 #'             sender (first column) and receiver (second column) node id's for each dyad. 
@@ -29,10 +28,14 @@
 #' @param par Vector of parameter values.
 #' @param tot_nodes Integer vector; total number of nodes each node interacts with.
 #' @param c_t Integer matrix; samples from Poisson-Binomial counts of a node instantiating a group.
-#' @param x_t Numeric matrix; transposed monadic design matrices.
+#' @param x_t,z_t Numeric matrices; transposed monadic and dyadic design matrices.
 #' @param s_mat Integer matrix; Samples of HMM states by time period. 
 #' @param t_id Integer vector; for each node, what time-period is it observed in? zero-indexed.
 #' @param mu_beta,var_beta Numeric arrays; prior mean and variances of monadic coefficients.
+#' @param mu_gamma,var_gamma Numeric vectors; prior mean and variances of dyadic coefficients.
+#' @param send_phi,rec_phi Numeric matrices; for each dyad, sampled group instantiated by sender and reciver in pair.
+#' @param mu_b_t,var_b_t Numeirc matrices; prior mean and variance for blockmodel parameters.
+#' @param directed Boolean; is the network directed?
 #' @param orig Object to be transformed.
 #' @param is_var Boolean. Is the object to be transformed a variance term?
 #' @param is_array Boolean. Is the object to be transformed an array?
@@ -42,7 +45,7 @@
 #' @param devs Vector of standard deviations to use in transformation of variances. Defaults to \code{NULL}.
 #' @param ... Numeric vectors; vectors of potentially different length to be cbind-ed.
 #' 
-#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (aylo@@wisc.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
+#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 #'
 #' @return See individual return section for each function:
 #' \describe{
@@ -50,8 +53,8 @@
 #'       \item{.mpower}{Matrix; the result of raising \code{mat} to the \code{p} power.}
 #'       \item{.findPerm}{List of permuted blockmodel matrices}
 #'       \item{.transf}{Matrix with transformed mixed-membership vectors along its rows, s.t. no element is equal to 0.0 or 1.0.}
-#'       \item{.compute.alpha}{List of predicted alpha matrices, one element per HMM state.}
-#'       \item{.e.pi}{Matrix of expected mixed-membership vectors along its rows, with expectation computed over marginal 
+#'       \item{.pi.hat}{List of predicted mixed-membership matrices, one element per HMM state.}
+#'       \item{.e.pi }{Matrix of expected mixed-membership vectors along its rows, with expectation computed over marginal 
 #'                     distribution over HMM states for each time period.}
 #'     }
 #' 
@@ -93,6 +96,7 @@
     }
   }
   if(is_var){
+    
     if(length(dim(tmp))==1){
       tmp <- sqrt(tmp)/devs
     } else {
@@ -206,7 +210,12 @@
 }
 
 #' @rdname auxfuns
-.compute.alpha <- function(X, beta){
+.pi.hat <- function(X, beta){
+  if(length(dim(beta))==2){
+    mu <- exp(X %*% beta)
+    pi.states <- list(t(mu))
+    return(pi.states)
+  }else{
   if(dim(beta)[3]==1){
     mu <- exp(X %*% beta[,,1])
     pi.states <- list(t(mu))
@@ -217,15 +226,11 @@
     })
   }
   return(pi.states)
+  }
 }
 
 #' @rdname auxfuns
-.e.pi <- function(alpha_list, kappa, C_mat = NULL){
-  if(is.null(C_mat)){
-    pi_l <- alpha_list
-  } else {
-    pi_l <- lapply(alpha_list, function(x) x + t(C_mat))
-  }
+.e.pi <- function(pi_l, kappa){
   if(is.null(dim(kappa))){
     return(pi_l[[1]])
   } else {
@@ -235,6 +240,102 @@
                           pi_l[[m]] * rep(kappa[m,], each=nrow(pi_l[[m]])) 
                         })
     return(Reduce("+", pi.states))
+  }
+}
+
+
+## modularized fns from mmsbm.R
+
+#Missing data
+.missing <- function(formula.dyad, formula.monad1, formula.monad2=NULL, 
+                     data.dyad, data.monad1, data.monad2=NULL, missing){
+  
+  if(missing=="indicator method"){
+    # dyadic dataset
+    if(length(all.vars(formula.dyad[[3]]))){
+      miss.d <- apply(data.dyad[,all.vars(formula.dyad[[3]]), drop = FALSE], 2, function(x){length(na.omit(x))}) < nrow(data.dyad)
+      md <- names(miss.d[miss.d])
+      if(length(md)>0){
+        m.ind <- apply(as.data.frame(data.dyad[,md]), 2, function(x){
+          ifelse(is.na(x), 1, 0)
+        })
+        colnames(m.ind) <- paste(md, "_missing", sep="")
+        data.dyad[,md] <- apply(as.data.frame(data.dyad[,md]), 2, function(x){
+          x[is.na(x)] <- 0
+          return(x)
+        })
+        data.dyad <- cbind(data.dyad, m.ind)
+        fc <- paste(as.character(formula.dyad[[2]]), as.character(formula.dyad[[1]]),
+                    paste(c(all.vars(formula.dyad)[-1], colnames(m.ind)), collapse=" + "))
+        formula.dyad <- eval(parse(text=fc))
+      }
+    }
+    # monadic1 dataset
+    if(length(all.vars(formula.monad1[[2]]))){
+      miss.m <- apply(data.monad1[,all.vars(formula.monad1[[2]]), drop = FALSE], 2, function(x){length(na.omit(x))}) < nrow(data.monad1)
+      mm <- names(miss.m[miss.m])
+      if(length(mm)>0){
+        m.ind <- apply(as.data.frame(data.monad1[,mm]), 2, function(x){
+          ifelse(is.na(x), 1, 0)
+        })
+        colnames(m.ind) <- paste(mm, "_missing", sep="")
+        data.monad1[,mm] <- as.vector(apply(as.data.frame(data.monad1[,mm]), 2, function(x){
+          x[is.na(x)] <- 0
+          return(x)
+        }))
+        data.monad1 <- cbind(data.monad1, m.ind)
+        fc <- paste("~", paste(c(all.vars(formula.monad1), colnames(m.ind)),  collapse=" + "))
+        formula.monad1 <- eval(parse(text=fc))
+      }
+    }
+    # monadic2 dataset
+    if(length(all.vars(formula.monad2[[2]]))){
+      miss.m <- apply(data.monad2[,all.vars(formula.monad2[[2]]), drop = FALSE], 2, function(x){length(na.omit(x))}) < nrow(data.monad2)
+      mm <- names(miss.m[miss.m])
+      if(length(mm)>0){
+        m.ind <- apply(as.data.frame(data.monad2[,mm]), 2, function(x){
+          ifelse(is.na(x), 1, 0)
+        })
+        colnames(m.ind) <- paste(mm, "_missing", sep="")
+        data.monad2[,mm] <- as.vector(apply(as.data.frame(data.monad2[,mm]), 2, function(x){
+          x[is.na(x)] <- 0
+          return(x)
+        }))
+        data.monad2 <- cbind(data.monad2, m.ind)
+        fc <- paste("~", paste(c(all.vars(formula.monad2), colnames(m.ind)),  collapse=" + "))
+        formula.monad2 <- eval(parse(text=fc))
+      }
+    }
+  }
+  if(missing=="listwise deletion"){
+    if(length(all.vars(formula.dyad[[3]]))){
+      mdyad <- apply(data.dyad[,all.vars(formula.dyad[[3]])], 1, function(x){!any(is.na(x))})
+    } else {
+      mdyad <- TRUE
+    }
+    #monad1
+    if(length(all.vars(formula.monad1[[2]]))){
+      mmonad1 <- apply(data.monad1[,all.vars(formula.monad1[[2]])], 1, function(x){!any(is.na(x))})
+    } else {
+      mmonad1 <- TRUE
+    }
+    #monad2
+    if(length(all.vars(formula.monad2[[2]]))){
+      mmonad2 <- apply(data.monad2[,all.vars(formula.monad2[[2]])], 1, function(x){!any(is.na(x))})
+    } else {
+      mmonad2 <- TRUE
+    }
+    
+    data.dyad <- data.dyad[mdyad,]
+    data.monad1 <- data.monad1[mmonad1,]
+    data.monad2 <- data.monad2[mmonad2,]
+    d.keep <- lapply(unique(data.dyad[,timeID]), function(x){
+      nts <- data.monad1[data.monad1[,timeID]==x,nodeID] #### How to change this to also include data.monad2?
+      dd <- data.dyad[data.dyad[,timeID]==x,]
+      dd <- dd[dd[,senderID] %in% nts & dd[,receiverID] %in% nts,]
+      return(dd)
+    })
+    data.dyad <- do.call("rbind", d.keep)
   }
 }
 
@@ -282,7 +383,7 @@
   res <- list()
   for (i in 1:boot_rep) {
     blist1 <- sample(0:(dim(m1)[1]-1), replace = TRUE) #blist is sampling or rows in C indexing
-    blist2 <- sample(0:(dim(m1)[2]-1), replace = TRUE)
+    blist2 <- sample(0:(dim(m1)[2]-1), replace = TRUE) 
     res <- c(res, list(vertboot_matrix_rcpp2(m1,blist1, blist2)))
   }
   res
