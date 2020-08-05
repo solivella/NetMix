@@ -7,12 +7,13 @@
 #' group by group edge formation probabilities as a network graph.  "\code{membership}" plots average membership in
 #' each latent group by time period. "\code{effect}" provides a series of plots showing the estimated effect 
 #' of a shfit in monadic covariate values.
-#' @param FX with type = "effect"; a list resulting from a call to \code{covFX}.
-#'
+#' @param FX with type = "effect"; a list resulting from a call to \code{covFXB}.
+#' @param family with type = "effect"; integer 1 or 2 for whether the effect is meant for Family 1 or Family 2 nodes.
+#' @param nodelabel with type = "effect"; list of node names for node-effect plot, must be same length as number of nodes and in the original order of nid passed to mmsbmB.
 
 
-plot.mmsbmB <- function(x, type="groups", FX=NULL,...){ # network graph showing B-matrix
-  if(type %in% c("blockmodel", "membership", "hmm")){
+plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...){ # network graph showing B-matrix
+  if(type %in% c("blockmodel", "membership", "hmm", "block")){
     if (!requireNamespace("ggplot2", quietly = TRUE)) {
       stop("Package \"ggplot2\" needed to produce requested plot. Please install it.",
            call. = FALSE)
@@ -59,20 +60,35 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL,...){ # network graph showing 
     stopifnot(is.list(FX))
     cov <- strsplit(names(FX)[1], " ")[[1]][5]
     ymax <- max(hist(FX[[5]])[["counts"]])
-    hist(FX[[5]], main=paste("Distribution of Marginal Effects:", strsplit(names(FX)[1], " ")[[1]][5]),
-         xlab=paste("Effect of", cov, "on Pr(Edge Formation)"))
+    #hist(FX[[5]], main=paste("Distribution of Marginal Effects:", strsplit(names(FX)[1], " ")[[1]][5]),
+         #xlab=paste("Effect of", cov, "on Pr(Edge Formation)"))
+    #plot(unique(x$dyadic.data[,x$forms$timeID]), tapply(FX[[5]], x$dyadic.data[,x$forms$timeID], mean), type="o",
+         #xlab="Time", ylab=paste("Effect of", cov, "on Pr(Edge Formation)"), main="Marginal Effect over Time")
     
-    plot(unique(x$dyadic.data[,"(tid)"]), tapply(FX[[5]], x$dyadic.data[,"(tid)"], mean), type="o",
-         xlab="Time", ylab=paste("Effect of", cov, "on Pr(Edge Formation)"), main="Marginal Effect over Time")
-    
-    nodenames <- names(sort(table(x$monadic.data[,"(nid)"]), decreasing=TRUE))
+    if(family==1){ 
+      monadic.data<- x$monadic1.data 
+      nid <- x$forms$senderID
+    } else{ 
+        monadic.data <- x$monadic2.data
+        nid <- x$forms$receiverID
+    }
+  ##set up alternative labels for nodes -- these need to be in the same starting order as nid in monadic.data
+    if(!is.null(nodelabel)){
+      tmp_labels<-data.frame(nodelabel=nodelabel,nodenames=monadic.data[,nid])
+    }
+    nodenames <- names(sort(table(monadic.data[,nid]), decreasing=TRUE))
     nodes <- sort(FX[[3]])[names(sort(FX[[3]])) %in% nodenames]
+    if(!is.null(nodelabel)){
+    nodes_labels<- tmp_labels$nodelabel[match(names(nodes),tmp_labels$nodenames)]
+    }else{
+    nodes_labels<-names(nodes)
+    }
     plot(1, type="n", xlab="Node-Level Estimated Effect", ylab="", 
          xlim=c(min(nodes), max(nodes) + 0.001),
          ylim = c(0, length(nodes)), yaxt="n")
     for(i in 1:length(nodes)){
       points(nodes[i],i, pch=19)
-      text(nodes[i],i, names(nodes)[i], pos=4, cex=0.7)
+      text(nodes[i],i, nodes_labels[i], pos=4, cex=0.5)
     }
   }
   
