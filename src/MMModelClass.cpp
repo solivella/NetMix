@@ -550,8 +550,10 @@ void MMModel::updatePhiInternal(arma::uword dyad,
   arma::uword node = node_id_dyad(dyad, rec);
   double *theta_temp = &theta(0, 0, dyad);
   double *te;
+  arma::vec old_phi(N_BLK, arma::fill::zeros);
   
   for(arma::uword g = 0; g < N_BLK; ++g){
+    old_phi[g] = phi[g];
     new_c[g] -= phi[g];      
   }
   
@@ -583,7 +585,7 @@ void MMModel::updatePhiInternal(arma::uword dyad,
   //and store new value in c
   for(arma::uword g = 0; g < N_BLK; ++g){
     phi[g] /= total;
-    new_c[g] += phi[g];      
+    new_c[g] += step_size * old_phi[g] + (1.0 - step_size) * phi[g];      
   }
 }
 
