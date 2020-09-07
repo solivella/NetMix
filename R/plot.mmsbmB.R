@@ -92,6 +92,46 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
     }
   }
   
+  if(type=="effectchange"){
+    stopifnot(is.list(FX))
+    cov <- strsplit(names(FX)[1], " ")[[1]][5]
+    #ymax <- max(hist(FX[[5]])[["counts"]])
+    #hist(FX[[5]], main=paste("Distribution of Marginal Effects:", strsplit(names(FX)[1], " ")[[1]][5]),
+    #xlab=paste("Effect of", cov, "on Pr(Edge Formation)"))
+    #plot(unique(x$dyadic.data[,x$forms$timeID]), tapply(FX[[5]], x$dyadic.data[,x$forms$timeID], mean), type="o",
+    #xlab="Time", ylab=paste("Effect of", cov, "on Pr(Edge Formation)"), main="Marginal Effect over Time")
+    
+    if(family==1){ 
+      monadic.data<- x$monadic1.data 
+      nid <- x$forms$senderID
+    } else{ 
+      monadic.data <- x$monadic2.data
+      nid <- x$forms$receiverID
+    }
+    ##set up alternative labels for nodes -- these need to be in the same starting order as nid in monadic.data
+    if(!is.null(nodelabel)){
+      tmp_labels<-data.frame(nodelabel=nodelabel,nodenames=monadic.data[,nid])
+    }
+    nodenames <- names(sort(table(monadic.data[,nid]), decreasing=TRUE))
+    tmp_order<- names(sort(FX[[3]]))
+    predicted_nodes <- FX[[6]][match(tmp_order,names(FX[[6]]))]
+    orig_nodes <- FX[[7]][match(tmp_order,names(FX[[7]]))]
+    if(!is.null(nodelabel)){
+      nodes_labels<- tmp_labels$nodelabel[match(tmp_order,tmp_labels$nodenames)]
+    }else{
+      nodes_labels<-tmp_order
+    }
+    plot(1, type="n", xlab="Node-Level Estimated Change", ylab="", 
+         xlim=c(min(c(predicted_nodes,orig_nodes)), max(c(predicted_nodes,orig_nodes)) + 0.001),
+         ylim = c(0, length(predicted_nodes)), yaxt="n")
+    for(i in 1:length(predicted_nodes)){
+      points(predicted_nodes[i],i, pch=19)
+      points(orig_nodes[i],i, pch=19, col="gray")
+      lines(x=c(predicted_nodes[i],orig_nodes[i]),y=rep(i,2),lty='dashed',col="gray")
+      text(max(c(predicted_nodes[i],orig_nodes[i])),i, nodes_labels[i], pos=4, cex=0.5)
+    }
+  }
+  
   if(type=="hmm"){
     hms <- as.data.frame(do.call(rbind, lapply(1:nrow(x$Kappa), function(x){
       cbind(1:ncol(x$Kappa), x$Kappa[x,], x)
@@ -111,6 +151,7 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
     melt_block<-melt(plogis(adj_mat))
     colnames(melt_block)<-c("G","H","Probability")
     return(ggplot2::ggplot(data = melt_block, aes(x=H, y=G, fill=`Probability`)) + 
-             ggplot2::geom_tile() + ggplot2::geom_text(aes(label=round(`Probability`,3)), col="white"))
+             ggplot2::geom_tile(aes(fill = `Probability`)) + ggplot2::geom_text(aes(label=round(`Probability`,3)), col="dodgerblue4") +
+             ggplot2::scale_fill_gradient(low = "white", high = "black"))
   }
 }
