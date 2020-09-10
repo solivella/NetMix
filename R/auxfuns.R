@@ -17,7 +17,7 @@
 #' @param X Numeric matrix; design matrix of monadic predictors.
 #' @param beta Numeric array; array of coefficients associated with monadic predictors. 
 #'             It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.
-#' @param pi_l List of mixed-membership matrices. 
+#' @param alpha_list List of mixed-membership parameter matrices. 
 #' @param kappa Numeric matrix; matrix of marginal HMM state probabilities.
 #' @param C_mat Numeric matrix; matrix of posterior counts of block instantiations per node. 
 #' @param y Numeric vector; vector of edge values.

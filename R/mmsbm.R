@@ -160,11 +160,11 @@ mmsbm <- function(formula.dyad,
                init_gibbs = ifelse(n.hmmstates > 1, TRUE, FALSE),
                threads = 1,
                alpha = 1.0,
-               forget_rate = 0.75,
+               forget_rate = 0.85,
                delay = 1.0,
-               batch_size = 0.05,
+               batch_size = 0.01,
                missing="indicator method",
-               vi_iter = 50,
+               vi_iter = 100,
                hessian = TRUE,
                se_sim = 10,
                dyad_vcov_samp = 100,
@@ -593,7 +593,7 @@ mmsbm <- function(formula.dyad,
                    ctrl$gamma_init,
                    ctrl
   )
-  if((!fit[["converged"]]) & ctrl$verbose)
+  if(!fit[["converged"]])
     warning(paste("Model did not converge after", fit[["niter"]], "iterations.\n"))
   else if (ctrl$verbose){
     cat("done after", fit[["niter"]], "iterations.\n")

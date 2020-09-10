@@ -105,11 +105,11 @@ realigning matrices? defaults to \code{TRUE}.}
 \item{beta}{Numeric array; array of coefficients associated with monadic predictors. 
 It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.}
 
+\item{alpha_list}{List of mixed-membership parameter matrices.}
+
 \item{kappa}{Numeric matrix; matrix of marginal HMM state probabilities.}
 
 \item{C_mat}{Numeric matrix; matrix of posterior counts of block instantiations per node.}
-
-\item{pi_l}{List of mixed-membership matrices.}
 }
 \value{
 See individual return section for each function:

@@ -92,7 +92,7 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
     VI_ITER = control["vi_iter"],
                      N_BLK = control["blocks"],
                                     N_STATE = control["states"];
-  
+  int nworse = 0;
   bool conv = false,
     verbose = Rcpp::as<bool>(control["verbose"]);
   
@@ -121,17 +121,20 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
     // 
     //Check convergence
     newLL = Model.llho();
-    if(newLL < oldLL)
-      Rprintf("\t Warning: LL decreased.\r");
+    if(newLL < oldLL){
+      ++nworse;
+    } else{
+      nworse = 0;
+    }
     change_LL = fabs((newLL-oldLL)/oldLL);
-    if(change_LL < tol){
+    if((change_LL < tol) | (nworse >= 5)){
       conv = true;
     } else {
       oldLL = newLL;
     }
     if(verbose){
       if((iter+1) % 1 == 0) {
-        Rprintf("Iter: %i, LL: %f\r", iter + 1, newLL);
+        Rprintf("Iter: %i, Change in LL: %f\r", iter + 1, change_LL);
       }
     }
     ++iter;
