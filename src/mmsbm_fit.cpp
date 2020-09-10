@@ -35,12 +35,17 @@
 
 // [[Rcpp::export(mmsbm_fit)]]
 Rcpp::List mmsbm_fit(const arma::mat& z_t,
+                     const arma::mat& z_t_ho,
                      const arma::mat& x_t,
                      const arma::vec& y,
+                     const arma::vec& y_ho,
                      const arma::uvec& time_id_dyad,
                      const arma::uvec& time_id_node,
                      const arma::uvec& nodes_per_period,
                      const arma::umat& node_id_dyad,
+                     const arma::umat& node_id_dyad_ho,
+                     const arma::field<arma::uvec>& node_id_period,
+                     const arma::uvec& ho_id,
                      const arma::mat& mu_b,
                      const arma::mat& var_b,
                      const arma::cube& mu_beta,
@@ -50,20 +55,24 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
                      const arma::mat& phi_init,
                      arma::mat& kappa_init_t,
                      arma::mat& b_init_t,
-                     arma::cube& beta_init,
-                     arma::vec& gamma_init,
-                     Rcpp::List control
-)
+                     arma::cube& beta_init_r,
+                     arma::vec& gamma_init_r,
+                     Rcpp::List& control)
 {
-
+  
   //Create model instance
   MMModel Model(z_t,
+                z_t_ho,
                 x_t,
                 y,
+                y_ho,
                 time_id_dyad,
                 time_id_node,
                 nodes_per_period,
                 node_id_dyad,
+                node_id_dyad_ho,
+                node_id_period,
+                ho_id,
                 mu_b,
                 var_b,
                 mu_beta,
@@ -73,27 +82,27 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
                 phi_init,
                 kappa_init_t,
                 b_init_t,
-                beta_init,
-                gamma_init,
+                beta_init_r,
+                gamma_init_r,
                 control
   );
 
   // VARIATIONAL EM
   arma::uword iter = 0,
-    EM_ITER = control["em_iter"],
+    VI_ITER = control["vi_iter"],
                      N_BLK = control["blocks"],
                                     N_STATE = control["states"];
-
+  
   bool conv = false,
     verbose = Rcpp::as<bool>(control["verbose"]);
   
   double tol = Rcpp::as<double>(control["conv_tol"])
     ,newLL, oldLL, change_LL;
   
-  oldLL = Model.cLB();
+  oldLL = Model.llho();
   newLL = 0.0;
-
-  while(iter < EM_ITER && conv == false){
+  
+  while(iter < VI_ITER && conv == false){
     Rcpp::checkUserInterrupt();
     // Sample batch of dyads for stochastic VI
     Model.sampleDyads(iter);
@@ -111,7 +120,9 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
     Model.optim_ours(false); //optimize thetaLB
     // 
     //Check convergence
-    newLL = Model.cLB();
+    newLL = Model.llho();
+    if(newLL < oldLL)
+      Rprintf("\t Warning: LL decreased.\r");
     change_LL = fabs((newLL-oldLL)/oldLL);
     if(change_LL < tol){
       conv = true;
@@ -120,10 +131,13 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
     }
     if(verbose){
       if((iter+1) % 1 == 0) {
-        Rprintf("Iter %i, LB: %f\n", iter + 1, newLL);
+        Rprintf("Iter: %i, LL: %f\r", iter + 1, newLL);
       }
     }
     ++iter;
+  }
+  if(verbose){
+      Rprintf("Final LL: %f.                     \n", iter+1, newLL);
   }
   
   
@@ -154,7 +168,7 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
   res["n_states"] = N_STATE;
   res["n_blocks"] = N_BLK;
   res["LowerBound"] = newLL;
-  res["niter"] = iter;
+  res["niter"] = iter + 1;
   res["converged"] = conv;
   
   

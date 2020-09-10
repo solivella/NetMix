@@ -47,7 +47,7 @@
 #'                            parameter values in stochastic optimization of M-step. Defaults to 0.75.}
 #'        \item{delay}{Non-negative value, controlling weight of past iterations in stochastic optimization of
 #'                     M-step. Defaults to 1.0.}                    
-#'        \item{batch_size}{Proportion of nodes sampled in each E-step. Defaults to 0.25.}                                 
+#'        \item{batch_size}{Proportion of nodes sampled in each E-step. Defaults to 0.05.}                                 
 #'        \item{missing}{Means of handling missing data. One of "indicator method" (default) or "listwise deletion".}       
 #'        \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3.}
 #'        \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3.}
@@ -162,12 +162,12 @@ mmsbm <- function(formula.dyad,
                alpha = 1.0,
                forget_rate = 0.75,
                delay = 1.0,
-               batch_size = 0.25,
+               batch_size = 0.05,
                missing="indicator method",
-               em_iter = 50,
+               vi_iter = 50,
                hessian = TRUE,
                se_sim = 10,
-               dyad_vcov_samp = 1000,
+               dyad_vcov_samp = 100,
                opt_iter = 10e3,
                mu_b = c(1.0, 0.0),
                var_b = c(1.0, 1.0),
@@ -350,7 +350,11 @@ mmsbm <- function(formula.dyad,
   dyads_pp <- c(by(mfd, mfd[["(tid)"]], nrow))
   
   ## Translate batch size to number of nodes
-  ctrl$batch_size = max(1, floor(ctrl$batch_size * sum(nodes_pp)))
+  if(periods == 1){
+    ctrl$batch_size = max(1, floor(ctrl$batch_size * sum(nodes_pp)))
+  } else {
+    ctrl$batch_size = sapply(nodes_pp, function(x)max(1, floor(ctrl$batch_size * x)))
+  }
   
   ## Create initial values
   if(ctrl$verbose){
@@ -490,7 +494,7 @@ mmsbm <- function(formula.dyad,
                                  })
         ret <- lda::mmsb.collapsed.gibbs.sampler(network = soc_mats[[i]],
                                                  K = n.blocks,
-                                                 num.iterations = 50L,
+                                                 num.iterations = 75L,
                                                  burnin = 25L,
                                                  alpha = ctrl$alpha,
                                                  beta.prior = lda_beta_prior)
@@ -554,7 +558,7 @@ mmsbm <- function(formula.dyad,
     SIMPLIFY = "array")
   }
   if(anyNA(ctrl$beta_init)){
-    stop("Nearly singular design matrix; check monadic predictors.")
+    stop("Singular design matrix; check monadic predictors.")
   }
   ## Estimate model
   if(ctrl$verbose){
@@ -562,13 +566,20 @@ mmsbm <- function(formula.dyad,
   }
   X_t <- t(X)
   Z_t <- t(Z)
-  fit <- mmsbm_fit(Z_t,
+  ho_ind <- sample(1:ncol(Z_t), floor(ncol(Z_t)*0.01))
+  node_id_period <- split(1:ncol(X_t), t_id_n)
+  fit <- mmsbm_fit(Z_t[,-ho_ind, drop=FALSE],
+                   Z_t[, ho_ind, drop=FALSE],
                    X_t,
-                   Y,
-                   t_id_d,
+                   Y[-ho_ind, drop=FALSE],
+                   Y[ho_ind, drop=FALSE],
+                   t_id_d[-ho_ind, drop=FALSE],
                    t_id_n,
                    nodes_pp,
-                   nt_id,
+                   nt_id[-ho_ind,, drop=FALSE],
+                   nt_id[ho_ind,, drop=FALSE],
+                   node_id_period,
+                   ho_ind,
                    mu_b,
                    var_b,
                    ctrl$mu_beta,
@@ -636,7 +647,7 @@ mmsbm <- function(formula.dyad,
     ## for monadic coefficients
     all_phi <- split.data.frame(rbind(t(fit[["SenderPhi"]]),
                                       t(fit[["ReceiverPhi"]])),
-                                c(nt_id))
+                                c(nt_id[-ho_ind,]))
     sampleC_perm <- lapply(all_phi,
                            function(mat){
                              apply(mat, 2, function(vec)poisbinom::rpoisbinom(ctrl$se_sim, vec))
@@ -746,8 +757,8 @@ mmsbm <- function(formula.dyad,
       },
       z_samples, w_samples,
       MoreArgs = list(par_theta = all_theta_par, 
-                      y_vec = Y,
-                      Z_d = t(Z),
+                      y_vec = Y[-ho_ind],
+                      Z_d = t(Z[-ho_ind,]),
                       mu_b_mat = mu_b,
                       var_b_mat = var_b,
                       var_g = ctrl$var_gamma, 
@@ -785,11 +796,11 @@ mmsbm <- function(formula.dyad,
   attr(mfm, "terms") <- NULL
   attr(mfd, "terms") <- NULL
   fit$monadic.data <- mfm
-  fit$dyadic.data <- mfd
-  fit$Y <- Y
+  fit$dyadic.data <- mfd[-ho_ind,]
+  fit$Y <- Y[-ho_ind]
   
   ## Include node id's
-  fit$NodeIndex <- nt_id
+  fit$NodeIndex <- nt_id[-ho_ind,]
   
   ## Include a few formals needed by other methods
   fit$forms <- list(directed = directed,

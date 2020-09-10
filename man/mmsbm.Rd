@@ -75,7 +75,7 @@ to 1 (i.e. no HMM).}
                        parameter values in stochastic optimization of M-step. Defaults to 0.75.}
    \item{delay}{Non-negative value, controlling weight of past iterations in stochastic optimization of
                 M-step. Defaults to 1.0.}                    
-   \item{batch_size}{Proportion of nodes sampled in each E-step. Defaults to 0.25.}                                 
+   \item{batch_size}{Proportion of nodes sampled in each E-step. Defaults to 0.05.}                                 
    \item{missing}{Means of handling missing data. One of "indicator method" (default) or "listwise deletion".}       
    \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3.}
    \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3.}
