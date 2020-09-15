@@ -594,9 +594,9 @@ mmsbm <- function(formula.dyad,
                    ctrl
   )
   if(!fit[["converged"]])
-    warning(paste("Model did not converge after", fit[["niter"]], "iterations.\n"))
+    warning(paste("Model did not converge after", fit[["niter"]] - 1, "iterations.\n"))
   else if (ctrl$verbose){
-    cat("done after", fit[["niter"]], "iterations.\n")
+    cat("done after", fit[["niter"]] - 1, "iterations.\n")
   }
   
   
@@ -721,7 +721,7 @@ mmsbm <- function(formula.dyad,
     hessTheta_list <- mapply(
       function(send_samp, rec_samp, y_vec, Z_d, par_theta, mu_b_mat, var_b_mat, var_g, mu_g, dir_net, group_mat, lambda_vec)
       {
-        n_samp <- min(ctrl$dyad_vcov_samp, floor(ncol(Z_d)*0.25))
+        n_samp <- min(ctrl$dyad_vcov_samp, floor(ncol(Z_d)*0.10))
         samp_ind <- sample(1:ncol(Z_d), n_samp)
         tries <- 0
         if(any(Z_d!=0)){

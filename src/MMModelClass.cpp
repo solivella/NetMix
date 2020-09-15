@@ -213,7 +213,7 @@ double MMModel::alphaLB(bool svi = true)
 
     for(arma::uword g = 0; g < N_BLK; ++g){
       for(arma::uword x = 0; x < N_MONAD_PRED; ++x){
-        res -= 0.5 * pow(beta(x, g, m) - mu_beta(x, g, m), 2.0) / var_beta(x, g, m);
+        res -= pow(beta(x, g, m) - mu_beta(x, g, m), 2.0) / var_beta(x, g, m);
       }
     }
   }
@@ -249,7 +249,7 @@ void MMModel::alphaGr(int N_PAR, double *gr, bool svi = true)
           }
         }
         res *= (1. * N_NODE) / N_NODE_BATCH;
-        prior_gr = (beta(x, g, m) - mu_beta(x, g, m)) / var_beta(x, g, m);
+        prior_gr = 2.0*(beta(x, g, m) - mu_beta(x, g, m)) / var_beta(x, g, m);
         gr[x + N_MONAD_PRED * (g + N_BLK * m)] = -(res - prior_gr);
       }
     }
@@ -281,6 +281,12 @@ void MMModel::computeAlpha(bool svi = true)
         linpred = exp(linpred);
         row_sum += linpred;
         alpha(g, p, m) = linpred;
+        if(linpred > 1e4){
+          //Rprintf("linpred %f, row_sum %f\n", linpred, row_sum);
+          for(arma::uword x = 0; x < N_MONAD_PRED; ++x){
+            //Rprintf("\tbeta x=%i, g=%i, m=%i: %f; x_t p=%i, x=%i: %f\n",x, g, m, beta(x, g, m),p,x, x_t(x, p));
+          }
+        }
         alpha_term(m, time_id_node[p]) += N_NODE/N_NODE_BATCH * (lgamma(linpred + e_c_t(g, p)) - lgamma(linpred));
       }
       alpha_term(m, time_id_node[p]) += N_NODE/N_NODE_BATCH * (lgamma(row_sum) - lgamma(row_sum + tot_nodes[p]));
@@ -318,13 +324,13 @@ double MMModel::thetaLB(bool entropy = false, bool svi = true)
 
   //Prior for gamma
   for(arma::uword z = 0; z < N_DYAD_PRED; ++z){
-    res -= 0.5 * pow(gamma[z] - mu_gamma[z], 2.0) / var_gamma[z];
+    res -= pow(gamma[z] - mu_gamma[z], 2.0) / var_gamma[z];
   }
 
   //Prior for B
   for(arma::uword g = 0; g < N_BLK; ++g){
     for(arma::uword h = 0; h < N_BLK; ++h){
-      res -= 0.5 * (pow(b_t(h, g) - mu_b_t(h, g), 2.0) / var_b_t(h, g));
+      res -= (pow(b_t(h, g) - mu_b_t(h, g), 2.0) / var_b_t(h, g));
     }
   }
 
@@ -371,7 +377,7 @@ void MMModel::thetaGr(int N_PAR, double *gr, bool svi = true)
     gr[i] *= reweightFactor; //for stochastic VI
   }
   for(arma::uword z = 0; z < N_DYAD_PRED; ++z){
-    gr[N_B_PAR + z] += (gamma[z] - mu_gamma[z]) / var_gamma[z];
+    gr[N_B_PAR + z] += 2.0*(gamma[z] - mu_gamma[z]) / var_gamma[z];
   }
   for(arma::uword g = 0; g < N_BLK; ++g){
     for(arma::uword h = 0; h < N_BLK; ++h){
@@ -379,7 +385,7 @@ void MMModel::thetaGr(int N_PAR, double *gr, bool svi = true)
         continue;
       }
       npar = par_ind(h, g);
-      gr[npar] += (b_t(h, g) - mu_b_t(h, g)) / var_b_t(h, g);
+      gr[npar] += 2.0*(b_t(h, g) - mu_b_t(h, g)) / var_b_t(h, g);
     }
   }
   for(arma::uword i = 0; i < U_NPAR; ++i)
@@ -415,24 +421,6 @@ void MMModel::computeTheta(bool svi = true)
   }
 }
 
-// double MMModel::cLB()
-// {
-//   double res = lgamma(double(N_STATE) * eta) - lgamma(eta);
-//   res -= thetaLB(true, true);
-//   res -= alphaLB(true);
-//   for(arma::uword t = 0; t < N_TIME; ++t){
-//     for(arma::uword m = 0; m < N_STATE; ++m){
-//       res -= lgamma(double(N_STATE) * eta + e_wm[m]);
-//       for(arma::uword n = 0; n < N_STATE; ++n){
-//         res += log(eta + e_wmn_t(n, m));
-//       }
-//       //Entropy for kappa
-//       res -= kappa_t(m, t) * log(kappa_t(m,t) + 1e-8);
-//     }
-//   }
-//   return res / N_NODE;
-// }
-
 /**
  OPTIMIZATION
  */
@@ -460,6 +448,7 @@ void MMModel::optim_ours(bool alpha)
     for(arma::uword i = 0; i < npar; ++i){
       beta[i] = (1 - step_size) * betaold[i] + step_size * beta[i];
     }
+    //Rcpp::Rcout << beta << std::endl;
   } else {
     // thetaGr(N_B_PAR + N_DYAD_PRED,
     //         &theta_gr[0], true);
@@ -502,6 +491,8 @@ void MMModel::alphaGrW(int n, double *par, double *gr, void *ex)
 {
   static_cast<MMModel*>(ex)->alphaGr(n, gr, true);
 }
+
+
 double MMModel::llho()
 {
   double ll = 0.0;
@@ -511,7 +502,7 @@ double MMModel::llho()
     p = node_id_dyad_ho(d, 0);
     q = node_id_dyad_ho(d, 1);
     double theta_temp = 1.0/arma::as_scalar(1.0 + exp(-(getPostMM(p).t() * b_t * getPostMM(q) 
-                                   + gamma * z_t_ho.col(d))));
+                                   + gamma.t() * z_t_ho.col(d))));
     ll += y_ho.at(d) * log(theta_temp) + (1.0 - y_ho.at(d)) * log(1.0 - theta_temp);
   }
   return(ll);
@@ -534,31 +525,33 @@ void MMModel::updateKappa()
       if(t < (N_TIME - 1)){
         e_wm[m] -= kappa_t(m, t);
       }
-      res -= log(double(N_STATE) * eta + e_wm[m]);
+      res -= log(double(N_STATE) * eta + std::max(e_wm[m], 0.0));
       
       if(t < (N_TIME - 1)){
         e_wmn_t(m, m) -= kappa_t(m, t) * (kappa_t(m, t + 1) + kappa_t(m, t - 1));
-        res += kappa_t(m, t + 1) * kappa_t(m, t - 1) * log(eta + e_wmn_t(m, m) + 1);
+        res += kappa_t(m, t + 1) * kappa_t(m, t - 1) * log(eta + std::max(e_wmn_t(m, m),0.0) + 1);
         
         res += (kappa_t(m, t - 1) * (1 - kappa_t(m, t + 1))
-                  + kappa_t(m, t + 1)) * log(eta + e_wmn_t(m, m));
+                  + kappa_t(m, t + 1)) * log(eta + std::max(e_wmn_t(m, m), 0.0));
         
         for(arma::uword n = 0; n < N_STATE; ++n){
           if(m != n){
             e_wmn_t(n, m) -= kappa_t(m, t) * kappa_t(n, t + 1);
-            res += kappa_t(n, t + 1) * log(eta + e_wmn_t(n, m));
+            res += kappa_t(n, t + 1) * log(eta + std::max(e_wmn_t(n, m),0.0));
             
             e_wmn_t(m, n) -= kappa_t(m, t) * kappa_t(n, t - 1);
-            res += kappa_t(n, t - 1) * log(eta + e_wmn_t(m, n));
+            res += kappa_t(n, t - 1) * log(eta + std::max(e_wmn_t(m, n),0.0));
           }
         }
       } else { // t = T
         for(arma::uword n = 0; n < N_STATE; ++n){
           e_wmn_t(m, n) -= kappa_t(m, t) * kappa_t(n, t - 1);
-          res += kappa_t(n, t - 1) * log(eta + e_wmn_t(m, n));
+          res += kappa_t(n, t - 1) * log(eta + std::max(e_wmn_t(m, n), 0.0));
         }
       }
+      //Rprintf("res before: %f, alphaterm(%i, %i): %f\n", res, m, t, alpha_term(m,t));
       res += alpha_term(m, t);
+      //Rprintf("res after: %f\n", res);
       kappa_vec[m] = res;
     }
     log_denom = logSumExp(kappa_vec);
@@ -618,20 +611,23 @@ void MMModel::updatePhiInternal(arma::uword dyad,
   for(arma::uword g = 0; g < N_BLK; ++g, theta_temp+=incr1){
     res = 0.0;
     for(arma::uword m = 0; m < N_STATE; ++m){
-      // Rprintf("kappa = %f, alpha = %f, new_c = %f, phi = %f\n", kappa_t(m, t), 
+      // Rprintf("kappa = %f, alpha = %f, new_c = %f, phi = %f\n", kappa_t(m, t),
       //         alpha(g, node, m), new_c[g], phi[g]);
-      res += kappa_t(m, t) * log(alpha(g, node, m) + new_c[g]);// e_c_t(g, node) - phi[g]);
+      res += kappa_t(m, t) * log(alpha(g, node, m) + std::max(new_c[g], 0.0));// e_c_t(g, node) - phi[g]);
     }
-    
+    //Rprintf("res before = %f\n",res);
     te = theta_temp;
     for(arma::uword h = 0; h < N_BLK; ++h, te+=incr2){
+      //Rprintf("theta = %f, phi_o = %f\n",*te, phi_o[h]);
       res += phi_o[h] * (edge * log(*te) + (1.0 - edge) * log(1.0 - *te));
     }
+    //Rprintf("res after = %f\n",res);
     phi[g] = exp(res);
     if(!std::isfinite(phi[g])){
-      // #ifdef _OPENMP
-      // #pragma omp atomic
-      // #endif
+      #ifdef _OPENMP
+      #pragma omp atomic
+      #endif
+      //Rcpp::stop("Stop!\n");
       (*err)++;
     }
     total += phi[g];

@@ -59,7 +59,6 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
                      arma::vec& gamma_init_r,
                      Rcpp::List& control)
 {
-  
   //Create model instance
   MMModel Model(z_t,
                 z_t_ho,
@@ -99,12 +98,14 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
   double tol = Rcpp::as<double>(control["conv_tol"])
     ,newLL, oldLL, change_LL;
   
+
   oldLL = Model.llho();
   newLL = 0.0;
   
   while(iter < VI_ITER && conv == false){
     Rcpp::checkUserInterrupt();
     // Sample batch of dyads for stochastic VI
+
     Model.sampleDyads(iter);
     
     // E-STEP
@@ -140,7 +141,7 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
     ++iter;
   }
   if(verbose){
-      Rprintf("Final LL: %f.                     \n", iter+1, newLL);
+      Rprintf("Final held-out loglik: %f.                     \n", iter+1, newLL);
   }
   
   
