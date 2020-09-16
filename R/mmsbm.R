@@ -44,13 +44,12 @@
 #'        \item{alpha}{Numeric positive value. Concentration parameter for collapsed Gibbs sampler to find initial
 #'                     mixed-membership values when \code{init_gibbs=TRUE}. Defaults to 1.0.}            
 #'        \item{forget_rate}{Value between (0.5,1], controlling speed of decay of weight of prior
-#'                            parameter values in stochastic optimization of M-step. Defaults to 0.75.}
-#'        \item{delay}{Non-negative value, controlling weight of past iterations in stochastic optimization of
-#'                     M-step. Defaults to 1.0.}                    
-#'        \item{batch_size}{Proportion of nodes sampled in each E-step. Defaults to 0.05.}                                 
+#'                            parameter values in global steps. Defaults to 0.85.}
+#'        \item{delay}{Non-negative value, controlling weight of past iterations in global steps. Defaults to 1.0.}                    
+#'        \item{batch_size}{Proportion of nodes sampled in each local. Defaults to 0.01.}                                 
 #'        \item{missing}{Means of handling missing data. One of "indicator method" (default) or "listwise deletion".}       
-#'        \item{em_iter}{Number of maximum iterations in variational EM. Defaults to 5e3.}
-#'        \item{opt_iter}{Number of maximum iterations of BFGS in M-step. Defaults to 10e3.}
+#'        \item{vi_iter}{Number of maximum iterations in stochastic variational updates. Defaults to 5e3.}
+#'        \item{opt_iter}{Number of maximum iterations of BFGS in global step. Defaults to 10e3.}
 #'        \item{hessian}{Boolean indicating whether the Hessian matrix of regression coefficients should e returned. Defaults to \code{TRUE}.}
 #'        \item{mu_b}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
 #'                    and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)}.}
