@@ -3,138 +3,101 @@
 #' The function produces expected posterior edges based  
 #' on estimated parameters and (optionally new) predictor data 
 #'
-#' @param object Object of class \code{mmsbm}.
+#' @param fm Object of class \code{mmsbm}.
 #' @param new.data.dyad An optional \code{data.frame} object. 
 #' @param new.data.monad An optional \code{data.frame} object. 
-#' @param forecast Boolean. Should prediction forcast one step into the future? Defaults to FALSE.
+#' @param forecast Boolean. Defaults to FALSE.
 #' @param type Character string. The default is to use the linear predictor of edges. The alternative
-#'     "response" returns predicted probabilities.  
-#' @param ... Currently ignored  
+#'     "response" returns predicted probabilities.    
 #'     
-#' @return If \code{new.data.dyad = NULL}, vector of length \code{nrow(object$dyadic.data)}. Else, vector of length \code{nrow(new.data.dyad)}.
+#' @return If \code{new.data.dyad = NULL}, vector of length \code{nrow(fm$dyadic.data)}. Else, vector of length \code{nrow(new.data.dyad)}.
+#'  
+#' @author Kosuke Imai (imai@@harvard.edu), Tyler Pratt (tyler.pratt@@yale.edu), Santiago Olivella (olivella@@unc.edu)
 #' 
-#' @method predict mmsbm
+#' @example tests/Examples/MIDColdWar.R
 #' 
-#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (aylo@@wisc.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
-#' 
-#' @examples 
-#' library(NetMix)
-#' ## Load datasets
-#' data("lazega_dyadic")
-#' data("lazega_monadic")
-#' ## Estimate model with 2 groups
-#' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
-#'                       ~  School + Practice + Status,
-#'                       senderID = "Lawyer1",
-#'                       receiverID = "Lawyer2",
-#'                       nodeID = "Lawyer",
-#'                       data.dyad = lazega_dyadic,
-#'                       data.monad = lazega_monadic,
-#'                       n.blocks = 2,
-#'                       mmsbm.control = list(seed = 123,
-#'                                            hessian = FALSE))
-#' 
-#' ## Get in-sample predicted edge probabilities
-#' lazega_preds <- predict(lazega_mmsbm, type = "response")
-#' 
-
-
-
-predict.mmsbm <- function(object, 
+predict.mmsbm <- function(fm, 
                           new.data.dyad = NULL,
                           new.data.monad  = NULL, 
+                          parametric_mm = FALSE,
                           forecast = FALSE,
-                          type = c("link", "response"),
-                          ...)
+                          type = c("link", "response"))
 {
   type <- match.arg(type)
+  if(forecast & !parametric_mm){
+    stop("Must use parametric mixed-membership terms when forecasting.")
+  }
   if(!is.null(new.data.dyad)){
-    sid <- object$forms$senderID
-    rid <- object$forms$receiverID
+    sid <- fm$call$senderID
+    rid <- fm$call$receiverID
     dyad <- new.data.dyad
-    if(is.null(object$forms$timeID)){
+    if(is.null(fm$call$timeID)){
       tid <- "(tid)"
       dyad[,tid] <- 1
     } else {
-      tid <- object$forms$timeID
+      tid <- fm$call$timeID
     }
   } else {
     sid <- "(sid)"
     rid <- "(rid)"
     tid <- "(tid)"
-    dyad <- object$dyadic.data
+    dyad <- fm$dyadic.data
   }
-  dform <- object$forms$formula.dyad
-  if(any(grepl("missing", names(object$DyadCoef)))){
-    dform <- update(as.formula(dform), 
-                    paste(c("~ .", names(object$DyadCoef)[grep("missing", 
-                                    names(object$DyadCoef))]), collapse=" + "))
+  dform <- fm$call$formula.dyad
+  if(any(grepl("missing", names(fm$DyadCoef)))){
+    dform <- update(as.formula(fm$call$formula.dyad), 
+                    paste(c("~ .", names(fm$DyadCoef)[grep("missing", 
+                                    names(fm$DyadCoef))]), collapse=" + "))
   }
-  X_d <- model.matrix(eval(dform), dyad)
-  if(length(object$DyadCoef)==0){
-    object$DyadCoef <- as.vector(0)
-  } else {
-    object$DyadCoef <- c(0, object$DyadCoef)
+  X_d <- model.matrix(eval(dform), dyad)[, -1]
+  if(length(fm$DyadCoef)==0){
+    fm$DyadCoef <- as.vector(0)
   }
   if(!is.null(new.data.monad)){
-    nid <- ifelse(object$forms$nodeID %in% colnames(new.data.monad), object$forms$nodeID, "(nid)")
+    nid <- ifelse(fm$call$nodeID %in% colnames(new.data.monad), fm$call$nodeID, "(nid)")
     monad <- new.data.monad
-    if(is.null(object$forms$timeID)){
+    if(is.null(fm$call$timeID)){
       tid <- "(tid)"
       monad[,tid] <- 1
     } else {
-      tid <- object$forms$timeID
+      tid <- fm$call$timeID
     }
-    C_mat <- matrix(0, ncol = object$forms$n.blocks, nrow = nrow(monad))
   } else {
     nid <- "(nid)"
     tid <- "(tid)"
-    monad <- object$monadic.data
-    C_mat <- object$CountMatrix
+    monad <- fm$monadic.data
   }
-  n_blk <- object$n_blocks
-  mform <- object$forms$formula.monad
-  if(any(grepl("missing", rownames(object$MonadCoef)))){
-    mform <- update(as.formula(mform), 
-                    paste(c("~ .", rownames(object$MonadCoef)[grep("missing", 
-                                      rownames(object$MonadCoef))]), collapse=" + "))
+  n_blk <- fm$n_blocks
+  mform <- fm$call$formula.monad
+  if(any(grepl("missing", rownames(fm$MonadCoef)))){
+    mform <- update(as.formula(fm$call$formula.monad), 
+                    paste(c("~ .", rownames(fm$MonadCoef)[grep("missing", 
+                                      rownames(fm$MonadCoef))]), collapse=" + "))
   }
-
-    if(is.null(mform)){
+  if(!parametric_mm){
+    p <- fm$MixedMembership
+  } else {
+    if(is.null(fm$call$formula.monad)){
       X_m <- model.matrix(~ 1, data = monad)
     } else {
       X_m <- model.matrix(eval(mform), monad)
     }
-    alpha <- .compute.alpha(X_m, object$MonadCoef)
+    alpha <- .pi.hat(X_m, fm$MonadCoef)
     if(forecast){
-      ts <- unique(monad[,tid])
-      new_kappa <- as.matrix(object$Kappa[,ncol(object$Kappa)] %*% .mpower(object$TransitionKernel, forecast))
-      new_kappa1 <- matrix(new_kappa, nrow=ncol(new_kappa), ncol=nrow(monad[monad[,tid]==ts[1],]),byrow=FALSE)
-      if(length(ts) > 1){
-        for(t in 2:length(ts)){
-          new_kappa <- rbind(new_kappa, new_kappa[t-1,] %*% .mpower(object$TransitionKernel, forecast))
-          new_kappa1 <- cbind(new_kappa1, matrix(new_kappa[t,], nrow=ncol(new_kappa), ncol=nrow(monad[monad[,tid]==ts[t],]),byrow=FALSE))
-        }
-      }
-      p <- .e.pi(alpha, new_kappa1, C_mat)
+      new_kappa <- fm$Kappa[,ncol(fm$Kappa)] %*% .mpower(fm$TransitionKernel, forecast)
+      p <- .e.pi(alpha, new_kappa)
     } else {
-      if(!(tid %in% colnames(monad))){tid <- "(tid)"}
-      p <- .e.pi(alpha, object$Kappa[,as.character(monad[,tid])], C_mat)
+      p <- .e.pi(alpha, fm$Kappa[,as.character(monad[,tid])])
     }
-  
-  
-  s_ind <- match(paste(dyad[,sid],dyad[,tid],sep="@"), 
-                 paste(monad[,nid],monad[,tid],sep="@"))
-  r_ind <- match(paste(dyad[,rid],dyad[,tid],sep="@"), 
-                 paste(monad[,nid],monad[,tid],sep="@"))
-  pi_s <- p[,s_ind]
-  pi_r <- p[,r_ind]
-  n_dyad <- nrow(X_d)
-  eta_dyad <- array(0.0, n_dyad)
-  for(i in 1:n_dyad){ 
-      eta_dyad[i] <- pi_s[,i] %*% object$BlockModel %*% pi_r[,i]
   }
-  eta_dyad <- eta_dyad + c(X_d %*% (object$DyadCoef))
+  eta_dyad <- X_d %*% as.matrix(fm$DyadCoef)
+  s_ind <- match(dyad[,sid], monad[,nid])
+  r_ind <- match(dyad[,rid], monad[,nid])
+  for(a in 1:n_blk){ 
+    for(b in 1:n_blk){
+      eta_dyad <- eta_dyad + (p[a,s_ind]*p[b,r_ind]*fm$BlockModel[a,b])
+    }
+  }
   if(type=="link"){
     return(c(eta_dyad))
   } else {

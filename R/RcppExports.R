@@ -2,28 +2,39 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #' @rdname auxfuns
-approxB <- function(y, d_id, pi_mat) {
-    .Call(`_NetMix_approxB`, y, d_id, pi_mat)
+approxB <- function(y, d_id, pi1_mat, pi2_mat) {
+    .Call('_NetMix_approxB', PACKAGE = 'NetMix', y, d_id, pi1_mat, pi2_mat)
 }
 
 #' @rdname auxfuns
 getZ <- function(pi_mat) {
-    .Call(`_NetMix_getZ`, pi_mat)
+    .Call('_NetMix_getZ', PACKAGE = 'NetMix', pi_mat)
 }
 
 #' @rdname auxfuns
 alphaLB <- function(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta) {
-    .Call(`_NetMix_alphaLB`, par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
+    .Call('_NetMix_alphaLB', PACKAGE = 'NetMix', par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
+}
+
+#' @rdname auxfuns
+thetaLB <- function(par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma, mu_gamma, directed) {
+    .Call('_NetMix_thetaLB', PACKAGE = 'NetMix', par, y, z_t, send_phi, rec_phi, mu_b_t, var_b_t, var_gamma, mu_gamma, directed)
+}
+
+#' @rdname auxfuns
+vertboot_matrix_rcpp2 <- function(m1, blist1, blist2) {
+    .Call('_NetMix_vertboot_matrix_rcpp2', PACKAGE = 'NetMix', m1, blist1, blist2)
 }
 
 #' @name mmsbm_fit
 #' @title Fitter Function for dynamic MMSBM Model
 #' 
 #' @description This is the interface to the C++ fitter for the dynamic mixed-membership
-#' stochastic blockmodel for network regression.
+#' stochastic blockmodel for bipartite network regression.
 #' 
 #' @param z_t Numeric matrix; transpose of monadic design matrix. Should not include intercept row.
-#' @param x_t Numeric matrix; transpose of dyadic design matrix.
+#' @param x1_t Numeric matrix; transpose of dyadic design matrix family 1.
+#' @param x2_t Numeric matrix; transpose of dyadic design matrix family 2.
 #' @param y Numeric vector; vector of edge values. Must have same number of elements as \code{ncol(x_t)}
 #' @param time_id_dyad Integer vector; zero-based time-period identifier for each dyad.
 #' @param time_id_dyad Integer vector; zero-based time-period identifier for each node.
@@ -31,22 +42,24 @@ alphaLB <- function(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta) {
 #' @param node_id_dyad Integer matrix; zero-based sender and receiver identifier per dyad.
 #' @param mu_b Numeric matrix; matrix of prior means for elements in blockmodel matrix.
 #' @param var_b Numeric matrix; matrix of prior variances for elements in blockmodel matrix.
-#' @param phi_init Numeric matrix; matrix of initial mixed-memberships. Nodes along columns.
+#' @param phi1_init Numeric matrix; matrix of initial mixed-memberships family 1. Nodes along columns.
+#' @param phi2_init Numeric matrix; matrix of initial mixed-memberships family 2. Nodes along columns.
 #' @param kappa_init_t Numeric matrix; matrix of initial marginal HMM state probabilities. Time-periods along columns.
 #' @param b_init_t Numeric matrix; square matrix of initial values of blockmodel.
-#' @param beta_init Numeric vector; flat array (column-major order) of initial values of monadic coefficients.
+#' @param beta1_init Numeric vector; flat array (column-major order) of initial values of monadic coefficients family 1.
+#' @param beta2_init Numeric vector; flat array (column-major order) of initial values of monadic coefficients family 2.
 #' @param gamma_init Numeric vector; vector of initial values of dyadic coefficients
-#' @param control List; see the \code{mmsbm.control} argument of \code{\link{mmsbm}}
+#' @param control List; see the \code{mmsbmB.control} argument of \code{\link{mmsbmB}}
 #' 
-#' @return Unclassed list with named components; see \code{Value} of \code{\link{mmsbm}}
+#' @return Unclassed list with named components; see \code{Value} of \code{\link{mmsbmB}}
 #' @section Warning:
-#'          This function is for internal use only. End-users should always resort to \code{\link{mmsbm}}.
+#'          This function is for internal use only. End-users should always resort to \code{\link{mmsbmB}}.
 #'          In particular, that interface post-processes the return value of this internal in important ways. 
 #'          
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 NULL
 
-mmsbm_fit <- function(z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, phi_init, kappa_init_t, b_init_t, beta_init, gamma_init, control) {
-    .Call(`_NetMix_mmsbm_fit`, z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, phi_init, kappa_init_t, b_init_t, beta_init, gamma_init, control)
+mmsbm_fit <- function(z_t, z_t_ho, x1_t, x2_t, y, y_ho, time_id_dyad, time_id_node1, time_id_node2, nodes_per_period, nodes_per_period1, nodes_per_period2, node_id_dyad, node_id_dyad_ho, node_id_period1, node_id_period2, ho_id, mu_b, var_b, mu_beta1, var_beta1, mu_beta2, var_beta2, mu_gamma, var_gamma, phi_init1, phi_init2, kappa_init_t, b_init_t, beta_init1, beta_init2, gamma_init, theta_init, phi_order, control) {
+    .Call('_NetMix_mmsbm_fit', PACKAGE = 'NetMix', z_t, z_t_ho, x1_t, x2_t, y, y_ho, time_id_dyad, time_id_node1, time_id_node2, nodes_per_period, nodes_per_period1, nodes_per_period2, node_id_dyad, node_id_dyad_ho, node_id_period1, node_id_period2, ho_id, mu_b, var_b, mu_beta1, var_beta1, mu_beta2, var_beta2, mu_gamma, var_gamma, phi_init1, phi_init2, kappa_init_t, b_init_t, beta_init1, beta_init2, gamma_init, theta_init, phi_order, control)
 }
 

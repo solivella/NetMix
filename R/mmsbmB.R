@@ -148,15 +148,15 @@ mmsbmB <- function(formula.dyad,
                gamma_init = NULL,
                theta_init = NULL,
                spectral = TRUE,
-               alpha = 0.5,
+               alpha = 1.0,
                seed = NULL,
                init.dyn.gibbs = if (n.hmmstates > 1) TRUE else FALSE,
                forget_rate = 0.75,
                delay = 1.0,
-               batch_size1 = 0.25,
-               batch_size2 = 0.25,
-               em_iter = 50,
-               se_sim = 50,     ### check on se_sim ###
+               batch_size1 = 0.2,
+               batch_size2 = 0.2,
+               vi_iter = 100,
+               se_sim = 10,     ### check on se_sim ###
                opt_iter = 10e3,
                mu_b = c(1.0, 0.0),
                var_b = c(1.0, 1.0),
@@ -166,7 +166,7 @@ mmsbmB <- function(formula.dyad,
                var_beta2 = 1.0,
                mu_gamma = 0.0,
                var_gamma = 1.0,
-               eta = 1.3,
+               eta = 1.0,
                permute = TRUE,
                threads = 1,
                conv_tol = 1e-2,
@@ -276,13 +276,14 @@ mmsbmB <- function(formula.dyad,
                                    rid = as.name(receiverID))) #ok for differential names
   mfd[,"(sid)"] <- as.character(mfd[,"(sid)"])
   mfd[,"(rid)"] <- as.character(mfd[,"(rid)"])
-  #dyadic_order <- with(mfd, order(`(tid)`, `(sid)`, `(rid)`))
-  #mfd <- mfd[dyadic_order, ]
   
   ut <- unique(mfd[["(tid)"]])
   periods <- length(ut)
   if(periods > 1){
     ctrl$times <- periods
+    if((n.hmmstates > 1) & is.null(mmsbm.control$eta)){
+      ctrl$eta <- periods/n.hmmstates 
+    }
   }
   dntid <- cbind(do.call(paste, c(mfd[c("(sid)","(tid)")], sep = "@")),
                  do.call(paste, c(mfd[c("(rid)","(tid)")], sep = "@")))
@@ -340,8 +341,8 @@ mmsbmB <- function(formula.dyad,
     ntid2 <- do.call(paste, c(mfm2[c("(nid2)","(tid)")], sep="@"))
   }
   
-  Y <- model.response(mfd)
-  X1 <- scale(model.matrix(terms(mfm1), mfm1))
+  Y <- stats::model.response(mfd)
+  X1 <- base::scale(model.matrix(terms(mfm1), mfm1))
   X1_mean <- attr(X1, "scaled:center")
   X1_sd <- attr(X1, "scaled:scale")
   if(any(X1_sd==0)){
@@ -350,7 +351,7 @@ mmsbmB <- function(formula.dyad,
     X1_sd[constx]<-1##ADDED to remove X1_sd elements that ==0 and set 1
   }
   n_monad1_pred <- ncol(X1)
-  X2 <- scale(model.matrix(terms(mfm2), mfm2))
+  X2 <- base::scale(model.matrix(terms(mfm2), mfm2))
   X2_mean <- attr(X2, "scaled:center")
   X2_sd <- attr(X2, "scaled:scale")
   if(any(X2_sd==0)){
@@ -370,16 +371,7 @@ mmsbmB <- function(formula.dyad,
   }
   n_dyad_pred <- ncol(Z)
   
-  nt_id <- cbind(match(dntid[,1], ntid1) - 1, match(dntid[,2], ntid2) - 1) ## here's where it matters the swap in node id
-  nt_id1 <- nt_id[,1]
-  nt_id2 <- nt_id[,2]
-  t_id_d <- match(mfd[["(tid)"]], ut) - 1
-  t_id_n1 <- match(mfm1[["(tid)"]], ut) - 1
-  t_id_n2 <- match(mfm2[["(tid)"]], ut) - 1
-  nodes_pp <- c(c(by(mfm1, mfm1[["(tid)"]], nrow)),c(by(mfm2, mfm2[["(tid)"]], nrow)))
-  nodes_pp1<- c(by(mfm1, mfm1[["(tid)"]], nrow))
-  nodes_pp2<- c(by(mfm2, mfm2[["(tid)"]], nrow))
-  dyads_pp <- c(by(mfd, mfd[["(tid)"]], nrow))
+
   
   ## Modify prior means and variances to match transformed model matrix
   ctrl$mu_gamma <- .transf_muvar(ctrl$mu_gamma, FALSE, FALSE, Z)
@@ -391,11 +383,29 @@ mmsbmB <- function(formula.dyad,
   ctrl$var_beta2 <- .transf_muvar(ctrl$var_beta2, TRUE, TRUE, X2, n.blocks2, n.hmmstates, c(1,X2_sd[-1]))
   ctrl$var_beta2[1,,]<-0.5 #### just for the intercepts, you could define a standard deviation of 0.5
   
+  nt_id <- cbind(match(dntid[,1], ntid1) - 1, match(dntid[,2], ntid2) - 1) ## here's where it matters the swap in node id
+  nt_id1 <- nt_id[,1]
+  nt_id2 <- nt_id[,2]
+  t_id_d <- match(mfd[["(tid)"]], ut) - 1
+  t_id_n1 <- match(mfm1[["(tid)"]], ut) - 1
+  t_id_n2 <- match(mfm2[["(tid)"]], ut) - 1
+  nodes_pp <- c(c(by(mfm1, mfm1[["(tid)"]], nrow)),c(by(mfm2, mfm2[["(tid)"]], nrow)))
+  nodes_pp1<- c(by(mfm1, mfm1[["(tid)"]], nrow))
+  nodes_pp2<- c(by(mfm2, mfm2[["(tid)"]], nrow))
+  dyads_pp <- c(by(mfd, mfd[["(tid)"]], nrow))
+  
   ## Translate batch size to number of nodes
+  if(periods == 1){
   ctrl$batch_size1 = max(1, floor(ctrl$batch_size1 * sum(nodes_pp1)))
   cat("batch_size1 is:",ctrl$batch_size1,"\n")
   ctrl$batch_size2 = max(1, floor(ctrl$batch_size2 * sum(nodes_pp2)))
   cat("batch_size2 is:",ctrl$batch_size2,"\n")
+  } else {
+    ctrl$batch_size1 = sapply(nodes_pp1, function(x)max(1, floor(ctrl$batch_size1 * x)))
+    ctrl$batch_size2 = sapply(nodes_pp2, function(x)max(1, floor(ctrl$batch_size2 * x)))
+  }
+  
+  
   ## Create initial values
   if(ctrl$verbose){
     cat("Obtaining initial values...\n")
@@ -410,7 +420,7 @@ mmsbmB <- function(formula.dyad,
   node.cols <- which(names(mfd)%in%c("(sid)","(rid)", "(tid)"))
   dyads <- split.data.frame(mfd[,c(node.cols, 1)], mfd[, "(tid)"])
   edges <- split(Y, mfd[, "(tid)"])
-  #create sociomatrix
+  #create sociomatrix: check ii 364-391 unipartite
   if(ctrl$bipartite){
     soc_mats <- .createSocioB(dyads,all.nodes1,all.nodes2, ctrl$directed)
   }else{
@@ -431,15 +441,10 @@ mmsbmB <- function(formula.dyad,
           return(x)
         })
       }
-      state_init <- fitted(kmeans(dyad_time,
-                                  n.hmmstates,
+      state_init <- fitted(kmeans(x = dyad_time,
+                                  centers = n.hmmstates,
+                                  iter.max = 15,
                                   nstart = 15), "classes")
-      # state_init <- cluster::clara(dyad_time,
-      #                              n.hmmstates,
-      #                              samples = 15,
-      #                              sampsize = min(nrow(dyad_time), 100 + 2 * n.hmmstates),
-      #                              rngR = TRUE,
-      #                              correct.d = TRUE)$clustering
       kappa_internal <- model.matrix(~ as.factor(state_init) - 1)
       kappa_internal <- .transf(kappa_internal)
       ctrl$kappa_init_t <- t(kappa_internal)
@@ -762,22 +767,37 @@ mmsbmB <- function(formula.dyad,
   
   ## Create randomizer for order of updatePhis
   ctrl$phi_order<-rbinom(nrow(Z)[1],1,0.5) #ndyad
-  #test print
-  #print(ctrl$b_init_t)
-  #print(ctrl$beta2_init)
+  
   
   ## Estimate model
-  fit <- mmsbm_fit(t(Z),#N_DYAD_PRED x N_DYAD=t(Z)
-                   t(X1),#2 x 50; (mpred1+1) x n1 = t(X1[,-1])
-                   t(X2),#2 x 50; (mpred2+1) x n2 = t(X2[,-1])
-                   Y, #length n1*n2, N_DYAD=Y
-                   t_id_d,#length N_DYAD*TIME filled with 0s = t_id_d
+  if(ctrl$verbose){
+    cat("Estimating model...\n");
+  }
+  
+  X1_t <- t(X1)
+  X2_t <- t(X2)
+  Z_t <- t(Z)
+  ho_ind <- sample(1:ncol(Z_t), floor(ncol(Z_t)*0.01))
+  node_id_period1 <- split(1:ncol(X1_t), t_id_n1)
+  node_id_period2 <- split(1:ncol(X2_t), t_id_n2)
+  
+  fit <- mmsbm_fit(Z_t[,-ho_ind, drop=FALSE],#N_DYAD_PRED x N_DYAD=t(Z)
+                   Z_t[, ho_ind, drop=FALSE],
+                   X1_t,#2 x 50; (mpred1+1) x n1 = t(X1[,-1])
+                   X2_t,#2 x 50; (mpred2+1) x n2 = t(X2[,-1])
+                   Y[-ho_ind, drop=FALSE],
+                   Y[ho_ind, drop=FALSE],
+                   t_id_d[-ho_ind, drop=FALSE],
                    t_id_n1,#length n1*time filled with 0s = t_id_n1
                    t_id_n2,#
                    nodes_pp, #stacked first family 1 nodes for each period, then family 2 nodes for each period
                    nodes_pp1,# length TIME, number of nodes per period in family 1
                    nodes_pp2,# length TIME, number of nodes per period
-                   nt_id, #cbind family 1 and family 2
+                   nt_id[-ho_ind,, drop=FALSE],
+                   nt_id[ho_ind,, drop=FALSE], #cbind family 1 and family 2
+                   node_id_period1,
+                   node_id_period2,
+                   ho_ind,
                    mu_b, #should be constant matrix; note should be passing it blk2 x blk1
                    var_b, #should be constant matrix; note should be passing it blk2 x blk1
                    ctrl$mu_beta1, #cube
@@ -797,74 +817,96 @@ mmsbmB <- function(formula.dyad,
                    ctrl$phi_order,
                    ctrl
   )
+  if(!fit[["converged"]])
+    warning(paste("Model did not converge after", fit[["niter"]], "iterations.\n"))
+  else if (ctrl$verbose){
+    cat("done after", fit[["niter"]], "iterations.\n")
+  }
   
-  ## Add names
-  colnames(fit[["Kappa"]]) <- unique(mfm1[,"(tid)"]) ##~ needs checking ##
-  #dimnames(fit[["BlockModel"]]) <- replicate(2,paste("Group",1:n.blocks), simplify = FALSE)
-  dimnames(fit[["BlockModel"]]) <- c(replicate(1,paste("2 Group",1:n.blocks2), simplify = FALSE),replicate(1,paste("1 Group",1:n.blocks1), simplify = FALSE))
-  dimnames(fit[["TransitionKernel"]]) <- replicate(2,paste("State",1:n.hmmstates), simplify = FALSE)
+  ##Return transposes 
+  fit[["TransitionKernel"]] <- t(fit[["TransitionKernel"]])
+  fit[["BlockModel"]] <- t(fit[["BlockModel"]])
   
-  ##Reorder mixmem to match original order
-  colnames(fit[["MixedMembership 1"]]) <- ntid1 
-  colnames(fit[["MixedMembership 2"]]) <- ntid2 
-  
-  #colnames(fit[["MixedMembership 1C"]]) <- ntid1 ## ADDED FOR C VER
-  #colnames(fit[["MixedMembership 2C"]]) <- ntid2 ## ADDED FOR C VER
-  
-  #fit[["MixedMembership"]] <- fit[["MixedMembership"]][,order(monadic_order)] 
   
   ## Rescale and name coefficients
-  # fit[["DyadCoef"]] <- fit[["DyadCoef"]] / Z_sd[-which(Z_sd==0)]
-  # if(length(fit[["DyadCoef"]])){
-  #   fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]])
-  # }
-  
-  if(ncol(Z)>1){
-     names(fit[["DyadCoef"]]) <- colnames(Z)
+  fit[["DyadCoef"]] <- fit[["DyadCoef"]] / Z_sd[-which(Z_sd==0)]
+  if(length(fit[["DyadCoef"]])){
+    Z <- t(t(Z) * Z_sd[-1] + Z_mean[-1])
+    fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]])
+    names(fit[["DyadCoef"]]) <- colnames(Z) 
   }
-  # fit[["MonadCoef"]] <- vapply(fit[["MonadCoef"]],
-  #                              function(mat, sd_vec, mean_vec){
-  #                                constx <- which(sd_vec==0)
-  #                                mat[-constx, ] <- mat[-constx, ] / sd_vec[-constx]
-  #                                if(length(constx)!=0)
-  #                                  mat[constx, ] <- mat[constx, ] - mean_vec[-constx] %*% mat[-constx, ]
-  #                                return(mat)
-  #                              },
-  #                              array(0.0, c(ncol(X), n.blocks)),
-  #                              sd_vec = X_sd,
-  #                              mean_vec = X_mean)
+  
+
+  
+  
+  fit[["MonadCoef1"]] <- vapply(1:n.hmmstates,
+                               function(ind, coefs, sd_vec, mean_vec){
+                                 mat <- coefs[,,ind, drop=FALSE]
+                                 constx <- which(sd_vec==0)
+                                 mat[-constx, , 1] <- mat[-constx, , 1] / sd_vec[-constx]
+                                 if(length(constx)!=0){
+                                   mat[constx, ,1] <- mat[constx, ,1] - mean_vec[-constx] %*% mat[-constx, , 1]
+                                 }
+                                 return(mat)
+                               },
+                               array(0.0, c(ncol(X1), n.blocks1)),
+                               coefs = fit[["MonadCoef1"]],
+                               sd_vec = X1_sd,
+                               mean_vec = X1_mean)
+  fit[["MonadCoef2"]] <- vapply(1:n.hmmstates,
+                                function(ind, coefs, sd_vec, mean_vec){
+                                  mat <- coefs[,,ind, drop=FALSE]
+                                  constx <- which(sd_vec==0)
+                                  mat[-constx, , 1] <- mat[-constx, , 1] / sd_vec[-constx]
+                                  if(length(constx)!=0){
+                                    mat[constx, ,1] <- mat[constx, ,1] - mean_vec[-constx] %*% mat[-constx, , 1]
+                                  }
+                                  return(mat)
+                                },
+                                array(0.0, c(ncol(X2), n.blocks2)),
+                                coefs = fit[["MonadCoef2"]],
+                                sd_vec = X2_sd,
+                                mean_vec = X2_mean)
+  
   rownames(fit[["MonadCoef1"]]) <- colnames(X1)
   colnames(fit[["MonadCoef1"]]) <- paste("Group",1:n.blocks1)
   rownames(fit[["MonadCoef2"]]) <- colnames(X2)
   colnames(fit[["MonadCoef2"]]) <- paste("Group",1:n.blocks2)
+  X1 <- t(t(X1) * X1_sd + X1_mean) #unscale
+  X2 <- t(t(X2) * X2_sd + X2_mean) #unscale
+  
+  ## Add other names
+  colnames(fit[["Kappa"]]) <- unique(mfm1[,"(tid)"]) ##~ needs checking ##
+  dimnames(fit[["BlockModel"]]) <- c(replicate(1,paste("2 Group",1:n.blocks2), simplify = FALSE),replicate(1,paste("1 Group",1:n.blocks1), simplify = FALSE))
+  dimnames(fit[["TransitionKernel"]]) <- replicate(2,paste("State",1:n.hmmstates), simplify = FALSE)
+  colnames(fit[["MixedMembership 1"]]) <- ntid1 
+  colnames(fit[["MixedMembership 2"]]) <- ntid2 
   
   ## Include used data in original order
-  #fit$monadic.data <- mfm[order(monadic_order),]
-  #fit$dyadic.data <- mfd[order(dyadic_order),]
-  #fit$Y <- Y[order(dyadic_order)]
-  #make sure reset colnames back
+  attr(mfm1, "terms") <- NULL
+  attr(mfm2, "terms") <- NULL
+  attr(mfd, "terms") <- NULL
   fit$monadic1.data <- mfm1 #rename back to nodeID1, timeID
   names(fit$monadic1.data)[which(names(fit$monadic1.data)=="(nid1)")]<-nodeID1
   names(fit$monadic1.data)[which(names(fit$monadic1.data)=="(tid)")]<-timeID
-  fit$monadic2.data <- mfm2#rename back to nodeID2, timeID
+  fit$monadic2.data <- mfm2
   names(fit$monadic2.data)[which(names(fit$monadic2.data)=="(nid2)")]<-nodeID2
   names(fit$monadic2.data)[which(names(fit$monadic2.data)=="(tid)")]<-timeID
-  fit$dyadic.data <- mfd#rename back to nodeID1, nodeID2, timeID
+  fit$dyadic.data <- mfd[-ho_ind,]#rename back to nodeID1, nodeID2, timeID
   names(fit$dyadic.data)[which(names(fit$dyadic.data)=="(sid)")]<-nodeID1
   names(fit$dyadic.data)[which(names(fit$dyadic.data)=="(rid)")]<-nodeID2
   names(fit$dyadic.data)[which(names(fit$dyadic.data)=="(tid)")]<-timeID
-  fit$Y <- Y
+  fit$Y <- Y[-ho_ind]
   
   #Include bipartite boolean
   fit$bipartite <- ctrl$bipartite
   ## Include node id's
   fit$NodeIndex1 <- nt_id1
   fit$NodeIndex2 <- nt_id2
+  
   ## Include time_id_node
   fit$t_id_n1 <- t_id_n1
   fit$t_id_n2 <- t_id_n2
-  ## Block matrix is transposed, flip it correctly as return
-  fit$BlockModel <- t(fit$BlockModel)
   
   ## Include a few formals needed by other methods
   fit$forms <- list(directed = directed,
@@ -883,7 +925,7 @@ mmsbmB <- function(formula.dyad,
   fit$seed <- ctrl$seed
   
   ## Include original call
-  fit$call <- match.call()
+  fit$call <- cl
   
   ##Assign class for methods
   if(fit$bipartite){

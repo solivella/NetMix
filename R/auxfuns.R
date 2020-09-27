@@ -18,6 +18,7 @@
 #' @param beta Numeric array; array of coefficients associated with monadic predictors. 
 #'             It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.
 #' @param pi_l List of mixed-membership matrices. 
+#' @param alpha_list List of mixed-membership parameter matrices. 
 #' @param kappa Numeric matrix; matrix of marginal HMM state probabilities.
 #' @param y Numeric vector; vector of edge values.
 #' @param d_id Integer matrix; two-column matrix with nr. dyads rows, containing zero-based
@@ -207,6 +208,20 @@
 #' @rdname auxfuns
 .transf <- function(mat){
   (mat * (nrow(mat) - 1) + 1/ncol(mat))/nrow(mat)
+}
+
+#' @rdname auxfuns
+.compute.alpha <- function(X, beta){
+  if(dim(beta)[3]==1){
+    mu <- exp(X %*% beta[,,1])
+    pi.states <- list(t(mu))
+  } else {
+    pi.states <- lapply(1:dim(beta)[3], function(m){
+      mu <- exp(X %*% beta[,,m])
+      return(t(mu))
+    })
+  }
+  return(pi.states)
 }
 
 #' @rdname auxfuns

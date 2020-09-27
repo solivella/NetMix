@@ -1,9 +1,8 @@
-#' Summarize 'mmsbm' object
+#' Summarize fitted dynMMSBM
 #'
 #' The function summarizes the output of a dynMMSBM model object
 #'
-#' @param object An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.
-#' @param ... Currently ignored
+#' @param fm An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.
 #' @return List with named components:
 #'     \describe{
 #'       \item{N}{Total number of dyad-time period observations.}
@@ -15,58 +14,15 @@
 #'                        and \code{n.hmmstates} slices.}
 #'       \item{Markov State Probabilities}{Average HMM state probabilities across all time periods.}
 #'     }
-#'     
-#' @method summary mmsbm
-#' 
-#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (aylo@@wisc.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
-#' 
-#' @examples 
-#' library(NetMix)
-#' ## Load datasets
-#' data("lazega_dyadic")
-#' data("lazega_monadic")
-#' ## Estimate model with 2 groups
-#' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
-#'                       ~  School + Practice + Status,
-#'                       senderID = "Lawyer1",
-#'                       receiverID = "Lawyer2",
-#'                       nodeID = "Lawyer",
-#'                       data.dyad = lazega_dyadic,
-#'                       data.monad = lazega_monadic,
-#'                       n.blocks = 2,
-#'                       mmsbm.control = list(seed = 123,
-#'                                            hessian = TRUE))
-#' 
-#' ## Summarize estimated model
-#' summary(lazega_mmsbm)
-#' 
 
-summary.mmsbm <- function(object, ...){
-  summ <- list("Number of Dyads" = nrow(object$dyadic.data),
-               "Number of Blocks" = ncol(object$BlockModel), 
-               "Percent of Observations in Each Block" = rowMeans(object$MixedMembership),
-               "Blockmodel Matrix" = exp(object$BlockModel) / (1 + exp(object$BlockModel)),
-               "Monadic Coefficients" = object$MonadCoef)
-  if(length(object$DyadCoef)){
-    summ$`Dyadic Coefficients` <- object$DyadCoef
-  }
-  if(object$n_states > 1){
-    summ$`Markov State Probabilities` <-  rowMeans(object$Kappa)
-  }
 
-  if(object$forms$hessian){
-    if("vcov_dyad" %in% names(object)){
-      summ$`Dyadic Coefficients` <- cbind(object$DyadCoef,
-                                          sqrt(diag(object$vcov_dyad)))
-      colnames(summ$`Dyadic Coefficients`) <- c("Coefficient", "Std. Error")
-    }
-    
-    mse <- sqrt(diag(object$vcov_monad))
-    summ$`Monadic Coefficients` <- cbind(c(summ$`Monadic Coefficients`),
-                                         mse)
-    colnames(summ$`Monadic Coefficients`) <- c("Coefficient", "Std. Error")
-    rownames(summ$`Monadic Coefficients`) <- rownames(object$vcov_monad)
-
-  }
+summary.mmsbm <- function(fm){
+  summ <- list(nrow(fm$dyadic.data), ncol(fm$BlockModel), 
+               rowMeans(fm$MixedMembership),
+               exp(fm$BlockModel) / (1 + exp(fm$BlockModel)), 
+               fm$DyadCoef, fm$MonadCoef, rowMeans(fm$Kappa))
+  names(summ) <- c("N", "Number of Clusters", "Percent of Observations in Each Cluster",
+                   "Edge Formation Probabilities", "Dyadic Coefficients", "Monadic Coefficients",
+                   "Markov State Probabilities")
   print(summ)
 }

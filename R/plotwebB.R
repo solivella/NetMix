@@ -335,13 +335,18 @@ plotwebB <-
         if(!is.null(party_color_info)){ #names(low_prop) has the senator names
           senator <- names(low_prop)[i]
           party <- party_color_info$party[which(party_color_info$name==as.character(senator))]
-          icol<-ifelse(party=="Democrat","dodgerblue1","firebrick2")
+          #transparency of colors to allow overlap of interactions to create overlay/mixed colors
+          tmp_col<-ifelse(party=="Democrat","dodgerblue4","orangered1")
+          icol<-unlist(lapply(tmp_col,t_col,percent=20))
+          #icol<-ifelse(party=="Democrat","dodgerblue4","orangered1")
           #party_color_info should be two col dataframe, with senator name and party; senator name must match passed in web
           
         }else if (!is.null(bills_color_info)){ #bills info
           bill <- names(high_prop)[j]
           party <-bills_color_info$party[which(bills_color_info$name==as.character(bill))]
-          icol<-ifelse(party=="Democrat","dodgerblue1",ifelse(party=="Republican","firebrick2","gray"))
+          tmp_col<-ifelse(party=="Democrat","dodgerblue4",ifelse(party=="Republican","orangered1","gray"))
+          icol<-unlist(lapply(tmp_col,t_col,percent=20))
+          #icol<-ifelse(party=="Democrat","dodgerblue1",ifelse(party=="Republican","orangered1","gray"))
         }else{ #normal settings
           icol <- col.interaction[((low.order[XYcoords[p,1]]-1)* (length(high.order))+(high.order[XYcoords[p,2]]-1)) %% (length(col.interaction))+1]
         }

@@ -1,97 +1,46 @@
-#' Various visualization tools for 'mmsbm' objects
+#' Plot output of dynMMSBM
 #'
 #' The function provides a variety of plotting options for a fitted \code{mmsbm} object.
 #'
-#' @param x An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.
-#' @param type character string denoting the type of plot. The default, "\code{groups}," plots the estimated matrix of 
-#' group by group edge formation probabilities as a network plot, with nodes representing groups (sized proportional to relative membership) 
-#' and edge colors encoding probability of between-group ties. "\code{blockmodel}" plots the same information,
-#' but using a tile plot instead of a network plot.  "\code{membership}" plots average membership in
+#' @param fm An object of class \code{mmsbm}, a result of a call to \code{mmsbm}.
+#' @param type character string denoting the type of plot. The default, "\code{blockmodel}," plots the estimated matrix of 
+#' group by group edge formation probabilities as a network graph.  "\code{membership}" plots average membership in
 #' each latent group by time period. "\code{effect}" provides a series of plots showing the estimated effect 
 #' of a shfit in monadic covariate values.
-#' @param FX with \code{type == "effect"}; a list resulting from a call to \code{covFX}.
-#' @param ... Currently ignored
+#' @param FX with type = "effect"; a list resulting from a call to \code{covFX}.
 #'
-#' @return The requested plot object. 
-#' 
-#' @method plot mmsbm
-#'
-#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (aaylo@@wisc.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
-#' 
-#' @examples 
-#' library(NetMix)
-#' ## Load datasets
-#' data("lazega_dyadic")
-#' data("lazega_monadic")
-#' ## Estimate model with 2 groups
-#' lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
-#'                       ~  School + Practice + Status,
-#'                       senderID = "Lawyer1",
-#'                       receiverID = "Lawyer2",
-#'                       nodeID = "Lawyer",
-#'                       data.dyad = lazega_dyadic,
-#'                       data.monad = lazega_monadic,
-#'                       n.blocks = 2,
-#'                       mmsbm.control = list(seed = 123,
-#'                                            hessian = FALSE))
-#' 
-#' ## Plot blockmodel as network
-#' plot(lazega_mmsbm)
-#' 
 
 
-
-plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing B-matrix
-  if(type %in% c("blockmodel", "membership", "hmm")){
-    if (!requireNamespace("ggplot2", quietly = TRUE)) {
-      stop("Package \"ggplot2\" needed to produce requested plot. Please install it.",
-           call. = FALSE)
+plot.mmsbm <- function(fm, type="blockmodel", FX=NULL){ # network graph showing B-matrix
+  if(type=="blockmodel"){
+    mode <- ifelse(fm$call$directed, "directed", "undirected")
+    require("igraph", quietly=TRUE)
+    block.G <- graph.adjacency(exp(fm$BlockModel) / (1 + exp(fm$BlockModel)), mode=mode, weighted=TRUE)
+    e.weight <- E(block.G)$weight*100
+    if(any(e.weight < 0.1)){
+      e.weight <- e.weight*2
     }
-  }
-  
-  if(type=="groups"){
-    colRamp <- colorRamp(c("#DCDCDC","#808080","#000000"))
-    g.mode <- ifelse(x$forms$directed, "directed", "undirected")
-    adj_mat <- x$BlockModel
-    dimnames(adj_mat) <- list(paste("G",1:nrow(adj_mat), sep=""),
-                              paste("G", 1:ncol(adj_mat), sep=""))
-    block.G <- igraph::graph.adjacency(plogis(adj_mat), mode=g.mode, weighted=TRUE)
-    e.weight <- (1/diff(range(igraph::E(block.G)$weight))) * (igraph::E(block.G)$weight - max(igraph::E(block.G)$weight)) + 1
-    e.cols <- rgb(colRamp(e.weight), maxColorValue = 255)
-    times.arg <- if(g.mode == "directed") {
-      x$n_blocks
-    } else {
-      rev(seq_len(x$n_blocks))
-    }
-    v.size <- rowMeans(x$MixedMembership)*100 + 20
-    radian.rescale <- function(x, start=0, direction=1) {
-      c.rotate <- function(x) (x + start) %% (2 * pi) * direction
-      c.rotate(scales::rescale(x, c(0, 2 * pi), range(x)))
-    }
-    loop.rads <- radian.rescale(x=1:x$n_blocks, direction=-1, start=0)
-    loop.rads <- rep(loop.rads, times = times.arg)
-    igraph::plot.igraph(block.G, main = "",
-                        edge.width=4, edge.color=e.cols,  edge.curved = x$forms$directed, edge.arrow.size = 0.65,
-                        edge.loop.angle = loop.rads,
-                        vertex.size=v.size, vertex.color="white", vertex.frame.color="black",
-                        vertex.label.font=2, vertex.label.cex=1, vertex.label.color="black",
-                        layout = igraph::layout_in_circle)
-    .bar.legend(colRamp, range(igraph::E(block.G)$weight))
+    if(any(e.weight > 18)){
+      e.weight[e.weight > 18] <- 18}
+    v.size <- rowMeans(fm$MixedMembership)*100
+    plot(block.G, main = "Edge Formation across Clusters",
+        edge.width=e.weight, vertex.size=v.size,
+        layout = layout_in_circle)
   }
   
   if(type=="membership"){
-    avgmems <- lapply(1:nrow(x$MixedMembership), function(x){
-      tapply(x$MixedMembership[x,], x$monadic.data[,"(tid)"], mean)})
-    avgmems <- as.data.frame(cbind(rep(unique(as.character(x$monadic.data[,"(tid)"])), nrow(x$MixedMembership)),unlist(avgmems),
-                                   rep(1:nrow(x$MixedMembership), each=length(unique(x$monadic.data[,"(tid)"])))))
+    avgmems <- lapply(1:nrow(fm$MixedMembership), function(x){
+      tapply(fm$MixedMembership[x,], fm$monadic.data[,"(tid)"], mean)})
+    avgmems <- as.data.frame(cbind(rep(unique(as.character(fm$monadic.data[,"(tid)"])), nrow(fm$MixedMembership)),unlist(avgmems),
+                                   rep(1:nrow(fm$MixedMembership), each=length(unique(fm$monadic.data[,"(tid)"])))))
     colnames(avgmems) <- c("Time", "Avg.Membership", "Group")
     avgmems$Group <- factor(avgmems$Group, levels=length(unique(avgmems$Group)):1)
     if(class(avgmems$Avg.Membership) == "factor"){avgmems$Avg.Membership <- as.numeric(as.character(avgmems$Avg.Membership))}
     if(class(avgmems$Time) == "factor"){avgmems$Time <- as.numeric(as.character(avgmems$Time))}
-    return(ggplot2::ggplot() + 
-      ggplot2::geom_area(ggplot2::aes_string(y = "Avg.Membership", x = "Time", fill="Group"), data = avgmems,
-                stat="identity", position="stack") + 
-      ggplot2::guides(fill=ggplot2::guide_legend(title="Group")))
+    require(ggplot2)
+    ggplot() + ggtitle("Average Group Membership Over Time") + theme(plot.title = element_text(hjust = 0.5)) +
+      geom_area(aes(y = Avg.Membership, x = Time, fill=Group), data = avgmems,
+                stat="identity", position="stack")  + guides(fill=guide_legend(title="Group"))
   }
   
   if(type=="effect"){
@@ -101,30 +50,18 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     hist(FX[[5]], main=paste("Distribution of Marginal Effects:", strsplit(names(FX)[1], " ")[[1]][5]),
          xlab=paste("Effect of", cov, "on Pr(Edge Formation)"))
     
-    plot(unique(x$dyadic.data[,"(tid)"]), tapply(FX[[5]], x$dyadic.data[,"(tid)"], mean), type="o",
+    plot(unique(fm$dyadic.data[,"(tid)"]), tapply(FX[[5]], fm$dyadic.data[,"(tid)"], mean), type="o",
          xlab="Time", ylab=paste("Effect of", cov, "on Pr(Edge Formation)"), main="Marginal Effect over Time")
     
-    nodenames <- names(sort(table(x$monadic.data[,"(nid)"]), decreasing=TRUE))
+    nodenames <- names(sort(table(fm$monadic.data[,"(nid)"]), decreasing=T))
     nodes <- sort(FX[[3]])[names(sort(FX[[3]])) %in% nodenames]
     plot(1, type="n", xlab="Node-Level Estimated Effect", ylab="", 
-         xlim=c(min(nodes), max(nodes) + 0.001),
+         xlim=c(min(nodes), max(nodes) + sd(nodes)),
          ylim = c(0, length(nodes)), yaxt="n")
     for(i in 1:length(nodes)){
       points(nodes[i],i, pch=19)
       text(nodes[i],i, names(nodes)[i], pos=4, cex=0.7)
     }
-  }
-  
-  if(type=="hmm"){
-    hms <- as.data.frame(do.call(rbind, lapply(1:nrow(x$Kappa), function(x){
-      cbind(1:ncol(x$Kappa), x$Kappa[x,], x)
-      })))
-    colnames(hms) <- c("Time", "Kappa", "State")
-    hms$State <- as.factor(hms$State)
-    return(ggplot2::ggplot() + 
-      ggplot2::geom_area(ggplot2::aes_string(y = "Kappa", x = "Time", fill="State"), data = hms,
-                stat="identity", position="stack") + 
-      ggplot2::guides(fill=ggplot2::guide_legend(title="HMM State")))
   }
 }
 
