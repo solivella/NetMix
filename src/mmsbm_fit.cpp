@@ -13,7 +13,7 @@
 //' @param node_id_dyad Integer matrix; zero-based sender and receiver identifier per dyad.
 //' @param mu_b Numeric matrix; matrix of prior means for elements in blockmodel matrix.
 //' @param var_b Numeric matrix; matrix of prior variances for elements in blockmodel matrix.
-//' @param phi_init Numeric matrix; matrix of initial mixed-memberships. Nodes along columns.
+//' @param pi_init Numeric matrix; matrix of initial mixed-memberships. Nodes along columns.
 //' @param kappa_init_t Numeric matrix; matrix of initial marginal HMM state probabilities. Time-periods along columns.
 //' @param b_init_t Numeric matrix; square matrix of initial values of blockmodel.
 //' @param beta_init Numeric vector; flat array (column-major order) of initial values of monadic coefficients.
@@ -45,18 +45,18 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
                      const arma::umat& node_id_dyad,
                      const arma::umat& node_id_dyad_ho,
                      const arma::field<arma::uvec>& node_id_period,
-                     const arma::uvec& ho_id,
                      const arma::mat& mu_b,
                      const arma::mat& var_b,
                      const arma::cube& mu_beta,
                      const arma::cube& var_beta,
                      const arma::vec& mu_gamma,
                      const arma::vec& var_gamma,
-                     const arma::mat& phi_init,
+                     const arma::mat& pi_init,
                      arma::mat& kappa_init_t,
                      arma::mat& b_init_t,
                      arma::cube& beta_init_r,
                      arma::vec& gamma_init_r,
+                     double sparsity,
                      Rcpp::List& control)
 {
   //Create model instance
@@ -71,36 +71,41 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
                 node_id_dyad,
                 node_id_dyad_ho,
                 node_id_period,
-                ho_id,
                 mu_b,
                 var_b,
                 mu_beta,
                 var_beta,
                 mu_gamma,
                 var_gamma,
-                phi_init,
+                pi_init,
                 kappa_init_t,
                 b_init_t,
                 beta_init_r,
                 gamma_init_r,
+                sparsity,
                 control
   );
 
   // VARIATIONAL EM
-  arma::uword iter = 0,
+  arma::uword iter = 0, nworse = 0,
+    win_size = control["conv_window"],
     VI_ITER = control["vi_iter"],
-                     N_BLK = control["blocks"],
-                                    N_STATE = control["states"];
-  int nworse = 0;
+    N_BLK = control["blocks"],
+    N_STATE = control["states"];
+  
   bool conv = false,
     verbose = Rcpp::as<bool>(control["verbose"]);
   
-  double tol = Rcpp::as<double>(control["conv_tol"])
-    ,newLL, oldLL, change_LL;
+  double tol = Rcpp::as<double>(control["conv_tol"]),
+     newLL, oldLL;
   
-
   oldLL = Model.llho();
   newLL = 0.0;
+  
+  //arma::mat oldMM = Model.getPostMM(), newMM, corMM;
+  arma::vec running_ll(win_size, arma::fill::zeros);
+  std::vector<double> ll_vec;
+  
   
   while(iter < VI_ITER && conv == false){
     Rcpp::checkUserInterrupt();
@@ -122,26 +127,24 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
     // 
     //Check convergence
     newLL = Model.llho();
-    if(newLL < oldLL){
-      ++nworse;
-    } else{
-      nworse = 0;
+    ll_vec.push_back(newLL);
+
+    std::rotate(running_ll.begin(), running_ll.begin() + 1, running_ll.end());
+    running_ll[win_size - 1] = newLL;
+    if(iter > win_size) {
+      Model.convCheck(nworse, conv,running_ll, tol);
     }
-    change_LL = fabs((newLL-oldLL)/oldLL);
-    if((change_LL < tol) | (nworse >= 5)){
-      conv = true;
-    } else {
-      oldLL = newLL;
-    }
+    oldLL = newLL;
+    
     if(verbose){
       if((iter+1) % 1 == 0) {
-        Rprintf("Iter: %i, Change in LL: %f\r", iter + 1, change_LL);
+        Rprintf("Iter: %i, held-out ll: %f\r", iter + 1, newLL);
       }
     }
     ++iter;
   }
   if(verbose){
-      Rprintf("Final held-out loglik: %f.                     \n", iter+1, newLL);
+      Rprintf("Final held-out loglik at sparsity: %f.                     \n", iter+1, newLL);
   }
   
   
@@ -174,6 +177,7 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
   res["LowerBound"] = newLL;
   res["niter"] = iter + 1;
   res["converged"] = conv;
+  res["ll"] = Rcpp::wrap(ll_vec);
   
   
   return res;

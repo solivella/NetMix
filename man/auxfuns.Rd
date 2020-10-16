@@ -13,6 +13,7 @@
 \alias{.transf}
 \alias{.compute.alpha}
 \alias{.e.pi}
+\alias{.initPi}
 \title{Internal functions and generics for \code{mmsbm} package}
 \usage{
 approxB(y, d_id, pi_mat)
@@ -44,6 +45,26 @@ alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 .compute.alpha(X, beta)
 
 .e.pi(alpha_list, kappa, C_mat = NULL)
+
+.initPi(
+  soc_mats,
+  Y,
+  dyads,
+  edges,
+  t_id_d,
+  t_id_n,
+  nodes_pp,
+  dyads_pp,
+  nt_id,
+  node_id_period,
+  mu_b,
+  var_b,
+  n_dyads,
+  n.blocks,
+  periods,
+  directed,
+  ctrl
+)
 }
 \arguments{
 \item{y}{Numeric vector; vector of edge values.}
@@ -110,6 +131,8 @@ It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.}
 \item{kappa}{Numeric matrix; matrix of marginal HMM state probabilities.}
 
 \item{C_mat}{Numeric matrix; matrix of posterior counts of block instantiations per node.}
+
+\item{soc_mats, Y, dyads, edges, t_id_d, t_id_n, nodes_pp, dyads_pp, nt_id, node_id_period, mu_b, var_b, n_dyads, n.blocks, periods, directed, ctrl}{Internal arguments for initialization.}
 }
 \value{
 See individual return section for each function:

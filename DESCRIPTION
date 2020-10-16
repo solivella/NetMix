@@ -1,8 +1,8 @@
 Package: NetMix
 Type: Package
 Title: Dynamic Mixed-Membership Network Regression Model
-Version: 0.2.0.9005
-Date: 2020-09-15
+Version: 0.2.0.9006
+Date: 2020-10-16
 Encoding: UTF-8
 Author: Santiago Olivella [aut, cre],
   Adeline Lo [aut, cre],
@@ -18,7 +18,7 @@ Description: Stochastic collapsed variational inference on mixed-membership stoc
              predictive checks of goodness-of-fit and several plotting functions. The package 
              implements methods described in Olivella, Pratt and Imai (2019) ``Dynamic Stochastic
              Blockmodel Regression for Social Networks: Application to International Conflicts'',
-             available at <http://santiagoolivella.info/wp-content/uploads/2018/07/dSBM_Reg.pdf>.
+             available at <https://www.santiagoolivella.info/pdfs/socnet.pdf>.
 BugReports: https://github.com/solivella/NetMix/issues 
 NeedsCompilation: yes
 License: GPL (>= 2)

@@ -62,7 +62,8 @@ to 1 (i.e. no HMM).}
 
 \item{mmsbm.control}{A named list of optional algorithm control parameters.
 \describe{
-   \item{seed}{Integer value. Seed the RNG. By default, a random seed is generated and returned for reproducibility purposes.}
+   \item{seed}{Integer. Seed the RNG. By default, a random seed is generated and returned for reproducibility purposes.}
+   \item{nstart}{Integer. Number of random initialization trials. Defaults to 5.}
    \item{spectral}{Boolean. Type of initialization algorithm for mixed-membership vectors in static case. If \code{TRUE} (default),
                use spectral clustering with degree correction; otherwise, use kmeans algorithm.}
    \item{init_gibbs}{Boolean. Should a collapsed Gibbs sampler of non-regression mmsbm be used to initialize
@@ -71,12 +72,14 @@ to 1 (i.e. no HMM).}
                choice of alpha (see below).}            
    \item{alpha}{Numeric positive value. Concentration parameter for collapsed Gibbs sampler to find initial
                 mixed-membership values when \code{init_gibbs=TRUE}. Defaults to 1.0.}            
-   \item{forget_rate}{Value between (0.5,1], controlling speed of decay of weight of prior
-                       parameter values in global steps. Defaults to 0.85.}
-   \item{delay}{Non-negative value, controlling weight of past iterations in global steps. Defaults to 1.0.}                    
-   \item{batch_size}{Proportion of nodes sampled in each local. Defaults to 0.01.}                                 
-   \item{missing}{Means of handling missing data. One of "indicator method" (default) or "listwise deletion".}       
-   \item{vi_iter}{Number of maximum iterations in stochastic variational updates. Defaults to 5e3.}
+   \item{missing}{Means of handling missing data. One of "indicator method" (default) or "listwise deletion".}  
+   \item{svi}{Boolean; should stochastic variational inference be used? Defaults to \code{TRUE}.}     
+   \item{vi_iter}{Number of maximum iterations in stochastic variational updates. Defaults to 5e2.}
+   \item{batch_size}{When \code{svi=TRUE}, proportion of nodes sampled in each local. Defaults to 0.05 when \code{svi=TRUE}, and to 1.0 otherwise.}                                 
+   \item{forget_rate}{When \code{svi=TRUE}, value between (0.5,1], controlling speed of decay of weight of prior
+                       parameter values in global steps. Defaults to 0.75 when \code{svi=TRUE}, and to 0.0 otherwise.}
+   \item{delay}{When \code{svi=TRUE}, non-negative value controlling weight of past iterations in global steps. Defaults to 1.0 when \code{svi=TRUE},
+                and ignored otherwise.}                    
    \item{opt_iter}{Number of maximum iterations of BFGS in global step. Defaults to 10e3.}
    \item{hessian}{Boolean indicating whether the Hessian matrix of regression coefficients should e returned. Defaults to \code{TRUE}.}
    \item{mu_b}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
@@ -91,15 +94,19 @@ to 1 (i.e. no HMM).}
    \item{var_beta}{See \code{mu_beta}. Defaults to a single common prior variance of 1.0 for all monadic coefficients.}
    \item{mu_gamma}{Either a single numeric value, in which case the same prior mean is applied to all dyadic coefficients, or
                    a named vector of numeric values (with names corresponding to the name of the variable 
-                  for which a prior mean is being set). Defaults to a copmmon prior mean of 0.0 for all dyadic coefficients.}
+                  for which a prior mean is being set). Defaults to a common prior mean of 0.0 for all dyadic coefficients.}
    \item{var_gamma}{See \code{mu_gamma}. Defaults to a single common prior variance of 1.0 for all dyadic coefficients.}
    \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 10.3.}
    \item{se_sim}{Number of samples from variational posterior of latent variables on which approximation to variance-covariance
                  matrices are based. Defaults to 10.}
    \item{dyad_vcov_samp}{Number of dyads to sample in computation of variance-covariance of dyadic and blockmodel parameters. 
                          Defaults to 1000.}
-   \item{phi_init_t}{Matrix, \code{n.blocks} by total number of nodes across years. Optional initial values for variational
-                  parameters for mixed-membership vectors. Column names must have a \code{nodeid@year} format.}
+   \item{fixed_mm}{Optional character vector, with \code{"nodeID@timeID"} as elements, indicating which mixed-membership vectors
+                   should remain constant at their initial values throughout estimation. When only one year is observed, elements should be 
+                    \code{"nodeID@1"}. Typically used with \code{mm_init_t}.}                      
+   \item{mm_init_t}{Matrix, \code{n.blocks} by nodes across years. Optional initial values for mixed-membership vectors.
+                      Although initial values need not be provided for all nodes, column names must have a \code{nodeID@timeID} format to 
+                      avoid ambiguity. When only one year is observed, names should be \code{"nodeID@1"}.}
    \item{kappa_init_t}{Matrix, \code{n.hmmstates} by number of years. Optional initial values for variational 
                   parameters for state probabilities.}
    \item{b_init_t}{Matrix, \code{n.blocks} by \code{n.blocks}. Optional initial values for blockmodel.}
@@ -114,7 +121,7 @@ to 1 (i.e. no HMM).}
 \value{
 Object of class \code{mmsbm}. List with named components:
     \describe{
-      \item{MixedMembership}{Matrix of variational posterior of mean of mixed-membership vectors. \code{nodes} by \
+      \item{MixedMembership}{Matrix of variational posterior of mean of mixed-membership vectors. \code{nodes} by
                              \code{n.blocks}.}
       \item{BlockModel}{\code{n.blocks} by \code{n.blocks} matrix of estimated tie log-odds between members
                         of corresponding latent groups. The blockmodel.}

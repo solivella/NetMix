@@ -30,18 +30,18 @@ public:
           const arma::umat& node_id_dyad,
           const arma::umat& node_id_dyad_ho,
           const arma::field<arma::uvec>& node_id_period,
-          const arma::uvec& ho_id,
           const arma::mat& mu_b,
           const arma::mat& var_b,
           const arma::cube& mu_beta,
           const arma::cube& var_beta,
           const arma::vec& mu_gamma,
           const arma::vec& var_gamma,
-          const arma::mat& phi_init,
+          const arma::mat& pi_init,
           arma::mat& kappa_init_t,
           arma::mat& b_init_t,
           arma::cube& beta_init_r,
           arma::vec& gamma_init_r,
+          double sparsity,
           Rcpp::List& control
   );
   ~MMModel();
@@ -68,12 +68,11 @@ public:
   void getGamma(arma::vec&);
   arma::cube getBeta();
   void getBeta(arma::cube&);
-  // bool checkConv(char p,
-  //                arma::vec& old,
-  //                double tol);
-  // bool maxDiffCheck(Array<double>& current,
-  //                   arma::vec& old,
-  //                   double tol);
+  void convCheck(arma::uword& nworse,
+                 bool& conv,
+                 const arma::vec& ll,
+                 const double& tol);
+
   
   
 private:
@@ -93,7 +92,8 @@ private:
   
   const double eta,
   forget_rate,
-  delay;
+  delay,
+  sparsity;
   
   const arma::vec var_gamma,
   mu_gamma;
@@ -122,12 +122,12 @@ private:
   const arma::uvec time_id_dyad,
   time_id_node,
   n_nodes_time,
-  n_nodes_batch;
+  n_nodes_batch,
+  node_est;
   
   arma::uvec tot_nodes,
   node_in_batch,
   dyad_in_batch,
-  ho_id,
   node_batch;
   
   std::vector<int> maskalpha,
@@ -164,22 +164,22 @@ private:
   beta_init;
   
   //std::vector< Array<double> > new_e_c_t; //For reduce op.
-  arma::mat new_e_c_t;
+  //arma::mat new_e_c_t;
   
   arma::cube::iterator beta_end;
   arma::vec::iterator theta_par_end;
   
   
-  void computeAlpha(bool);
+  void computeAlpha();
   
-  void computeTheta(bool);
-  double alphaLB(bool);
+  void computeTheta();
+  double alphaLB();
   static double alphaLBW(int, double*, void*);
-  void alphaGr(int, double*, bool);
+  void alphaGr(int, double*);
   static void alphaGrW(int, double*, double*, void*);
-  double thetaLB(bool, bool);
+  double thetaLB(bool);
   static double thetaLBW(int, double*, void*);
-  void thetaGr(int, double*, bool);
+  void thetaGr(int, double*);
   static void thetaGrW(int, double*, double*, void*);
 
   void updatePhiInternal(arma::uword, arma::uword,

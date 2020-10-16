@@ -20,7 +20,7 @@
 
 \item{var_b}{Numeric matrix; matrix of prior variances for elements in blockmodel matrix.}
 
-\item{phi_init}{Numeric matrix; matrix of initial mixed-memberships. Nodes along columns.}
+\item{pi_init}{Numeric matrix; matrix of initial mixed-memberships. Nodes along columns.}
 
 \item{kappa_init_t}{Numeric matrix; matrix of initial marginal HMM state probabilities. Time-periods along columns.}
 
