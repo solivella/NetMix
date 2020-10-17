@@ -68,10 +68,13 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
     if(family==1){ 
       monadic.data<- x$monadic1.data 
       nid <- x$forms$senderID
+      if(!nid%in%names(monadic.data)){nid<-"(nid1)"}
     } else{ 
         monadic.data <- x$monadic2.data
         nid <- x$forms$receiverID
+        if(!nid%in%names(monadic.data)){nid<-"(nid2)"}
     }
+    
   ##set up alternative labels for nodes -- these need to be in the same starting order as nid in monadic.data
     if(!is.null(nodelabel)){
       tmp_labels<-data.frame(nodelabel=nodelabel,nodenames=monadic.data[,nid])
@@ -104,9 +107,11 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
     if(family==1){ 
       monadic.data<- x$monadic1.data 
       nid <- x$forms$senderID
+      if(!nid%in%names(monadic.data)){nid<-"(nid1)"}
     } else{ 
       monadic.data <- x$monadic2.data
       nid <- x$forms$receiverID
+      if(!nid%in%names(monadic.data)){nid<-"(nid2)"}
     }
     ##set up alternative labels for nodes -- these need to be in the same starting order as nid in monadic.data
     if(!is.null(nodelabel)){

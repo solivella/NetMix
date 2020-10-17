@@ -37,7 +37,27 @@ covFXB <- function(fm, cov1=NULL, cov2=NULL, shift, max.val=FALSE){
     if(!isFALSE(max.val)){
       monadic.data2[which(fm$monadic1.data[,cov] == max(fm$monadic1.data[,cov])),cov] <- max.val
     }
-    predict.ties2 <- predict.mmsbmB(fm, new.data.monad1=monadic.data2, parametric_mm = TRUE, type="response") #chnage to just predict()?
+    #fix up some names
+    if(!tid%in%names(monadic.data2)){
+      names(monadic.data2)[which(names(monadic.data2)=="(tid)")] <- tid
+    }
+    if(!sid%in%names(monadic.data2)){
+      names(monadic.data2)[which(names(monadic.data2)=="(nid1)")] <- sid
+    }
+    if(!tid%in%names(fm$dyadic.data)){
+      names(fm$dyadic.data)[which(names(fm$dyadic.data)=="(tid)")] <- tid
+    }
+    if(!sid%in%names(fm$dyadic.data)){
+      names(fm$dyadic.data)[which(names(fm$dyadic.data)=="(sid)")] <- sid
+    }
+    if(!rid%in%names(fm$dyadic.data)){
+      names(fm$dyadic.data)[which(names(fm$dyadic.data)=="(rid)")] <- rid
+    }
+    if(!sid%in%names(fm$monadic1.data)){
+      names(fm$monadic1.data)[which(names(fm$monadic1.data)=="(nid1)")] <- sid
+    }
+    
+    predict.ties2 <- predict.mmsbmB(fm, new.data.monad1=monadic.data2, parametric_mm = TRUE, type="response") #change to just predict()?
     FX <- list(mean(predict.ties2 - predict.ties), #avg
                tapply(predict.ties2-predict.ties, fm$dyadic.data[,tid], mean), #time
                sapply(unique(fm$monadic1.data[,sid]), function(x){ #node
@@ -64,11 +84,28 @@ covFXB <- function(fm, cov1=NULL, cov2=NULL, shift, max.val=FALSE){
     if(!isFALSE(max.val)){
       monadic.data2[which(fm$monadic2.data[,cov] == max(fm$monadic2.data[,cov])),cov] <- max.val
     }
-    predict.ties2 <- predict.mmsbmB(fm, bipartite=TRUE, new.data.monad2=monadic.data2, parametric_mm = TRUE, type="response")
+    #fix up some names
+    if(!tid%in%names(monadic.data2)){
+      names(monadic.data2)[which(names(monadic.data2)=="(tid)")] <- tid
+    }
+    if(!tid%in%names(fm$dyadic.data)){
+      names(fm$dyadic.data)[which(names(fm$dyadic.data)=="(tid)")] <- tid
+    }
+    if(!sid%in%names(fm$dyadic.data)){
+      names(fm$dyadic.data)[which(names(fm$dyadic.data)=="(sid)")] <- sid
+    }
+    if(!rid%in%names(fm$dyadic.data)){
+      names(fm$dyadic.data)[which(names(fm$dyadic.data)=="(rid)")] <- rid
+    }
+    if(!sid%in%names(fm$monadic2.data)){
+      names(fm$monadic2.data)[which(names(fm$monadic2.data)=="(nid2)")] <- rid
+    }
+    
+    predict.ties2 <- predict.mmsbmB(fm, new.data.monad2=monadic.data2, parametric_mm = TRUE, type="response") #chnage to just predict()?
     FX <- list(mean(predict.ties2 - predict.ties), #avg
                tapply(predict.ties2-predict.ties, fm$dyadic.data[,tid], mean), #time
                sapply(unique(fm$monadic2.data[,rid]), function(x){ #node
-                 mean((predict.ties2-predict.ties)[fm$dyadic.data[,rid]==x])}),#always receiver
+                 mean((predict.ties2-predict.ties)[fm$dyadic.data[,rid]==x])}),#always sender
                tapply(predict.ties2-predict.ties, paste(fm$dyadic.data[,sid], fm$dyadic.data[,rid], sep="_"), mean),#dyad
                predict.ties2 - predict.ties#dyad-time
                ,sapply(unique(fm$monadic2.data[,rid]), function(x){ #node
