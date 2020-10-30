@@ -35,15 +35,12 @@
 
 // [[Rcpp::export(mmsbm_fit)]]
 Rcpp::List mmsbm_fit(const arma::mat& z_t,
-                     const arma::mat& z_t_ho,
                      const arma::mat& x_t,
                      const arma::vec& y,
-                     const arma::vec& y_ho,
                      const arma::uvec& time_id_dyad,
                      const arma::uvec& time_id_node,
                      const arma::uvec& nodes_per_period,
                      const arma::umat& node_id_dyad,
-                     const arma::umat& node_id_dyad_ho,
                      const arma::field<arma::uvec>& node_id_period,
                      const arma::mat& mu_b,
                      const arma::mat& var_b,
@@ -56,20 +53,19 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
                      arma::mat& b_init_t,
                      arma::cube& beta_init_r,
                      arma::vec& gamma_init_r,
-                     double sparsity,
                      Rcpp::List& control)
 {
   //Create model instance
   MMModel Model(z_t,
-                z_t_ho,
+                //z_t_ho,
                 x_t,
                 y,
-                y_ho,
+                //y_ho,
                 time_id_dyad,
                 time_id_node,
                 nodes_per_period,
                 node_id_dyad,
-                node_id_dyad_ho,
+                //node_id_dyad_ho,
                 node_id_period,
                 mu_b,
                 var_b,
@@ -82,7 +78,7 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
                 b_init_t,
                 beta_init_r,
                 gamma_init_r,
-                sparsity,
+                //sparsity,
                 control
   );
 
@@ -94,25 +90,20 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
     N_STATE = control["states"];
   
   bool conv = false,
-    verbose = Rcpp::as<bool>(control["verbose"]);
+    verbose = Rcpp::as<bool>(control["verbose"]),
+    svi = Rcpp::as<bool>(control["svi"]);
   
   double tol = Rcpp::as<double>(control["conv_tol"]),
      newLL, oldLL;
   
-  oldLL = Model.llho();
+  oldLL = -arma::datum::inf;
   newLL = 0.0;
-  
-  //arma::mat oldMM = Model.getPostMM(), newMM, corMM;
   arma::vec running_ll(win_size, arma::fill::zeros);
   std::vector<double> ll_vec;
   
   
   while(iter < VI_ITER && conv == false){
     Rcpp::checkUserInterrupt();
-    // Sample batch of dyads for stochastic VI
-
-    Model.sampleDyads(iter);
-    
     // E-STEP
     Model.updatePhi();
     
@@ -122,29 +113,38 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
     // 
     // 
     // //M-STEP
+    // Sample batch of dyads for stochastic optim
+    Model.sampleDyads(iter);
     Model.optim_ours(true); //optimize alphaLB
     Model.optim_ours(false); //optimize thetaLB
-    // 
+    //
     //Check convergence
-    newLL = Model.llho();
-    ll_vec.push_back(newLL);
+    
 
-    std::rotate(running_ll.begin(), running_ll.begin() + 1, running_ll.end());
-    running_ll[win_size - 1] = newLL;
-    if(iter > win_size) {
-      Model.convCheck(nworse, conv,running_ll, tol);
+    if(svi){
+      newLL = Model.LB();
+      std::rotate(running_ll.begin(), running_ll.begin() + 1, running_ll.end());
+      running_ll[win_size - 1] = newLL;
+      if(iter > win_size) {
+        Model.convCheck(conv, running_ll, tol);
+      }
+    } else {
+      newLL = Model.LB();
+      //Rprintf("New %f, old %f\n", newLL, oldLL);
+      conv = (fabs((newLL-oldLL)/oldLL) < tol);
     }
+      ll_vec.push_back(newLL);
     oldLL = newLL;
     
     if(verbose){
       if((iter+1) % 1 == 0) {
-        Rprintf("Iter: %i, held-out ll: %f\r", iter + 1, newLL);
+        Rprintf("Iter: %i, LB: %f\r", iter + 1, newLL);
       }
     }
     ++iter;
   }
   if(verbose){
-      Rprintf("Final held-out loglik at sparsity: %f.                     \n", iter+1, newLL);
+      Rprintf("Final LB: %f.                     \n", iter+1, newLL);
   }
   
   
@@ -177,7 +177,7 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
   res["LowerBound"] = newLL;
   res["niter"] = iter + 1;
   res["converged"] = conv;
-  res["ll"] = Rcpp::wrap(ll_vec);
+  res["LowerBound_full"] = Rcpp::wrap(ll_vec);
   
   
   return res;

@@ -49,21 +49,18 @@ BEGIN_RCPP
 END_RCPP
 }
 // mmsbm_fit
-Rcpp::List mmsbm_fit(const arma::mat& z_t, const arma::mat& z_t_ho, const arma::mat& x_t, const arma::vec& y, const arma::vec& y_ho, const arma::uvec& time_id_dyad, const arma::uvec& time_id_node, const arma::uvec& nodes_per_period, const arma::umat& node_id_dyad, const arma::umat& node_id_dyad_ho, const arma::field<arma::uvec>& node_id_period, const arma::mat& mu_b, const arma::mat& var_b, const arma::cube& mu_beta, const arma::cube& var_beta, const arma::vec& mu_gamma, const arma::vec& var_gamma, const arma::mat& pi_init, arma::mat& kappa_init_t, arma::mat& b_init_t, arma::cube& beta_init_r, arma::vec& gamma_init_r, double sparsity, Rcpp::List& control);
-RcppExport SEXP _NetMix_mmsbm_fit(SEXP z_tSEXP, SEXP z_t_hoSEXP, SEXP x_tSEXP, SEXP ySEXP, SEXP y_hoSEXP, SEXP time_id_dyadSEXP, SEXP time_id_nodeSEXP, SEXP nodes_per_periodSEXP, SEXP node_id_dyadSEXP, SEXP node_id_dyad_hoSEXP, SEXP node_id_periodSEXP, SEXP mu_bSEXP, SEXP var_bSEXP, SEXP mu_betaSEXP, SEXP var_betaSEXP, SEXP mu_gammaSEXP, SEXP var_gammaSEXP, SEXP pi_initSEXP, SEXP kappa_init_tSEXP, SEXP b_init_tSEXP, SEXP beta_init_rSEXP, SEXP gamma_init_rSEXP, SEXP sparsitySEXP, SEXP controlSEXP) {
+Rcpp::List mmsbm_fit(const arma::mat& z_t, const arma::mat& x_t, const arma::vec& y, const arma::uvec& time_id_dyad, const arma::uvec& time_id_node, const arma::uvec& nodes_per_period, const arma::umat& node_id_dyad, const arma::field<arma::uvec>& node_id_period, const arma::mat& mu_b, const arma::mat& var_b, const arma::cube& mu_beta, const arma::cube& var_beta, const arma::vec& mu_gamma, const arma::vec& var_gamma, const arma::mat& pi_init, arma::mat& kappa_init_t, arma::mat& b_init_t, arma::cube& beta_init_r, arma::vec& gamma_init_r, Rcpp::List& control);
+RcppExport SEXP _NetMix_mmsbm_fit(SEXP z_tSEXP, SEXP x_tSEXP, SEXP ySEXP, SEXP time_id_dyadSEXP, SEXP time_id_nodeSEXP, SEXP nodes_per_periodSEXP, SEXP node_id_dyadSEXP, SEXP node_id_periodSEXP, SEXP mu_bSEXP, SEXP var_bSEXP, SEXP mu_betaSEXP, SEXP var_betaSEXP, SEXP mu_gammaSEXP, SEXP var_gammaSEXP, SEXP pi_initSEXP, SEXP kappa_init_tSEXP, SEXP b_init_tSEXP, SEXP beta_init_rSEXP, SEXP gamma_init_rSEXP, SEXP controlSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::mat& >::type z_t(z_tSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type z_t_ho(z_t_hoSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type x_t(x_tSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type y_ho(y_hoSEXP);
     Rcpp::traits::input_parameter< const arma::uvec& >::type time_id_dyad(time_id_dyadSEXP);
     Rcpp::traits::input_parameter< const arma::uvec& >::type time_id_node(time_id_nodeSEXP);
     Rcpp::traits::input_parameter< const arma::uvec& >::type nodes_per_period(nodes_per_periodSEXP);
     Rcpp::traits::input_parameter< const arma::umat& >::type node_id_dyad(node_id_dyadSEXP);
-    Rcpp::traits::input_parameter< const arma::umat& >::type node_id_dyad_ho(node_id_dyad_hoSEXP);
     Rcpp::traits::input_parameter< const arma::field<arma::uvec>& >::type node_id_period(node_id_periodSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type mu_b(mu_bSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type var_b(var_bSEXP);
@@ -76,9 +73,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat& >::type b_init_t(b_init_tSEXP);
     Rcpp::traits::input_parameter< arma::cube& >::type beta_init_r(beta_init_rSEXP);
     Rcpp::traits::input_parameter< arma::vec& >::type gamma_init_r(gamma_init_rSEXP);
-    Rcpp::traits::input_parameter< double >::type sparsity(sparsitySEXP);
     Rcpp::traits::input_parameter< Rcpp::List& >::type control(controlSEXP);
-    rcpp_result_gen = Rcpp::wrap(mmsbm_fit(z_t, z_t_ho, x_t, y, y_ho, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, node_id_dyad_ho, node_id_period, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, pi_init, kappa_init_t, b_init_t, beta_init_r, gamma_init_r, sparsity, control));
+    rcpp_result_gen = Rcpp::wrap(mmsbm_fit(z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, node_id_period, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, pi_init, kappa_init_t, b_init_t, beta_init_r, gamma_init_r, control));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -87,7 +83,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_NetMix_approxB", (DL_FUNC) &_NetMix_approxB, 3},
     {"_NetMix_getZ", (DL_FUNC) &_NetMix_getZ, 1},
     {"_NetMix_alphaLB", (DL_FUNC) &_NetMix_alphaLB, 8},
-    {"_NetMix_mmsbm_fit", (DL_FUNC) &_NetMix_mmsbm_fit, 24},
+    {"_NetMix_mmsbm_fit", (DL_FUNC) &_NetMix_mmsbm_fit, 20},
     {NULL, NULL, 0}
 };
 

@@ -46,7 +46,7 @@ alphaLB <- function(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta) {
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 NULL
 
-mmsbm_fit <- function(z_t, z_t_ho, x_t, y, y_ho, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, node_id_dyad_ho, node_id_period, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, pi_init, kappa_init_t, b_init_t, beta_init_r, gamma_init_r, sparsity, control) {
-    .Call(`_NetMix_mmsbm_fit`, z_t, z_t_ho, x_t, y, y_ho, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, node_id_dyad_ho, node_id_period, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, pi_init, kappa_init_t, b_init_t, beta_init_r, gamma_init_r, sparsity, control)
+mmsbm_fit <- function(z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, node_id_period, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, pi_init, kappa_init_t, b_init_t, beta_init_r, gamma_init_r, control) {
+    .Call(`_NetMix_mmsbm_fit`, z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, node_id_period, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, pi_init, kappa_init_t, b_init_t, beta_init_r, gamma_init_r, control)
 }
 

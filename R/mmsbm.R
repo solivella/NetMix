@@ -105,6 +105,8 @@
 #'       \item{TransitionKernel}{Matrix of estimated HMM transition probabilities.}
 #'       \item{Kappa}{Matrix of marginal probabilities of being in an HMM state at any given point in time. 
 #'                    \code{n.hmmstates} by years (or whatever time interval networks are observed at).}
+#'       \item{LowerBound}{Final LB value}
+#'       \item{lb}{Vector of all LB across iterations, useful to check early convergence issues.}              
 #'       \item{niter}{Final number of VI iterations.}
 #'       \item{converged}{Convergence indicator; zero indicates failure to converge.}
 #'       \item{NodeIndex}{Order in which nodes are stored in all return objects.}
@@ -183,7 +185,7 @@ mmsbm <- function(formula.dyad,
                conv_tol = 1e-3,
                verbose = FALSE)
   ctrl[names(mmsbm.control)] <- mmsbm.control
-  ctrl$conv_window <- floor(4 + 1/(ctrl$batch_size^0.75))
+  ctrl$conv_window <- floor(4 + 1/(ctrl$batch_size))
   set.seed(ctrl$seed)
   
   mu_b <- var_b <- array(NA, c(n.blocks, n.blocks))
@@ -300,6 +302,10 @@ mmsbm <- function(formula.dyad,
                                    tid = as.name(timeID),
                                    sid = as.name(senderID),
                                    rid = as.name(receiverID)))
+  if(anyDuplicated(mfd[,c("(tid)","(sid)","(rid)")])){
+    stop("timeID, senderID, and receiverID do not uniquely identify observations in data.dyad.")
+  }
+  
   
   
   ut <- unique(mfd[["(tid)"]])
@@ -323,6 +329,9 @@ mmsbm <- function(formula.dyad,
                                    drop.unused.levels = TRUE,
                                    tid = as.name(timeID),
                                    nid = as.name(nodeID)))
+  if(anyDuplicated(mfm[,c("(tid)","(nid)")])){
+    stop("timeID and nodeID do not uniquely identify observations in data.monad.")
+  }
   ntid <- do.call(paste, c(mfm[c("(nid)","(tid)")], sep="@"))
   if(!all(dntid %in% ntid))
     stop("Nodes in dyadic dataset missing from monadic dataset. Are node and time identifiers identical in data.dyad and data.monad?")
@@ -512,20 +521,20 @@ mmsbm <- function(formula.dyad,
   X_t <- t(X)
   Z_t <- t(Z)
   ## For HO sample, 5% (or 10 min) of each type of tie
-  ho_ind_lo <- sample(seq_len(ncol(Z_t))[Y < 0.5], max(sum(Y < 0.5)*0.05, 10))
-  ho_ind_hi <- sample(seq_len(ncol(Z_t))[Y >= 0.5], max(sum(Y >= 0.5)*0.05, 10))
-  ho_ind <- c(ho_ind_lo, ho_ind_hi)
-  sparsity <- mean(Y >= 0.5)
-  fit <- mmsbm_fit(Z_t[,-ho_ind, drop=FALSE],
-                   Z_t[, ho_ind, drop=FALSE],
+  ##ho_ind_lo <- sample(seq_len(ncol(Z_t))[Y < 0.5], max(sum(Y < 0.5)*0.05, 10))
+  ##ho_ind_hi <- sample(seq_len(ncol(Z_t))[Y >= 0.5], max(sum(Y >= 0.5)*0.05, 10))
+  ##ho_ind <- c(ho_ind_lo, ho_ind_hi)
+  ##sparsity <- mean(Y >= 0.5)
+  fit <- mmsbm_fit(Z_t,
+                   ##Z_t[, ho_ind, drop=FALSE],
                    X_t,
-                   Y[-ho_ind, drop=FALSE],
-                   Y[ho_ind, drop=FALSE],
-                   t_id_d[-ho_ind, drop=FALSE],
+                   Y,
+                   ##Y[ho_ind, drop=FALSE],
+                   t_id_d,##[-ho_ind, drop=FALSE],
                    t_id_n,
                    nodes_pp,
-                   nt_id[-ho_ind,, drop=FALSE],
-                   nt_id[ho_ind,, drop=FALSE],
+                   nt_id,
+                   ##nt_id[ho_ind,, drop=FALSE],
                    node_id_period,
                    mu_b,
                    var_b,
@@ -538,7 +547,7 @@ mmsbm <- function(formula.dyad,
                    ctrl$b_init_t,
                    ctrl$beta_init,
                    ctrl$gamma_init,
-                   sparsity,
+                   ##sparsity,
                    ctrl)
   if(!fit[["converged"]])
     warning(paste("Model did not converge after", fit[["niter"]] - 1, "iterations.\n"))
@@ -594,7 +603,7 @@ mmsbm <- function(formula.dyad,
     ## for monadic coefficients
     all_phi <- split.data.frame(rbind(t(fit[["SenderPhi"]]),
                                       t(fit[["ReceiverPhi"]])),
-                                c(nt_id[-ho_ind,]))
+                                c(nt_id))
     sampleC_perm <- lapply(all_phi,
                            function(mat){
                              apply(mat, 2, function(vec)poisbinom::rpoisbinom(ctrl$se_sim, vec))
@@ -704,8 +713,8 @@ mmsbm <- function(formula.dyad,
       },
       z_samples, w_samples,
       MoreArgs = list(par_theta = all_theta_par, 
-                      y_vec = Y[-ho_ind],
-                      Z_d = t(Z[-ho_ind,]),
+                      y_vec = Y,
+                      Z_d = t(Z),
                       mu_b_mat = mu_b,
                       var_b_mat = var_b,
                       var_g = ctrl$var_gamma, 
@@ -743,11 +752,11 @@ mmsbm <- function(formula.dyad,
   attr(mfm, "terms") <- NULL
   attr(mfd, "terms") <- NULL
   fit$monadic.data <- mfm
-  fit$dyadic.data <- mfd[-ho_ind,]
-  fit$Y <- Y[-ho_ind]
+  fit$dyadic.data <- mfd
+  fit$Y <- Y
   
   ## Include node id's
-  fit$NodeIndex <- nt_id[-ho_ind,]
+  fit$NodeIndex <- nt_id
   
   ## Include a few formals needed by other methods
   fit$forms <- list(directed = directed,

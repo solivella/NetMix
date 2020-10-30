@@ -134,6 +134,8 @@ Object of class \code{mmsbm}. List with named components:
       \item{TransitionKernel}{Matrix of estimated HMM transition probabilities.}
       \item{Kappa}{Matrix of marginal probabilities of being in an HMM state at any given point in time. 
                    \code{n.hmmstates} by years (or whatever time interval networks are observed at).}
+      \item{LowerBound}{Final LB value}
+      \item{lb}{Vector of all LB across iterations, useful to check early convergence issues.}              
       \item{niter}{Final number of VI iterations.}
       \item{converged}{Convergence indicator; zero indicates failure to converge.}
       \item{NodeIndex}{Order in which nodes are stored in all return objects.}

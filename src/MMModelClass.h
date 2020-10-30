@@ -20,15 +20,15 @@ class MMModel
 {
 public:
   MMModel(const arma::mat& z_t,
-          const arma::mat& z_t_ho,
+          //const arma::mat& z_t_ho,
           const arma::mat& x_t,
           const arma::vec& y,
-          const arma::vec& y_ho,
+          //const arma::vec& y_ho,
           const arma::uvec& time_id_dyad,
           const arma::uvec& time_id_node,
           const arma::uvec& nodes_per_period,
           const arma::umat& node_id_dyad,
-          const arma::umat& node_id_dyad_ho,
+          //const arma::umat& node_id_dyad_ho,
           const arma::field<arma::uvec>& node_id_period,
           const arma::mat& mu_b,
           const arma::mat& var_b,
@@ -41,7 +41,7 @@ public:
           arma::mat& b_init_t,
           arma::cube& beta_init_r,
           arma::vec& gamma_init_r,
-          double sparsity,
+          //double sparsity,
           Rcpp::List& control
   );
   ~MMModel();
@@ -51,8 +51,9 @@ public:
   void updatePhi();
   void updateKappa();
   void optim_ours(bool);
-  //double cLB();
-  double llho();
+  double LL();
+  double LB();
+  //double llho();
   
   
   arma::mat getPostMM();
@@ -68,11 +69,10 @@ public:
   void getGamma(arma::vec&);
   arma::cube getBeta();
   void getBeta(arma::cube&);
-  void convCheck(arma::uword& nworse,
-                 bool& conv,
-                 const arma::vec& ll,
+  void convCheck(bool& conv,
+                 const arma::vec& lb,
                  const double& tol);
-
+  
   
   
 private:
@@ -87,13 +87,13 @@ private:
   N_B_PAR,
   OPT_ITER,
   N_NODE_BATCH,
-  N_THREAD,
-  N_DYAD_HO;
+  N_THREAD;
+  //N_DYAD_HO;
   
   const double eta,
   forget_rate,
-  delay,
-  sparsity;
+  delay;//,
+  //sparsity;
   
   const arma::vec var_gamma,
   mu_gamma;
@@ -117,7 +117,7 @@ private:
   bool verbose,
   directed;
   
-  const arma::vec y, y_ho;
+  const arma::vec y;// y_ho;
   
   const arma::uvec time_id_dyad,
   time_id_node,
@@ -141,12 +141,12 @@ private:
   gamma,
   gamma_init;
   
-  const arma::umat node_id_dyad, node_id_dyad_ho; //matrix (column major)
+  const arma::umat node_id_dyad;// node_id_dyad_ho; //matrix (column major)
   arma::umat par_ind;
   
   const arma::mat x_t, //matrix (column major)
   z_t,
-  z_t_ho,
+  //z_t_ho,
   mu_b_t,
   var_b_t;
   
@@ -170,14 +170,13 @@ private:
   arma::vec::iterator theta_par_end;
   
   
-  void computeAlpha();
-  
-  void computeTheta();
-  double alphaLB();
+  void computeAlpha(bool= false);
+  void computeTheta(bool = false);
+  double alphaLB(bool = false);
   static double alphaLBW(int, double*, void*);
   void alphaGr(int, double*);
   static void alphaGrW(int, double*, double*, void*);
-  double thetaLB(bool);
+  double thetaLB(bool = false, bool = false);
   static double thetaLBW(int, double*, void*);
   void thetaGr(int, double*);
   static void thetaGrW(int, double*, double*, void*);

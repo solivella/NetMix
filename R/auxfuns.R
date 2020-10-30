@@ -323,8 +323,8 @@
                                  })
         ret <- lda::mmsb.collapsed.gibbs.sampler(network = soc_mats[[i]],
                                                  K = n.blocks,
-                                                 num.iterations = 150L,
-                                                 burnin = 75L,
+                                                 num.iterations = 100L,
+                                                 burnin = 50L,
                                                  alpha = ctrl$alpha,
                                                  beta.prior = lda_beta_prior)
         MixedMembership <- prop.table(ret$document_expects, 2)
@@ -351,16 +351,16 @@
     X_tmp <- matrix(1, ncol = ncol(pi_init_t), nrow = 1)
     ctrl$vi_iter <- 2
     ctrl$verbose <- FALSE
-    sparsity <- mean(Y >= 0.5)
+    ##sparsity <- mean(Y >= 0.5)
     fit_tmp <- mmsbm_fit(Z_tmp,
-                         Z_tmp,
+                         ##Z_tmp,
                          X_tmp,
                          Y,
-                         Y,
+                         ##Y,
                          t_id_d,
                          t_id_n,
                          nodes_pp,
-                         nt_id,
+                         ##nt_id,
                          nt_id,
                          node_id_period,
                          mu_b,
@@ -374,7 +374,7 @@
                          qlogis(block_models[[target_ind]]),
                          array(ctrl$alpha, c(1,n.blocks,ctrl$states)),
                          0.0,
-                         sparsity,
+                         ##sparsity,
                          ctrl)
     if(fit_tmp$LowerBound >= max_ll){
       best_pi <- pi_init_t
