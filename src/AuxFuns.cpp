@@ -1,4 +1,5 @@
 #include "AuxFuns.h"
+#include "MMModelClassB.h"
 
 double logSumExp(const arma::vec& invec)
 {
