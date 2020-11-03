@@ -289,7 +289,7 @@
           clust_internal <- fitted(kmeans(x = target,
                                           centers = n.blocks,
                                           iter.max = 15,
-                                          nstart = 1), "classes")
+                                          nstart = 10), "classes")
           
         } else {
           init_c <- sample(1:nrow(target), n.blocks, replace = FALSE)

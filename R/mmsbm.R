@@ -441,8 +441,8 @@ mmsbm <- function(formula.dyad,
       }
       state_init <- fitted(kmeans(x = dyad_time,
                                   centers = n.hmmstates,
-                                  iter.max = 10,
-                                  nstart = ctrl$nstarts), "classes")
+                                  iter.max = 15,
+                                  nstart = 15), "classes")
       kappa_internal <- model.matrix(~ factor(state_init, 1:n.hmmstates) - 1)
       kappa_internal <- .transf(kappa_internal)
       ctrl$kappa_init_t <- t(kappa_internal)

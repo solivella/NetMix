@@ -432,7 +432,7 @@ void MMModel::optim_ours(bool alpha)
     // computeAlpha(true);
     int npar = N_MONAD_PRED * N_BLK * N_STATE;
     betaold = beta;
-    //std::copy(beta_init.begin(), beta_init.end(), beta.begin());
+    std::copy(beta_init.begin(), beta_init.end(), beta.begin());
     //beta.zeros();
     vmmin_ours(npar, &beta[0], &fminAlpha, alphaLBW, alphaGrW, OPT_ITER, 0,
                 &maskalpha[0], -1.0e+35, 1.0e-6, 1, this, &fncountAlpha, &grcountAlpha, &m_failAlpha);
@@ -455,7 +455,7 @@ void MMModel::optim_ours(bool alpha)
     int npar = N_B_PAR + N_DYAD_PRED;
     thetaold = theta_par;
     //theta_par.zeros();
-    //std::copy(gamma_init.begin(), gamma_init.end(), theta_par.begin() + N_B_PAR);
+    std::copy(gamma_init.begin(), gamma_init.end(), theta_par.begin() + N_B_PAR);
     vmmin_ours(npar, &theta_par[0], &fminTheta, thetaLBW, thetaGrW, OPT_ITER, 0,
                 &masktheta[0], -1.0e+35, 1.0e-6, 1, this, &fncountTheta, &grcountTheta, &m_failTheta);
     

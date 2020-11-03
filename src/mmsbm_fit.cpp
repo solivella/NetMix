@@ -96,7 +96,7 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
   double tol = Rcpp::as<double>(control["conv_tol"]),
      newLL, oldLL;
   
-  oldLL = -arma::datum::inf;
+  oldLL = Model.LB();
   newLL = 0.0;
   arma::vec running_ll(win_size, arma::fill::zeros);
   std::vector<double> ll_vec;
