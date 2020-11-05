@@ -97,6 +97,7 @@ MMModel::MMModel(const arma::mat& z_t,
   send_phi(N_BLK, N_DYAD, arma::fill::zeros),
   rec_phi(N_BLK, N_DYAD, arma::fill::zeros),
   e_wmn_t(N_STATE, N_STATE, arma::fill::zeros),
+  new_e_c_t(N_BLK, N_NODE, arma::fill::zeros),
   e_c_t(N_BLK, N_NODE, arma::fill::zeros),
   alpha(N_BLK, N_NODE, N_STATE, arma::fill::zeros),
   theta(N_BLK, N_BLK, N_DYAD, arma::fill::zeros),
@@ -210,7 +211,7 @@ double MMModel::alphaLB(bool all)
 
     for(arma::uword g = 0; g < N_BLK; ++g){
       for(arma::uword x = 0; x < N_MONAD_PRED; ++x){
-        res -= pow(beta(x, g, m) - mu_beta(x, g, m), 2.0) / var_beta(x, g, m);
+        res -= 0.5 * pow(beta(x, g, m) - mu_beta(x, g, m), 2.0) / var_beta(x, g, m);
       }
     }
   }
@@ -245,7 +246,7 @@ void MMModel::alphaGr(int N_PAR, double *gr)
           }
         }
         res *= (1. * N_NODE) / N_NODE_BATCH;
-        prior_gr = 2.0*(beta(x, g, m) - mu_beta(x, g, m)) / var_beta(x, g, m);
+        prior_gr = (beta(x, g, m) - mu_beta(x, g, m)) / var_beta(x, g, m);
         gr[x + N_MONAD_PRED * (g + N_BLK * m)] = -(res - prior_gr);
       }
     }
@@ -269,7 +270,7 @@ void MMModel::computeAlpha(bool all)
     for(arma::uword p = 0; p < N_NODE; ++p){
       if((node_in_batch[p] == 1) || all){
         correct_fact = all ? 1.0: (1. * N_NODE)/N_NODE_BATCH;//((1. * tot_nodes[p]) /  n_nodes_batch[time_id_node[p]]);
-        //Rprintf("Correct fact = %f\n", correct_fact);
+        //Rprintf("Correct fact = %f, all %i\n", correct_fact, all);
       row_sum = 0.0;
       for(arma::uword g = 0; g < N_BLK; ++g){
         linpred = 0.0;
@@ -279,9 +280,9 @@ void MMModel::computeAlpha(bool all)
         linpred = exp(linpred);
         row_sum += linpred;
         alpha(g, p, m) = linpred;
-        alpha_term(m, time_id_node[p]) +=  correct_fact *  (lgamma(linpred + e_c_t(g, p)) - lgamma(linpred));
+        alpha_term(m, time_id_node[p]) +=  correct_fact * (lgamma(linpred + e_c_t(g, p)) - lgamma(linpred));
       }
-      alpha_term(m, time_id_node[p]) += correct_fact *  (lgamma(row_sum) - lgamma(row_sum + tot_nodes[p]));
+      alpha_term(m, time_id_node[p]) += correct_fact * (lgamma(row_sum) - lgamma(row_sum + tot_nodes[p]));
     }
   }
   }
@@ -316,13 +317,13 @@ double MMModel::thetaLB(bool entropy, bool all)
 
   //Prior for gamma
   for(arma::uword z = 0; z < N_DYAD_PRED; ++z){
-    res -= pow(gamma[z] - mu_gamma[z], 2.0) / var_gamma[z];
+    res -= 0.5*pow(gamma[z] - mu_gamma[z], 2.0) / var_gamma[z];
   }
 
   //Prior for B
   for(arma::uword g = 0; g < N_BLK; ++g){
     for(arma::uword h = 0; h < N_BLK; ++h){
-      res -= (pow(b_t(h, g) - mu_b_t(h, g), 2.0) / var_b_t(h, g));
+      res -= 0.5*(pow(b_t(h, g) - mu_b_t(h, g), 2.0) / var_b_t(h, g));
     }
   }
 
@@ -368,7 +369,7 @@ void MMModel::thetaGr(int N_PAR, double *gr)
     gr[i] *= reweightFactor; //for stochastic VI
   }
   for(arma::uword z = 0; z < N_DYAD_PRED; ++z){
-    gr[N_B_PAR + z] += 2.0*(gamma[z] - mu_gamma[z]) / var_gamma[z];
+    gr[N_B_PAR + z] += (gamma[z] - mu_gamma[z]) / var_gamma[z];
   }
   for(arma::uword g = 0; g < N_BLK; ++g){
     for(arma::uword h = 0; h < N_BLK; ++h){
@@ -376,7 +377,7 @@ void MMModel::thetaGr(int N_PAR, double *gr)
         continue;
       }
       npar = par_ind(h, g);
-      gr[npar] += 2.0*(b_t(h, g) - mu_b_t(h, g)) / var_b_t(h, g);
+      gr[npar] += (b_t(h, g) - mu_b_t(h, g)) / var_b_t(h, g);
     }
   }
   for(arma::uword i = 0; i < U_NPAR; ++i)
@@ -432,7 +433,7 @@ void MMModel::optim_ours(bool alpha)
     // computeAlpha(true);
     int npar = N_MONAD_PRED * N_BLK * N_STATE;
     betaold = beta;
-    std::copy(beta_init.begin(), beta_init.end(), beta.begin());
+    //std::copy(beta_init.begin(), beta_init.end(), beta.begin());
     //beta.zeros();
     vmmin_ours(npar, &beta[0], &fminAlpha, alphaLBW, alphaGrW, OPT_ITER, 0,
                 &maskalpha[0], -1.0e+35, 1.0e-6, 1, this, &fncountAlpha, &grcountAlpha, &m_failAlpha);
@@ -455,7 +456,7 @@ void MMModel::optim_ours(bool alpha)
     int npar = N_B_PAR + N_DYAD_PRED;
     thetaold = theta_par;
     //theta_par.zeros();
-    std::copy(gamma_init.begin(), gamma_init.end(), theta_par.begin() + N_B_PAR);
+    //std::copy(gamma_init.begin(), gamma_init.end(), theta_par.begin() + N_B_PAR);
     vmmin_ours(npar, &theta_par[0], &fminTheta, thetaLBW, thetaGrW, OPT_ITER, 0,
                 &masktheta[0], -1.0e+35, 1.0e-6, 1, this, &fncountTheta, &grcountTheta, &m_failTheta);
     
@@ -597,15 +598,100 @@ void MMModel::updateKappa()
  VARIATIONAL UPDATE FOR PHI
  */
 
-void MMModel::updatePhiInternal(arma::uword dyad,
-                                arma::uword rec,
+// void MMModel::updatePhiInternal(arma::uword dyad,
+//                                 arma::uword rec,
+//                                 double *phi,
+//                                 double *phi_o,
+//                                 double *new_c,
+//                                 arma::uword *err
+// )
+// {
+// 
+//   arma::uword t = time_id_dyad[dyad];
+//   double edge = y[dyad];
+//   arma::uword incr1 = rec ? 1 : N_BLK;
+//   arma::uword incr2 = rec ? N_BLK : 1;
+//   arma::uword node = node_id_dyad(dyad, rec);
+//   double *theta_temp = &theta(0, 0, dyad);
+//   double *te;
+// 
+// 
+//   double total = 0.0, res;
+//   for(arma::uword g = 0; g < N_BLK; ++g, theta_temp+=incr1){
+//     new_c[g] -= phi[g];
+//     res = 0.0;
+//     for(arma::uword m = 0; m < N_STATE; ++m){
+//       // Rprintf("kappa = %f, alpha = %f, new_c = %f, phi = %f\n", kappa_t(m, t),
+//       //         alpha(g, node, m), new_c[g], phi[g]);
+//       res += kappa_t(m, t) * log(alpha(g, node, m) + std::max(new_c[g], 0.0));
+//     }
+//     //Rprintf("res before = %f\n",res);
+//     te = theta_temp;
+//     for(arma::uword h = 0; h < N_BLK; ++h, te+=incr2){
+//       //Rprintf("theta = %f, phi_o = %f\n",*te, phi_o[h]);
+//       res += phi_o[h] * (edge * log(*te) + (1.0 - edge) * log(1.0 - *te));
+//     }
+//     //Rprintf("res after = %f\n",res);
+//     phi[g] = exp(res);
+//     if(!std::isfinite(phi[g])){
+//       (*err)++;
+//     }
+//     total += phi[g];
+//   }
+// 
+//   //Normalize phi to sum to 1
+//   //and store new value in c
+//   for(arma::uword g = 0; g < N_BLK; ++g){
+//     phi[g] /= total;
+//     new_c[g] += phi[g];
+//   }
+// }
+// 
+// 
+// void MMModel::updatePhi()
+// {
+//   //Rcpp::Rcout << arma::mean(arma::sum(old_e)) << std::endl;
+//   arma::uword err = 0;
+//   // Update dyads with sampled nodes
+//   for(arma::uword d = 0; d < N_DYAD; ++d){
+//     Rcpp::checkUserInterrupt();
+//       if(node_est[node_id_dyad(d, 0)]) {
+//         updatePhiInternal(d,
+//                           0,
+//                           &(send_phi(0, d)),
+//                           &(rec_phi(0, d)),
+//                           &(e_c_t(0, node_id_dyad(d, 0))),
+//                           &err
+//         );
+//       }
+//       if(node_est[node_id_dyad(d, 1)]) {
+//         updatePhiInternal(d,
+//                           1,
+//                           &(rec_phi(0, d)),
+//                           &(send_phi(0, d)),
+//                           &(e_c_t(0, node_id_dyad(d, 1))),
+//                           &err
+//         );
+//       }
+//   }
+//   //Rcpp::stop("stop here.");
+// 
+// 
+//   if(err){
+//     Rcpp::stop("Phi value became NaN.");
+//   }
+// 
+// }
+
+
+void MMModel::updatePhiInternal(arma::uword dyad, arma::uword rec,
                                 double *phi,
                                 double *phi_o,
                                 double *new_c,
                                 arma::uword *err
 )
 {
-  
+
   arma::uword t = time_id_dyad[dyad];
   double edge = y[dyad];
   arma::uword incr1 = rec ? 1 : N_BLK;
@@ -614,30 +700,27 @@ void MMModel::updatePhiInternal(arma::uword dyad,
   double *theta_temp = &theta(0, 0, dyad);
   double *te;
 
-  
   double total = 0.0, res;
   for(arma::uword g = 0; g < N_BLK; ++g, theta_temp+=incr1){
-    new_c[g] -= phi[g];
     res = 0.0;
     for(arma::uword m = 0; m < N_STATE; ++m){
-      // Rprintf("kappa = %f, alpha = %f, new_c = %f, phi = %f\n", kappa_t(m, t),
-      //         alpha(g, node, m), new_c[g], phi[g]);
-      res += kappa_t(m, t) * log(alpha(g, node, m) + std::max(new_c[g], 0.0));
+      res += kappa_t(m, t) * log(alpha(g, node, m) + std::max(e_c_t(g, node) - phi[g], 0.0));
     }
-    //Rprintf("res before = %f\n",res);
+
     te = theta_temp;
     for(arma::uword h = 0; h < N_BLK; ++h, te+=incr2){
-      //Rprintf("theta = %f, phi_o = %f\n",*te, phi_o[h]);
       res += phi_o[h] * (edge * log(*te) + (1.0 - edge) * log(1.0 - *te));
     }
-    //Rprintf("res after = %f\n",res);
     phi[g] = exp(res);
     if(!std::isfinite(phi[g])){
+      // #ifdef _OPENMP
+      // #pragma omp atomic
+      // #endif
       (*err)++;
     }
     total += phi[g];
   }
-  
+
   //Normalize phi to sum to 1
   //and store new value in c
   for(arma::uword g = 0; g < N_BLK; ++g){
@@ -649,38 +732,59 @@ void MMModel::updatePhiInternal(arma::uword dyad,
 
 void MMModel::updatePhi()
 {
-  //Rcpp::Rcout << arma::mean(arma::sum(old_e)) << std::endl;
+  // for(int thread = 0; thread < N_THREAD; ++thread){
+  //   std::fill(new_e_c_t[thread].begin(), new_e_c_t[thread].end(), 0.0);
+  // }
+  new_e_c_t.zeros();
   arma::uword err = 0;
-  // Update dyads with sampled nodes
+  // #ifdef _OPENMP
+  // #pragma omp parallel for
+  // #endif
   for(arma::uword d = 0; d < N_DYAD; ++d){
     Rcpp::checkUserInterrupt();
-      if(node_est[node_id_dyad(d, 0)]) {
-        updatePhiInternal(d,
-                          0,
-                          &(send_phi(0, d)),
-                          &(rec_phi(0, d)),
-                          &(e_c_t(0, node_id_dyad(d, 0))),
-                          &err
-        );
-      }
-      if(node_est[node_id_dyad(d, 1)]) {
-        updatePhiInternal(d,
-                          1,
-                          &(rec_phi(0, d)),
-                          &(send_phi(0, d)),
-                          &(e_c_t(0, node_id_dyad(d, 1))),
-                          &err
-        );
-      } 
+
+    // int thread = 0;
+    // #ifdef _OPENMP
+    //     thread = omp_get_thread_num();
+    // #endif
+    updatePhiInternal(d,
+                      0,
+                      &(send_phi(0, d)),
+                      &(rec_phi(0, d)),
+                      //&(new_e_c_t[thread](0, node_id_dyad(d, 0))),
+                      &(new_e_c_t(0, node_id_dyad(d, 0))),
+                      &err
+    );
+    updatePhiInternal(d,
+                      1,
+                      &(rec_phi(0, d)),
+                      &(send_phi(0, d)),
+                      //&(new_e_c_t[thread](0, node_id_dyad(d, 1))),
+                      &(new_e_c_t(0, node_id_dyad(d, 1))),
+                      &err
+    );
   }
-  //Rcpp::stop("stop here.");
-  
 
   if(err){
     Rcpp::stop("Phi value became NaN.");
   }
-  
+
+
+  e_c_t = new_e_c_t;
+  //std::fill(e_c_t.begin(), e_c_t.end(), 0.0);
+  // #ifdef _OPENMP
+  // #pragma omp parallel for collapse(2)
+  // #endif
+  // for(int p = 0; p < N_NODE; ++p){
+  //   for(int g = 0; g < N_BLK; ++g){
+  //for(int i = 0; i < N_THREAD; ++i){
+  //e_c_t(g, p) += (new_e_c_t[i])(g, p);
+  //}
+  //   }
+  // }
 }
+
+
 
 void MMModel::sampleDyads(arma::uword iter)
 {
@@ -716,13 +820,30 @@ void MMModel::sampleDyads(arma::uword iter)
  * CONVERGENCE CHECKER
  */
 void MMModel::convCheck(bool& conv,
-                        const arma::vec& ll,
+                        const arma::cube& beta_new,
+                        const arma::cube& beta_old,
+                        const arma::mat& b_new,  
+                        const arma::mat& b_old, 
+                        const arma::vec& gamma_new, 
+                        const arma::vec& gamma_old, 
                         const double& tol)
 {
   //double cor_val = arma::as_scalar(arma::cor(ll, arma::regspace(1, ll.n_elem)));
-  //Rprintf("Cor is %f, std is %f\n", cor_val, arma::stddev(ll));
+  // Rcpp::Rcout << b_old << std::endl;
+  // Rcpp::Rcout << b_new << std::endl;
+  double c1 = arma::as_scalar(arma::cor(arma::vectorise(beta_new), arma::vectorise(beta_old)));
+  double c2 = arma::as_scalar(arma::cor(arma::vectorise(b_new), arma::vectorise(b_old)));
+  double c3 = arma::as_scalar(arma::cor(gamma_new, gamma_old));
+  Rcpp::NumericVector cor_vec = {c1, c2, c3};
+  //Rcpp::Rcout << cor_vec << std::endl;
+  Rcpp::LogicalVector nans = Rcpp::is_nan(cor_vec);
+  cor_vec[nans] = 1.0;
+  conv = Rcpp::is_true(Rcpp::all(cor_vec > (1.0 - tol)));
+  
+  //Rprintf("Cor is %f\n", cor_val);
   //Rcpp::Rcout << ll << std::endl;
-  conv = (fabs(arma::as_scalar((ll.tail(1)-ll.head(1))/ll.head(1))) < tol);
+  //conv = (fabs(arma::as_scalar((ll.tail(1)-ll.head(1))/ll.head(1))) < tol);
+                                    //conv = (cor_val > (1.0-tol));
   // if((arma::stddev(ll) == 0.0) | (fabs(cor_val) <= tol)){
   //   conv = true;
   // }

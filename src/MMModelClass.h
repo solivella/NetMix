@@ -70,7 +70,12 @@ public:
   arma::cube getBeta();
   void getBeta(arma::cube&);
   void convCheck(bool& conv,
-                 const arma::vec& lb,
+                 const arma::cube& beta_new,
+                 const arma::cube& beta_old,
+                 const arma::mat& b_new,  
+                 const arma::mat& b_old, 
+                 const arma::vec& gamma_new, 
+                 const arma::vec& gamma_old, 
                  const double& tol);
   
   
@@ -156,6 +161,7 @@ private:
   send_phi,
   rec_phi,
   e_wmn_t,
+  new_e_c_t,
   e_c_t;
   
   arma::cube alpha, //3d array (column major)

@@ -98,10 +98,15 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
   
   oldLL = Model.LB();
   newLL = 0.0;
-  arma::vec running_ll(win_size, arma::fill::zeros);
+  //arma::vec running_ll(win_size, arma::fill::zeros);
+  arma::cube beta_new, beta_old; 
+  arma::mat b_old, b_new;
+  arma::vec gamma_new, gamma_old;
   std::vector<double> ll_vec;
   
-  
+  beta_old = Model.getBeta();
+  b_old = Model.getB();
+  gamma_old = Model.getGamma();
   while(iter < VI_ITER && conv == false){
     Rcpp::checkUserInterrupt();
     // E-STEP
@@ -121,19 +126,26 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
     //Check convergence
     
 
-    if(svi){
-      newLL = Model.LB();
-      std::rotate(running_ll.begin(), running_ll.begin() + 1, running_ll.end());
-      running_ll[win_size - 1] = newLL;
-      if(iter > win_size) {
-        Model.convCheck(conv, running_ll, tol);
-      }
-    } else {
-      newLL = Model.LB();
-      //Rprintf("New %f, old %f\n", newLL, oldLL);
-      conv = (fabs((newLL-oldLL)/oldLL) < tol);
-    }
+    // if(svi){
+    newLL = Model.LB();
+    beta_new = Model.getBeta();
+    b_new = Model.getB();
+    gamma_new = Model.getGamma();
+    Model.convCheck(conv, beta_new, beta_old, b_new, b_old, gamma_new, gamma_old, tol);
+    //   std::rotate(running_ll.begin(), running_ll.begin() + 1, running_ll.end());
+    //   running_ll[win_size - 1] = newLL;
+    //   if(iter > win_size) {
+    //     Model.convCheck(conv, running_ll, tol);
+    //   }
+    // } else {
+    //   newLL = Model.LB();
+    //   //Rprintf("New %f, old %f\n", newLL, oldLL);
+    //   conv = (fabs((newLL-oldLL)/oldLL) < tol);
+    // }
       ll_vec.push_back(newLL);
+      beta_old = beta_new;
+      b_old =b_new;
+      gamma_old = gamma_new;
     oldLL = newLL;
     
     if(verbose){
