@@ -168,6 +168,7 @@ private:
   send_phi,
   rec_phi,
   e_wmn_t,
+  new_e_c_t1, new_e_c_t2,
   e_c_t1, e_c_t2;
   
   arma::cube alpha1,alpha2, //3d array (column major)

@@ -128,6 +128,8 @@ MMModelB::MMModelB(const arma::mat& z_t,
   send_phi(N_BLK1, N_DYAD, arma::fill::zeros),
   rec_phi(N_BLK2, N_DYAD, arma::fill::zeros),
   e_wmn_t(N_STATE, N_STATE, arma::fill::zeros),
+  new_e_c_t1(N_BLK1, N_NODE1, arma::fill::zeros),
+  new_e_c_t2(N_BLK2, N_NODE2, arma::fill::zeros),
   e_c_t1(N_BLK1, N_NODE1, arma::fill::zeros),
   e_c_t2(N_BLK2, N_NODE2, arma::fill::zeros),
   alpha1(N_BLK1, N_NODE1, N_STATE, arma::fill::zeros),
@@ -301,7 +303,7 @@ double MMModelB::alphaLBInternal(const arma::uword tmpNODE,
    
    for(arma::uword g = 0; g < tmpBLK; ++g){
      for(arma::uword x = 1; x < tmpPRED; ++x){
-      res -= pow(tmpBeta(x, g, m)- tmp_mu_beta(x, g, m), 2.0) / tmp_var_beta(x, g, m);  
+      res -= 0.5 * pow(tmpBeta(x, g, m)- tmp_mu_beta(x, g, m), 2.0) / tmp_var_beta(x, g, m);  
      }
    }
  }
@@ -386,7 +388,7 @@ void MMModelB::alphaGrInternal(int N_PAR, double *gr, //bool mode2,
         }
        }
        res*= (1. * tmpNODE)/(1. * tmpNode_batch);
-       prior_gr =  2.0*(tmpBeta(x, g, m) - tmp_mu_beta(x, g, m))/tmp_var_beta(x, g, m);//x > 0 ? (tmpBeta(x, g, m) - tmp_mu_beta(x, g, m)) / tmp_var_beta(x, g, m) : 0.0;
+       prior_gr =  (tmpBeta(x, g, m) - tmp_mu_beta(x, g, m))/tmp_var_beta(x, g, m);//x > 0 ? (tmpBeta(x, g, m) - tmp_mu_beta(x, g, m)) / tmp_var_beta(x, g, m) : 0.0;
        gr[x + tmpPRED * (g + tmpBLK * m)] = -(res - prior_gr);//(res - prior_gr);//
      }
    }
@@ -497,12 +499,12 @@ double MMModelB::thetaLB(bool entropy = false)
   res *= reweightFactor;
   //Prior for gamma
   for(arma::uword z = 0; z < N_DYAD_PRED; ++z){
-    res -= pow(gamma[z] - mu_gamma[z], 2.0) / var_gamma[z];
+    res -= 0.5*pow(gamma[z] - mu_gamma[z], 2.0) / var_gamma[z];
   }
   //Prior for B
   for(arma::uword g = 0; g < N_BLK1; ++g){
     for(arma::uword h = 0; h < N_BLK2; ++h){
-      res -=(pow(b_t(h,g) - mu_b_t(h, g), 2.0) / var_b_t(h, g));
+      res -=0.5*(pow(b_t(h,g) - mu_b_t(h, g), 2.0) / var_b_t(h, g));
     }
   }
   return -res / N_DYAD;
@@ -546,7 +548,7 @@ void MMModelB::thetaGr(int N_PAR, double *gr){
    gr[i] *= reweightFactor; //for stochastic VI
  }
  for(arma::uword z = 0; z < N_DYAD_PRED; ++z){
-   gr[N_B_PAR + z] += 2.0*(gamma[z] - mu_gamma[z]) / var_gamma[z];
+   gr[N_B_PAR + z] += (gamma[z] - mu_gamma[z]) / var_gamma[z];
  }
  for(arma::uword g = 0; g < N_BLK1; ++g){
    for(arma::uword h = 0; h < N_BLK2; ++h){
@@ -556,7 +558,7 @@ void MMModelB::thetaGr(int N_PAR, double *gr){
      }
      }
      npar = par_ind(h, g);
-     gr[npar] += 2.0*(b_t(h, g) - mu_b_t(h, g)) / var_b_t(h, g);
+     gr[npar] += (b_t(h, g) - mu_b_t(h, g)) / var_b_t(h, g);
     }
  }
  for(arma::uword i = 0; i < U_NPAR; ++i){

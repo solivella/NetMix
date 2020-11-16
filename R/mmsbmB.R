@@ -564,10 +564,11 @@ mmsbmB <- function(formula.dyad,
                                       nodes2))
     #adj_mat[dyad_mat] <- edge_vec
     indeces <- as.matrix(dyad_mat[,c("(sid)","(rid)")])
-    adj_mat[indeces] <- dyad_mat[,which(names(dyad_mat)%in%"Y")] # out of bounds
+    index<-cbind(match(indeces[,1],rownames(adj_mat)),match(indeces[,2],colnames(adj_mat)))
+    adj_mat[index] <- dyad_mat[,which(names(dyad_mat)%in%"Y")] # out of bounds
     if(!directed){
       #adj_mat[dyad_mat[,c(2,1)]] <- edge_vec
-      adj_mat[indeces[,c(2,1)]] <- dyad_mat[,which(names(dyad_mat)%in%"Y")]
+      adj_mat[index[,c(2,1)]] <- dyad_mat[,which(names(dyad_mat)%in%"Y")]
     }
     obs_prop <- mean(adj_mat, na.rm = TRUE)
     if(anyNA(adj_mat)){

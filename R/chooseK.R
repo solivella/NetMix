@@ -98,8 +98,8 @@ chooseK<-function(formula.dyad,
                   k1=NULL,k2=NULL,
                   n.hmmstates,
                   directed = TRUE,
-                  nodes2 = NULL,
-                  npred2 = NULL,
+                  #nodes2 = NULL,
+                  #npred2 = NULL,
                   mmsbm.control = list(),seed=123){
   set.seed(seed)
   require(pROC)
@@ -115,7 +115,7 @@ chooseK<-function(formula.dyad,
                                 senderID = senderID, receiverID = receiverID,nodeID1 = nodeID1, nodeID2 = nodeID2, timeID = timeID,
                                 data.dyad = train.data.dyad, data.monad1 = train.data.monad1, data.monad2 = train.data.monad2, #training data
                                 n.blocks1 = ktry[i,1], n.blocks2 = ktry[i,2], #k to try
-                                n.hmmstates = n.hmmstates, directed = FALSE, nodes2 = nrow(train.data.monad2), npred2 = npred2,
+                                n.hmmstates = n.hmmstates, directed = FALSE, #nodes2 = nrow(train.data.monad2), npred2 = npred2,
                                 mmsbm.control = mmsbm.control)
     ## Testing
     if (!is.null(test.data.monad1)){new.data.monad1<-test.data.monad1
