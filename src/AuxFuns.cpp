@@ -54,6 +54,7 @@ void vmmin_ours(int n0, double *b, double *Fmin, optimfn fminfn, optimgr fmingr,
   iter++;
   ilast = gradcount;
   do {
+    Rcpp::checkUserInterrupt();
     if (ilast == gradcount) {
       for (i = 0; i < n; i++) {
         for (j = 0; j < i; j++) B[i][j] = 0.0;

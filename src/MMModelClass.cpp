@@ -97,7 +97,6 @@ MMModel::MMModel(const arma::mat& z_t,
   send_phi(N_BLK, N_DYAD, arma::fill::zeros),
   rec_phi(N_BLK, N_DYAD, arma::fill::zeros),
   e_wmn_t(N_STATE, N_STATE, arma::fill::zeros),
-  new_e_c_t(N_BLK, N_NODE, arma::fill::zeros),
   e_c_t(N_BLK, N_NODE, arma::fill::zeros),
   alpha(N_BLK, N_NODE, N_STATE, arma::fill::zeros),
   theta(N_BLK, N_BLK, N_DYAD, arma::fill::zeros),
@@ -684,7 +683,8 @@ void MMModel::updateKappa()
 // }
 
 
-void MMModel::updatePhiInternal(arma::uword dyad, arma::uword rec,
+void MMModel::updatePhiInternal(arma::uword dyad,
+                                arma::uword rec,
                                 double *phi,
                                 double *phi_o,
                                 double *new_c,
@@ -702,9 +702,10 @@ void MMModel::updatePhiInternal(arma::uword dyad, arma::uword rec,
 
   double total = 0.0, res;
   for(arma::uword g = 0; g < N_BLK; ++g, theta_temp+=incr1){
+    new_c[g] -= phi[g];
     res = 0.0;
     for(arma::uword m = 0; m < N_STATE; ++m){
-      res += kappa_t(m, t) * log(alpha(g, node, m) + std::max(e_c_t(g, node) - phi[g], 0.0));
+      res += kappa_t(m, t) * log(alpha(g, node, m) + std::max(new_c[g], 0.0));
     }
 
     te = theta_temp;
@@ -735,7 +736,6 @@ void MMModel::updatePhi()
   // for(int thread = 0; thread < N_THREAD; ++thread){
   //   std::fill(new_e_c_t[thread].begin(), new_e_c_t[thread].end(), 0.0);
   // }
-  new_e_c_t.zeros();
   arma::uword err = 0;
   // #ifdef _OPENMP
   // #pragma omp parallel for
@@ -751,16 +751,14 @@ void MMModel::updatePhi()
                       0,
                       &(send_phi(0, d)),
                       &(rec_phi(0, d)),
-                      //&(new_e_c_t[thread](0, node_id_dyad(d, 0))),
-                      &(new_e_c_t(0, node_id_dyad(d, 0))),
+                      &(e_c_t(0, node_id_dyad(d, 0))),
                       &err
     );
     updatePhiInternal(d,
                       1,
                       &(rec_phi(0, d)),
                       &(send_phi(0, d)),
-                      //&(new_e_c_t[thread](0, node_id_dyad(d, 1))),
-                      &(new_e_c_t(0, node_id_dyad(d, 1))),
+                      &(e_c_t(0, node_id_dyad(d, 1))),
                       &err
     );
   }
@@ -769,19 +767,6 @@ void MMModel::updatePhi()
     Rcpp::stop("Phi value became NaN.");
   }
 
-
-  e_c_t = new_e_c_t;
-  //std::fill(e_c_t.begin(), e_c_t.end(), 0.0);
-  // #ifdef _OPENMP
-  // #pragma omp parallel for collapse(2)
-  // #endif
-  // for(int p = 0; p < N_NODE; ++p){
-  //   for(int g = 0; g < N_BLK; ++g){
-  //for(int i = 0; i < N_THREAD; ++i){
-  //e_c_t(g, p) += (new_e_c_t[i])(g, p);
-  //}
-  //   }
-  // }
 }
 
 

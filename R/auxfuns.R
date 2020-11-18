@@ -264,13 +264,16 @@
         if(directed){
           D_o <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
           D_i <- 1/sqrt(.colSums(soc_mats[[i]], mn, mn) + 1)
-          C_o <- t(D_o * soc_mats[[i]])
-          C_i <- t(D_i * t(soc_mats[[i]]))
+          C_o <- t(D_o * (soc_mats[[i]] + sqrt(mean(.rowMeans(soc_mats[[i]], mn, mn)))))
+          C_i <- t(D_i * (t(soc_mats[[i]]) + sqrt(mean(.colMeans(soc_mats[[i]], mn, mn)))))
           U <- t(C_o * D_i) %*% C_o +
             t(C_i * D_o) %*% C_i
         } else {
           D <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
-          U <- t(D * soc_mats[[i]]) * D
+          U <- t(D * (soc_mats[[i]] + mean(.rowMeans(soc_mats[[i]], mn, mn)/2))) * D
+        }
+        if(!ctrl$assortative){
+          U <- -1 * U
         }
         if(ctrl$spectral) {
           n_elem <- n.blocks + 1
@@ -307,7 +310,7 @@
         colnames(pi_internal) <- 1:n.blocks
         MixedMembership <- t(pi_internal)
         int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
-        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
+        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership, directed)
         temp_res[[i]] <- list(BlockModel = BlockModel,
                               MixedMembership = MixedMembership)                         
         
@@ -330,7 +333,7 @@
         MixedMembership <- prop.table(ret$document_expects, 2)
         colnames(MixedMembership) <- colnames(soc_mats[[i]])
         int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
-        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
+        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership, directed)
         if(any(is.nan(BlockModel))){
           BlockModel[is.nan(BlockModel)] <- 0.0
         }

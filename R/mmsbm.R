@@ -54,8 +54,11 @@
 #'                     and ignored otherwise.}                    
 #'        \item{opt_iter}{Number of maximum iterations of BFGS in global step. Defaults to 10e3.}
 #'        \item{hessian}{Boolean indicating whether the Hessian matrix of regression coefficients should e returned. Defaults to \code{TRUE}.}
+#'        \item{assortative}{Boolean indicating whether blockmodel should be assortative (i.e. stronger connections within groups) or disassortative
+#'                           (i.e. stronger connections between groups). Defaults to \code{TRUE}.}
 #'        \item{mu_b}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
-#'                    and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)}.}
+#'                    and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)} if \code{assortative=TRUE} (default)
+#'                    and to \code{c(-5.0, 5.0)} otherwise.}
 #'        \item{var_b}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
 #'                    and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(1.0, 1.0)}.}
 #'        \item{mu_beta}{Either single numeric value, in which case the same prior mean is applied to all monadic coefficients, or
@@ -174,7 +177,7 @@ mmsbm <- function(formula.dyad,
                se_sim = 10,
                dyad_vcov_samp = 100,
                opt_iter = 10e3,
-               mu_b = c(1.0, 0.0),
+               assortative = TRUE,
                var_b = c(1.0, 1.0),
                mu_beta = 0.0,
                mu_gamma = 0.0,
@@ -187,7 +190,18 @@ mmsbm <- function(formula.dyad,
   ctrl[names(mmsbm.control)] <- mmsbm.control
   ctrl$conv_window <- floor(4 + 1/(ctrl$batch_size))
   set.seed(ctrl$seed)
-  
+  if(is.null(ctrl$mu_b)){
+  if(ctrl$assortative == TRUE){
+    ctrl$mu_b <- c(5.0, -5.0)
+  } else {
+    ctrl$mu_b <- c(-5.0, 5.0)
+  } 
+  } else {
+    if((diff(ctrl$mu_b) > 0.0) & (ctrl$assortative)){
+      stop("If 'assortative' is TRUE, mu_b[1] must be greater than mu_b[2]. One of the two must be corrected.")
+    }
+  }
+
   mu_b <- var_b <- array(NA, c(n.blocks, n.blocks))
   diag(mu_b) <- ctrl[["mu_b"]][1]
   mu_b[upper.tri(mu_b)|lower.tri(mu_b)] <- ctrl[["mu_b"]][2]
@@ -495,7 +509,7 @@ mmsbm <- function(formula.dyad,
   }
   
   if(is.null(ctrl$b_init_t)){
-    ctrl$b_init_t <- qlogis(approxB(Y, nt_id, ctrl$mm_init_t))
+    ctrl$b_init_t <- qlogis(approxB(Y, nt_id, ctrl$mm_init_t, directed))
     if(any(is.infinite(ctrl$b_init_t))){
       which.inf <- which(is.infinite(ctrl$b_init_t))
       ctrl$b_init_t[which.inf] <- ifelse(ctrl$b_init_t[which.inf] > 0, 25, -25) 

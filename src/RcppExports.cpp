@@ -7,15 +7,16 @@
 using namespace Rcpp;
 
 // approxB
-Rcpp::NumericMatrix approxB(Rcpp::NumericVector y, Rcpp::IntegerMatrix d_id, Rcpp::NumericMatrix pi_mat);
-RcppExport SEXP _NetMix_approxB(SEXP ySEXP, SEXP d_idSEXP, SEXP pi_matSEXP) {
+Rcpp::NumericMatrix approxB(Rcpp::NumericVector y, Rcpp::IntegerMatrix d_id, Rcpp::NumericMatrix pi_mat, bool directed);
+RcppExport SEXP _NetMix_approxB(SEXP ySEXP, SEXP d_idSEXP, SEXP pi_matSEXP, SEXP directedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y(ySEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type d_id(d_idSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type pi_mat(pi_matSEXP);
-    rcpp_result_gen = Rcpp::wrap(approxB(y, d_id, pi_mat));
+    Rcpp::traits::input_parameter< bool >::type directed(directedSEXP);
+    rcpp_result_gen = Rcpp::wrap(approxB(y, d_id, pi_mat, directed));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -80,7 +81,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_NetMix_approxB", (DL_FUNC) &_NetMix_approxB, 3},
+    {"_NetMix_approxB", (DL_FUNC) &_NetMix_approxB, 4},
     {"_NetMix_getZ", (DL_FUNC) &_NetMix_getZ, 1},
     {"_NetMix_alphaLB", (DL_FUNC) &_NetMix_alphaLB, 8},
     {"_NetMix_mmsbm_fit", (DL_FUNC) &_NetMix_mmsbm_fit, 20},

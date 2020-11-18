@@ -2,8 +2,8 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #' @rdname auxfuns
-approxB <- function(y, d_id, pi_mat) {
-    .Call(`_NetMix_approxB`, y, d_id, pi_mat)
+approxB <- function(y, d_id, pi_mat, directed = TRUE) {
+    .Call(`_NetMix_approxB`, y, d_id, pi_mat, directed)
 }
 
 #' @rdname auxfuns
