@@ -97,8 +97,7 @@ private:
   N_DYAD_PRED,
   N_B_PAR,
   OPT_ITER,
-  N_NODE_BATCH1,
-  N_NODE_BATCH2,  
+  N_NODE_BATCH1, N_NODE_BATCH2,  
   N_THREAD;
   //N_DYAD_HO;
   
@@ -192,13 +191,14 @@ private:
                     const arma::uvec,
                     arma::uvec,
                     arma::uvec,
-                    const arma::uword);
+                    const arma::uword,
+                    bool = false);
   
-  void computeTheta();//void computeTheta(bool);
-  double alphaLBInternal(const arma::uword,
+  void computeTheta(bool = false);
+  double alphaLBInternal(
                  const arma::uword,
                  const arma::uword,
-                 //bool,
+                 const arma::uword,
                  const arma::mat,
                  arma::cube&,
                  const arma::cube,
@@ -209,8 +209,9 @@ private:
                  const arma::uvec,
                  arma::uvec,
                  arma::uvec,
-                 const arma::uword);
-  double alphaLB(bool);
+                 const arma::uword,
+                 bool = false);
+  double alphaLB(bool, bool = false);
   static double alphaLBWMode1(int, double*, void*);
   static double alphaLBWMode2(int, double*, void*);
   void alphaGr(bool, int, double*);
@@ -222,7 +223,7 @@ private:
                          arma::uvec, const arma::uword);
   static void alphaGrWMode1(int, double*, double*, void*);
   static void alphaGrWMode2(int, double*, double*, void*);
-  double thetaLB(bool);
+  double thetaLB(bool = false, bool = false);
   static double thetaLBW(int, double*, void*);
   void thetaGr(int, double*);
   static void thetaGrW(int, double*, double*, void*);

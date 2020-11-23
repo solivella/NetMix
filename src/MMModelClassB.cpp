@@ -104,14 +104,14 @@ MMModelB::MMModelB(const arma::mat& z_t,
   maskalpha1(N_MONAD_PRED1 * N_BLK1 * N_STATE, 1),
   maskalpha2(N_MONAD_PRED2 * N_BLK2 * N_STATE, 1),
   masktheta(N_B_PAR + N_DYAD_PRED, 1),//mask=0 masked --don't update this parameter; mask=1 don't mask--update this parameter
-  node_id_period1(node_id_period1),//**
-  node_id_period2(node_id_period2),//**
+  node_id_period1(node_id_period1),
+  node_id_period2(node_id_period2),
   theta_par(N_B_PAR + N_DYAD_PRED, arma::fill::zeros),
   thetaold(N_B_PAR + N_DYAD_PRED, arma::fill::zeros),
   e_wm(N_STATE, arma::fill::zeros),
-  alpha_gr1(N_MONAD_PRED1 * N_BLK1 * N_STATE, arma::fill::zeros),//**
-  alpha_gr2(N_MONAD_PRED2 * N_BLK2 * N_STATE, arma::fill::zeros),//**
-  theta_gr(N_B_PAR + N_DYAD_PRED, arma::fill::zeros),//**
+  alpha_gr1(N_MONAD_PRED1 * N_BLK1 * N_STATE, arma::fill::zeros),
+  alpha_gr2(N_MONAD_PRED2 * N_BLK2 * N_STATE, arma::fill::zeros),
+  theta_gr(N_B_PAR + N_DYAD_PRED, arma::fill::zeros),
   gamma(gamma_init_r),
   gamma_init(gamma_init_r),
   node_id_dyad(node_id_dyad),
@@ -180,7 +180,7 @@ MMModelB::MMModelB(const arma::mat& z_t,
       }
     }
   }
-  //Create matrix of theta parameter indices
+  //Create matrix of theta parameter indeces
   arma::uword ind = 0;
   for(arma::uword g = 0; g < N_BLK1; ++g){
     for(arma::uword h = 0; h < N_BLK2; ++h){
@@ -209,7 +209,6 @@ MMModelB::MMModelB(const arma::mat& z_t,
   computeAlpha(N_NODE1,
 	       N_BLK1,
 	       N_MONAD_PRED1,
-	       //false,
 	       x1_t,
 	       beta1,
 	       alpha1,
@@ -223,7 +222,6 @@ MMModelB::MMModelB(const arma::mat& z_t,
   computeAlpha(N_NODE2,
 		 N_BLK2,
 		 N_MONAD_PRED2,
-		 //false,
 		 x2_t,
 		 beta2,
 		 alpha2,
@@ -252,27 +250,28 @@ MMModelB::~MMModelB()
    ALPHA LOWER BOUND
 */
 
-double MMModelB::alphaLBInternal(const arma::uword tmpNODE,
+double MMModelB::alphaLBInternal(
+                        const arma::uword tmpNODE,
                         const arma::uword tmpBLK,
                         const arma::uword tmpPRED,
-                        //bool svi,
                         const arma::mat tmpX_t,
                         arma::cube& tmpBeta,
-                        const arma::cube tmp_mu_beta,//**add
-                        const arma::cube tmp_var_beta,//**add
+                        const arma::cube tmp_mu_beta,
+                        const arma::cube tmp_var_beta,
                         arma::cube& tmpAlpha,
                         arma::mat& tmpAlpha_term,
                         arma::mat& tmpE_C_T,
                         const arma::uvec tmpTime_id_node,
                         arma::uvec tmpTot_nodes,
                         arma::uvec tmpNode_in_batch,
-                        const arma::uword tmpNode_batch
+                        const arma::uword tmpNode_batch,
+                        bool all
                         )  
 {
- computeAlpha(tmpNODE,
+ computeAlpha(
+          tmpNODE,
           tmpBLK,
           tmpPRED,
-          //svi,
           tmpX_t,
           tmpBeta,
           tmpAlpha,
@@ -281,12 +280,13 @@ double MMModelB::alphaLBInternal(const arma::uword tmpNODE,
           tmpTime_id_node,
           tmpTot_nodes,
           tmpNode_in_batch,
-          tmpNode_batch);
+          tmpNode_batch,
+          all);
  double res = 0.0, res_int = 0.0, alpha_row = 0.0, alpha_val = 0.0;
  for(arma::uword m = 0; m < N_STATE; ++m){
 #pragma omp parallel for firstprivate(alpha_val, alpha_row, res_int) reduction(+: res)
    for(arma::uword p = 0; p < tmpNODE; ++p){
-     if((tmpNode_in_batch[p] == 1)){
+     if((tmpNode_in_batch[p] == 1) || all){
      alpha_row = 0.0;
      res_int = 0.0;
      for(arma::uword g = 0; g < tmpBLK; ++g){
@@ -298,7 +298,7 @@ double MMModelB::alphaLBInternal(const arma::uword tmpNODE,
      res += res_int * kappa_t(m, tmpTime_id_node[p]);
     }
    }
-   res*= (1.*tmpNODE)/(1.*tmpNode_batch);
+   res*= all ? 1.0: (1.*tmpNODE)/(1.*tmpNode_batch);
    //Prior for beta of correct family
    
    for(arma::uword g = 0; g < tmpBLK; ++g){
@@ -310,11 +310,12 @@ double MMModelB::alphaLBInternal(const arma::uword tmpNODE,
  return -res/(1.*tmpNODE);
 }
 
-double MMModelB::alphaLB(bool mode2)
+double MMModelB::alphaLB(bool mode2, bool all)
 {
   return mode2 ? 
   
-  alphaLBInternal(N_NODE2,
+  alphaLBInternal(
+          N_NODE2,
           N_BLK2,
           N_MONAD_PRED2,
           x2_t,
@@ -327,10 +328,12 @@ double MMModelB::alphaLB(bool mode2)
           time_id_node2,
           tot_nodes2,
           node_in_batch2,
-          N_NODE_BATCH2)
+          N_NODE_BATCH2,
+          all)
     :
     
-    alphaLBInternal(N_NODE1,
+    alphaLBInternal(
+            N_NODE1,
             N_BLK1,
             N_MONAD_PRED1,
             x1_t,
@@ -343,7 +346,8 @@ double MMModelB::alphaLB(bool mode2)
             time_id_node1,
             tot_nodes1,
             node_in_batch1,
-            N_NODE_BATCH1);
+            N_NODE_BATCH1,
+            all);
 }
 
 
@@ -352,7 +356,7 @@ double MMModelB::alphaLB(bool mode2)
 */
 
 
-void MMModelB::alphaGrInternal(int N_PAR, double *gr, //bool mode2,
+void MMModelB::alphaGrInternal(int N_PAR, double *gr,
                       const arma::uword tmpNODE,
                       const arma::uword tmpBLK,
                       const arma::uword tmpPRED,
@@ -401,7 +405,7 @@ void MMModelB::alphaGrInternal(int N_PAR, double *gr, //bool mode2,
 void MMModelB::alphaGr(bool mode2, int n, double* gr)
 {
   mode2 ? alphaGrInternal(n,
-                  gr, //true,
+                  gr,
                   N_NODE2,
                   N_BLK2,
                   N_MONAD_PRED2,
@@ -419,7 +423,7 @@ void MMModelB::alphaGr(bool mode2, int n, double* gr)
     :
     
     alphaGrInternal(n,
-            gr, //false,
+            gr,
             N_NODE1,
             N_BLK1,
             N_MONAD_PRED1,
@@ -440,7 +444,8 @@ void MMModelB::alphaGr(bool mode2, int n, double* gr)
    ALPHA COMPUTATION
 */
 
-void MMModelB::computeAlpha(const arma::uword tmpNODE,
+void MMModelB::computeAlpha(
+                           const arma::uword tmpNODE,
                            const arma::uword tmpBLK,
                            const arma::uword tmpPRED,
 			                     const arma::mat& tmpX_t,
@@ -451,15 +456,16 @@ void MMModelB::computeAlpha(const arma::uword tmpNODE,
 			                     const arma::uvec tmpTime_id_node,
 			                     arma::uvec tmpTot_nodes,
 			                     arma::uvec tmpNode_in_batch,
-			                     const arma::uword tmpNode_batch
+			                     const arma::uword tmpNode_batch,
+			                     bool all
 			   )
 {
 std::fill(tmpAlpha_term.begin(), tmpAlpha_term.end(), 0.0);
   double linpred, row_sum, correct_fact;//**
   for(arma::uword m = 0; m < N_STATE; ++m){
     for(arma::uword p = 0; p < tmpNODE; ++p){
-      if((tmpNode_in_batch[p] == 1)){
-        correct_fact = (1. * tmpNODE)/tmpNode_batch;//((1. * tot_nodes[p]) /  n_nodes_batch[time_id_node[p]]);
+      if((tmpNode_in_batch[p] == 1) || all){
+        correct_fact = all ? 1.0: (1. * tmpNODE)/tmpNode_batch;
       row_sum = 0.0;
       for(arma::uword g = 0; g < tmpBLK; ++g){
         linpred = 0.0;
@@ -481,14 +487,14 @@ std::fill(tmpAlpha_term.begin(), tmpAlpha_term.end(), 0.0);
 /**
    THETA LB
 */
-double MMModelB::thetaLB(bool entropy = false)
+double MMModelB::thetaLB(bool entropy, bool all)
 {
   computeTheta();
   
   double res = 0.0;
 #pragma omp parallel for reduction(+: res)
   for(arma::uword d = 0; d < N_DYAD; ++d){
-    if((dyad_in_batch[d] == 1)){
+    if((dyad_in_batch[d] == 1) || all){
     for(arma::uword g = 0; g < N_BLK1; ++g){
       for(arma::uword h = 0; h < N_BLK2; ++h){
         res += send_phi(g, d) * rec_phi(h, d) * (y[d] * log(theta(h, g, d)) + (1.0 - y[d]) * log(1.0 - theta(h, g, d)));
@@ -496,7 +502,7 @@ double MMModelB::thetaLB(bool entropy = false)
     }
   }
   }
-  res *= reweightFactor;
+  res *= all ? 1.0 : reweightFactor;
   //Prior for gamma
   for(arma::uword z = 0; z < N_DYAD_PRED; ++z){
     res -= 0.5*pow(gamma[z] - mu_gamma[z], 2.0) / var_gamma[z];
@@ -571,7 +577,7 @@ void MMModelB::thetaGr(int N_PAR, double *gr){
    COMPUTE THETA
 */
 
-void MMModelB::computeTheta(){
+void MMModelB::computeTheta(bool all){
   
  for(arma::uword g = 0; g < N_BLK1; ++g){
    for(arma::uword h = 0; h < N_BLK2; ++h){
@@ -580,7 +586,7 @@ void MMModelB::computeTheta(){
  }
  double linpred=0.0;
  for(arma::uword d = 0; d < N_DYAD; ++d){
-  if((dyad_in_batch[d] == 1)){
+  if((dyad_in_batch[d] == 1) || all){
    linpred = 0.0;
    for(arma::uword z = 0; z < N_DYAD_PRED; ++z){
      gamma[z] = theta_par[N_B_PAR + z];
@@ -648,11 +654,11 @@ void MMModelB::thetaGrW(int n, double *par, double *gr, void *ex)
 }
 double MMModelB::alphaLBWMode1(int n, double *par, void *ex)
 {
-  return(static_cast<MMModelB*>(ex)->alphaLB(false));
+  return(static_cast<MMModelB*>(ex)->alphaLB(false, false)); //alphaLB(mode2,all)
 }
 double MMModelB::alphaLBWMode2(int n, double *par, void *ex)
 {
-  return(static_cast<MMModelB*>(ex)->alphaLB(true));
+  return(static_cast<MMModelB*>(ex)->alphaLB(true, false));
 }
 void MMModelB::alphaGrWMode1(int n, double *par, double *gr, void *ex)
 {
@@ -669,9 +675,9 @@ void MMModelB::alphaGrWMode2(int n, double *par, double *gr, void *ex)
 double MMModelB::LB()
 {
   double res = lgamma(double(N_STATE) * eta) - lgamma(eta);
-  res -= thetaLB(true);
-  res -= alphaLB(true);
-  res -= alphaLB(false);
+  res -= thetaLB(true,true);
+  res -= alphaLB(true,true);
+  res -= alphaLB(false,true);
   for(arma::uword t = 0; t < N_TIME; ++t){
     for(arma::uword m = 0; m < N_STATE; ++m){
       res -= lgamma(double(N_STATE) * eta + e_wm[m]);
