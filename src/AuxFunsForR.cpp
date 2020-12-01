@@ -4,21 +4,32 @@
 // [[Rcpp::export(approxB)]]
 Rcpp::NumericMatrix approxB(Rcpp::NumericVector y,
                             Rcpp::IntegerMatrix d_id,
-                            Rcpp::NumericMatrix pi_mat, 
+                            Rcpp::NumericMatrix pi1_mat,
+			    Rcpp::Nullable<Rcpp::NumericMatrix> pi2_mat_tmp = R_NilValue, 
                             bool directed = true)
 {
-  int N_BLK = pi_mat.nrow();
+  bool bipart;
+  Rcpp::NumericMatrix pi2_mat;
+  if(pi2_mat_tmp.isNotNull()){
+    pi2_mat = Rcpp::as<Rcpp::NumericMatrix>(pi2_mat_tmp);
+    bipart = true;
+  } else {
+    pi2_mat = pi1_mat;
+    bipart = false;
+  }
+   int N_BLK1 = pi1_mat.nrow();
+  int N_BLK2 = pi2_mat.nrow();
   int N_DYAD = d_id.nrow();
-  Rcpp::NumericMatrix den(N_BLK, N_BLK), num(N_BLK, N_BLK), B_t(N_BLK, N_BLK);
-  int s, r;
+  Rcpp::NumericMatrix den(N_BLK2, N_BLK1), num(N_BLK2, N_BLK1), B_t(N_BLK2, N_BLK1);
+  int s = 0, r = 0;
   double prob_temp;
   for(int d = 0; d < N_DYAD; ++d){
     s = d_id(d, 0);
     r = d_id(d, 1);
-    for(int g = 0; g < N_BLK; ++g){
-      for(int h = 0; h < N_BLK; ++h){
-        if((g <= h) | directed){
-          prob_temp = pi_mat(g, s) * pi_mat(h, r);
+    for(int g = 0; g < N_BLK1; ++g){
+      for(int h = 0; h < N_BLK2; ++h){
+        if((g <= h) | directed | bipart){
+          prob_temp = pi1_mat(g, s) * pi2_mat(h, r);
           num(h, g) += y[d] * prob_temp;
           den(h, g) += prob_temp;
         } else{
@@ -103,5 +114,43 @@ double alphaLB(arma::vec par,
   return -res;
 }
 
-
+//' @rdname auxfuns
+// [[Rcpp::export(vertboot_matrix_rcpp2)]]
+Rcpp::List vertboot_matrix_rcpp2(Rcpp::IntegerMatrix m1,
+				 Rcpp::IntegerVector blist1,
+				 Rcpp::IntegerVector blist2){
+  int a;
+  int b;
+  int num1=m1.nrow();
+  int num2=m1.ncol();
+  Rcpp::IntegerMatrix x1(num1,num2);
+  for(int k=0;k<num1;k++){
+    for(int q=0;q<num2;q++){
+      x1(k,q)=0;
+    }
+  }
+  for(int i=0;i<num1;i++){
+    a=blist1[i];
+    for(int j=0;j<num2;j++){
+      b=blist2[j];
+      //if(a!=b){
+        x1(i,j)=m1(a,b);
+      // }
+      // else{
+      //   a=round(R::runif(-0.49,num-0.5));
+      //   b=round(R::runif(-0.49,num-0.5));
+      //   while(a==b){
+      //     b=round(R::runif(-0.49,num-0.5));
+      //   }
+      //   x1(i,j)=m1(a,b);
+      //   x1(j,i)=m1(a,b);
+      // }
+    }
+  }
+  Rcpp::List res;
+  res["x"] = x1;
+  res["index1"] = blist1;
+  res["index2"] = blist2;
+  return (res);
+}
 

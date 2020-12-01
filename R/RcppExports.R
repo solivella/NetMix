@@ -2,8 +2,8 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #' @rdname auxfuns
-approxB <- function(y, d_id, pi_mat, directed = TRUE) {
-    .Call(`_NetMix_approxB`, y, d_id, pi_mat, directed)
+approxB <- function(y, d_id, pi1_mat, pi2_mat_tmp = NULL, directed = TRUE) {
+    .Call(`_NetMix_approxB`, y, d_id, pi1_mat, pi2_mat_tmp, directed)
 }
 
 #' @rdname auxfuns
@@ -14,6 +14,11 @@ getZ <- function(pi_mat) {
 #' @rdname auxfuns
 alphaLB <- function(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta) {
     .Call(`_NetMix_alphaLB`, par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
+}
+
+#' @rdname auxfuns
+vertboot_matrix_rcpp2 <- function(m1, blist1, blist2) {
+    .Call(`_NetMix_vertboot_matrix_rcpp2`, m1, blist1, blist2)
 }
 
 #' @name mmsbm_fit
@@ -48,5 +53,9 @@ NULL
 
 mmsbm_fit <- function(z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, node_id_period, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, pi_init, kappa_init_t, b_init_t, beta_init_r, gamma_init_r, control) {
     .Call(`_NetMix_mmsbm_fit`, z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, node_id_period, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, pi_init, kappa_init_t, b_init_t, beta_init_r, gamma_init_r, control)
+}
+
+mmsbm_fitBi <- function(z_t, x1_t, x2_t, y, time_id_dyad, time_id_node1, time_id_node2, nodes_per_period, nodes_per_period1, nodes_per_period2, node_id_dyad, node_id_period1, node_id_period2, mu_b, var_b, mu_beta1, var_beta1, mu_beta2, var_beta2, mu_gamma, var_gamma, phi_init1, phi_init2, kappa_init_t, b_init_t, beta1_init, beta2_init, gamma_init, control) {
+    .Call(`_NetMix_mmsbm_fitBi`, z_t, x1_t, x2_t, y, time_id_dyad, time_id_node1, time_id_node2, nodes_per_period, nodes_per_period1, nodes_per_period2, node_id_dyad, node_id_period1, node_id_period2, mu_b, var_b, mu_beta1, var_beta1, mu_beta2, var_beta2, mu_gamma, var_gamma, phi_init1, phi_init2, kappa_init_t, b_init_t, beta1_init, beta2_init, gamma_init, control)
 }
 

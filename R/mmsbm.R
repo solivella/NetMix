@@ -109,7 +109,7 @@
 #'       \item{Kappa}{Matrix of marginal probabilities of being in an HMM state at any given point in time. 
 #'                    \code{n.hmmstates} by years (or whatever time interval networks are observed at).}
 #'       \item{LowerBound}{Final LB value}
-#'       \item{lb}{Vector of all LB across iterations, useful to check early convergence issues.}              
+#'       \item{LowerBound_full}{Vector of all LB across iterations, useful to check early convergence issues.}              
 #'       \item{niter}{Final number of VI iterations.}
 #'       \item{converged}{Convergence indicator; zero indicates failure to converge.}
 #'       \item{NodeIndex}{Order in which nodes are stored in all return objects.}
@@ -509,7 +509,7 @@ mmsbm <- function(formula.dyad,
   }
   
   if(is.null(ctrl$b_init_t)){
-    ctrl$b_init_t <- qlogis(approxB(Y, nt_id, ctrl$mm_init_t, directed))
+    ctrl$b_init_t <- qlogis(approxB(Y, nt_id, ctrl$mm_init_t, NULL, directed))
     if(any(is.infinite(ctrl$b_init_t))){
       which.inf <- which(is.infinite(ctrl$b_init_t))
       ctrl$b_init_t[which.inf] <- ifelse(ctrl$b_init_t[which.inf] > 0, 25, -25) 

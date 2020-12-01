@@ -23,7 +23,7 @@
 #' @param y Numeric vector; vector of edge values.
 #' @param d_id Integer matrix; two-column matrix with nr. dyads rows, containing zero-based
 #'             sender (first column) and receiver (second column) node id's for each dyad. 
-#' @param pi_mat Numeric matrix; row-stochastic matrix of mixed-memberships. 
+#' @param pi1_mat,pi2_mat_tmp Numeric matrices (or NULL for pi2_mat_tmp); row-stochastic matrices of mixed-memberships. 
 #' @param colPalette A function produced by \code{colorRamp}.
 #' @param range The range of values to label the legend.
 #' @param par Vector of parameter values.
@@ -40,7 +40,10 @@
 #' @param nblock Number of groups in model, defaults to \code{NULL}.
 #' @param nstate Number of hidden Markov states in model, defaults to \code{NULL}.
 #' @param devs Vector of standard deviations to use in transformation of variances. Defaults to \code{NULL}.
-#' @param soc_mats,Y,dyads,edges,t_id_d,t_id_n,nodes_pp,dyads_pp,nt_id,node_id_period,mu_b,var_b,n_dyads,n.blocks,periods,directed,ctrl Internal arguments for initialization.
+#' @param formula.dyad,formula.monad1,formula.monad2,data.dyad,data.monad1,data.monad2,missing Arguments for internal function handling missing values
+#' @param dyads,all.nodes1,all.nodes2,directed Arguments to internal function creating adjacency/affiliation matrices from data.frames
+#' @param .soc_mats,Y,dyads,edges,t_id_d,t_id_n,nodes_pp,dyads_pp,nt_id,node_id_period,mu_b,var_b,n_dyads,n.blocks,periods,directed,ctrl Internal arguments for initialization.
+#' @param m1,bootrep,blist1,blist2 Arguments to internal fiunctions for bootstrapping 
 #' @param ... Numeric vectors; vectors of potentially different length to be cbind-ed.
 #' 
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (aylo@@wisc.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
@@ -49,11 +52,15 @@
 #' \describe{
 #'       \item{.cbind.fill}{Matrix of \code{cbind}'ed elements in \code{...}, with missing values in each vector filled with \code{NA}.}
 #'       \item{.mpower}{Matrix; the result of raising \code{mat} to the \code{p} power.}
-#'       \item{.findPerm}{List of permuted blockmodel matrices}
+#'       \item{.findPerm}{List of permuted blockmodel matrices.}
 #'       \item{.transf}{Matrix with transformed mixed-membership vectors along its rows, s.t. no element is equal to 0.0 or 1.0.}
 #'       \item{.compute.alpha}{List of predicted alpha matrices, one element per HMM state.}
-#'       \item{.e.pi}{Matrix of expected mixed-membership vectors along its rows, with expectation computed over marginal 
+#'       \item{.pi.hat}{Matrix of predicted mixed-membership vectors along its rows, with expectation computed over marginal 
 #'                     distribution over HMM states for each time period.}
+#'       \item{.missing}{Transformed data.frame with missing values list-wise deleted, or expanded
+#'                       with missing indicator variables.}
+#'       \item{.createSocioB}{List of sociomatrices.}
+#'       \item{.vertboot2}{List of bootstrapped sociomatrices.}
 #'     }
 #' 
 #' @rdname auxfuns
@@ -191,7 +198,7 @@
                                                           plogis(t_mat),
                                                           m = 0,
                                                           start = diag(ncol(block_list[[x]])),
-                                                          iteration = 10)$P)
+                                                          iteration = 100)$P)
                   }
                   if(tar_nprov){
                     t_mat <- t(P) %*% block_list[[x]] %*% P
@@ -261,6 +268,9 @@
     for(i in 1:periods){
       if(!ctrl$init_gibbs) {
         mn <- ncol(soc_mats[[i]]) 
+        if(!ctrl$assortative){
+          soc_mats[[i]] <- 1 - soc_mats[[i]]
+        }
         if(directed){
           D_o <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
           D_i <- 1/sqrt(.colSums(soc_mats[[i]], mn, mn) + 1)
@@ -271,9 +281,6 @@
         } else {
           D <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
           U <- t(D * (soc_mats[[i]] + mean(.rowMeans(soc_mats[[i]], mn, mn)/2))) * D
-        }
-        if(!ctrl$assortative){
-          U <- -1 * U
         }
         if(ctrl$spectral) {
           n_elem <- n.blocks + 1
@@ -288,7 +295,7 @@
         } else {
           target <- U
         }
-        if(nrow(unique(target)) > n.blocks){
+        if(nrow(unique(round(target, 12))) > n.blocks){
           clust_internal <- fitted(kmeans(x = target,
                                           centers = n.blocks,
                                           iter.max = 15,
@@ -310,7 +317,7 @@
         colnames(pi_internal) <- 1:n.blocks
         MixedMembership <- t(pi_internal)
         int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
-        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership, directed)
+        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership, NULL, directed)
         temp_res[[i]] <- list(BlockModel = BlockModel,
                               MixedMembership = MixedMembership)                         
         
@@ -333,7 +340,7 @@
         MixedMembership <- prop.table(ret$document_expects, 2)
         colnames(MixedMembership) <- colnames(soc_mats[[i]])
         int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
-        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership, directed)
+        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership, NULL, directed)
         if(any(is.nan(BlockModel))){
           BlockModel[is.nan(BlockModel)] <- 0.0
         }
@@ -386,4 +393,147 @@
   return(best_pi)
 }
 
+
+#' @rdname auxfuns
+.missing <- function(formula.dyad, formula.monad1, formula.monad2=NULL, 
+                     data.dyad, data.monad1, data.monad2=NULL, missing){
+  
+  if(missing=="indicator method"){
+    # dyadic dataset
+    if(length(all.vars(formula.dyad[[3]]))){
+      miss.d <- apply(data.dyad[,all.vars(formula.dyad[[3]]), drop = FALSE], 2, function(x){length(na.omit(x))}) < nrow(data.dyad)
+      md <- names(miss.d[miss.d])
+      if(length(md)>0){
+        m.ind <- apply(as.data.frame(data.dyad[,md]), 2, function(x){
+          ifelse(is.na(x), 1, 0)
+        })
+        colnames(m.ind) <- paste(md, "_missing", sep="")
+        data.dyad[,md] <- apply(as.data.frame(data.dyad[,md]), 2, function(x){
+          x[is.na(x)] <- 0
+          return(x)
+        })
+        data.dyad <- cbind(data.dyad, m.ind)
+        fc <- paste(as.character(formula.dyad[[2]]), as.character(formula.dyad[[1]]),
+                    paste(c(all.vars(formula.dyad)[-1], colnames(m.ind)), collapse=" + "))
+        formula.dyad <- eval(parse(text=fc))
+      }
+    }
+    # monadic1 dataset
+    if(length(all.vars(formula.monad1[[2]]))){
+      miss.m <- apply(data.monad1[,all.vars(formula.monad1[[2]]), drop = FALSE], 2, function(x){length(na.omit(x))}) < nrow(data.monad1)
+      mm <- names(miss.m[miss.m])
+      if(length(mm)>0){
+        m.ind <- apply(as.data.frame(data.monad1[,mm]), 2, function(x){
+          ifelse(is.na(x), 1, 0)
+        })
+        colnames(m.ind) <- paste(mm, "_missing", sep="")
+        data.monad1[,mm] <- as.vector(apply(as.data.frame(data.monad1[,mm]), 2, function(x){
+          x[is.na(x)] <- 0
+          return(x)
+        }))
+        data.monad1 <- cbind(data.monad1, m.ind)
+        fc <- paste("~", paste(c(all.vars(formula.monad1), colnames(m.ind)),  collapse=" + "))
+        formula.monad1 <- eval(parse(text=fc))
+      }
+    }
+    # monadic2 dataset
+    if(length(all.vars(formula.monad2[[2]]))){
+      miss.m <- apply(data.monad2[,all.vars(formula.monad2[[2]]), drop = FALSE], 2, function(x){length(na.omit(x))}) < nrow(data.monad2)
+      mm <- names(miss.m[miss.m])
+      if(length(mm)>0){
+        m.ind <- apply(as.data.frame(data.monad2[,mm]), 2, function(x){
+          ifelse(is.na(x), 1, 0)
+        })
+        colnames(m.ind) <- paste(mm, "_missing", sep="")
+        data.monad2[,mm] <- as.vector(apply(as.data.frame(data.monad2[,mm]), 2, function(x){
+          x[is.na(x)] <- 0
+          return(x)
+        }))
+        data.monad2 <- cbind(data.monad2, m.ind)
+        fc <- paste("~", paste(c(all.vars(formula.monad2), colnames(m.ind)),  collapse=" + "))
+        formula.monad2 <- eval(parse(text=fc))
+      }
+    }
+  }
+  if(missing=="listwise deletion"){
+    if(length(all.vars(formula.dyad[[3]]))){
+      mdyad <- apply(data.dyad[,all.vars(formula.dyad[[3]])], 1, function(x){!any(is.na(x))})
+    } else {
+      mdyad <- TRUE
+    }
+    #monad1
+    if(length(all.vars(formula.monad1[[2]]))){
+      mmonad1 <- apply(data.monad1[,all.vars(formula.monad1[[2]])], 1, function(x){!any(is.na(x))})
+    } else {
+      mmonad1 <- TRUE
+    }
+    #monad2
+    if(length(all.vars(formula.monad2[[2]]))){
+      mmonad2 <- apply(data.monad2[,all.vars(formula.monad2[[2]])], 1, function(x){!any(is.na(x))})
+    } else {
+      mmonad2 <- TRUE
+    }
+    
+    data.dyad <- data.dyad[mdyad,]
+    data.monad1 <- data.monad1[mmonad1,]
+    data.monad2 <- data.monad2[mmonad2,]
+    d.keep <- lapply(unique(data.dyad[,timeID]), function(x){
+      nts <- data.monad1[data.monad1[,timeID]==x,nodeID] #### How to change this to also include data.monad2?
+      dd <- data.dyad[data.dyad[,timeID]==x,]
+      dd <- dd[dd[,senderID] %in% nts & dd[,receiverID] %in% nts,]
+      return(dd)
+    })
+    data.dyad <- do.call("rbind", d.keep)
+  }
+}
+
+#' @rdname auxfuns
+.createSocioB <- function(dyads, all.nodes1, all.nodes2, directed){
+  res <- lapply(dyads,
+                function(dyad_df,
+                         nnode1 = length(all.nodes1),
+                         nnode2 = length(all.nodes2),
+                         nodes1 = all.nodes1,
+                         nodes2 = all.nodes2)
+                  #if bipartite:
+                  #need adj_mat to be composed of nnode1=length(all.nodes1), nnode2=length(all.nodes2), and dimnames are nodes1, nodes2
+                  # then create two sets of node_names
+                  #create function here that takes 1 and 2 always; then double up in input ifit is bipartite (outside this fn, so remove bipartite arg)
+                {
+                  indeces <- as.matrix(dyad_df[,c("(sid)","(rid)")])
+                  time_ind <- unique(dyad_df[,"(tid)"])
+                  adj_mat <-  matrix(NA,
+                                     nnode1,
+                                     nnode2,
+                                     dimnames = list(nodes1,
+                                                     nodes2))
+                  adj_mat[indeces] <- dyad_df[,4] # out of bounds
+                  if(!directed){
+                    adj_mat[indeces[,c(2,1)]] <- dyad_df[,4]
+                  }
+                  diag(adj_mat) <- 0
+                  adj_mat[is.na(adj_mat)] <- sample(0:1, sum(is.na(adj_mat)), replace = TRUE)
+                  if(!directed){
+                    mat_ind <- which(upper.tri(adj_mat), arr.ind = TRUE)
+                    adj_mat[mat_ind[,c(2,1)]] <- adj_mat[upper.tri(adj_mat)]
+                  }
+                  node_names1 <- paste(nodes1, "@", time_ind, sep="")
+                  node_names2 <- paste(nodes2, "@", time_ind, sep="")
+                  dimnames(adj_mat) <- list(node_names1,
+                                            node_names2)
+                  return(adj_mat)
+                })
+  return(res)
+}
+
+#' @rdname auxfuns
+.vertboot2 <- function(m1, boot_rep){#m1 <- igraph::as_adjacency_matrix(graph_ex) or m1 <- as.matrix(m1)
+  res <- list()
+  for (i in 1:boot_rep) {
+    blist1 <- sample(0:(dim(m1)[1]-1), replace = TRUE) #blist is sampling or rows in C indexing
+    blist2 <- sample(0:(dim(m1)[2]-1), replace = TRUE) 
+    res <- c(res, list(vertboot_matrix_rcpp2(m1,blist1, blist2)))
+  }
+  res
+}
 
