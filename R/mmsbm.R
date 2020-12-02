@@ -409,6 +409,11 @@ mmsbm <- function(formula.dyad,
   if(ctrl$verbose){
     cat("Obtaining initial values...\n")
   }
+  # sum_mats <- tidyr::pivot_wider(mfd[,c("(sid)","(rid)","Y")], names_from = '(rid)',values_from = 'Y', values_fn=sum, values_fill = 0)
+  # rown <- sum_mats[,1, drop=TRUE]
+  # sum_mats <- as.matrix(sum_mats[,-1])
+  # rownames(sum_mats) <- rown
+  # soc_mats <- list(sum_mats)
   
   dyads <- split.data.frame(dntid, mfd[, "(tid)"])
   edges <- split(Y, mfd[, "(tid)"])
