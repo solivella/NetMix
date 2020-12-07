@@ -272,9 +272,9 @@
           D <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
           U <- t(D * (soc_mats[[i]] + mean(.rowMeans(soc_mats[[i]], mn, mn)/2))) * D
         }
-        if(!ctrl$assortative){
-          U <- -1 * U
-        }
+        # if(!ctrl$assortative){
+        #   U <- -1 * U
+        # }
         if(ctrl$spectral) {
           n_elem <- n.blocks + 1
           res <- RSpectra::eigs_sym(U, n_elem)
@@ -343,9 +343,9 @@
       }
     }
     block_models <- lapply(temp_res, function(x)x$BlockModel)
-    pis_temp <- lapply(temp_res, function(x)x$MixedMembership) 
+    pis_tmp <- lapply(temp_res, function(x)x$MixedMembership) 
     
-    if(periods > 1){
+    if(periods >= 15){
       decade_split <- cut(1:periods, periods %/% 10 + 1)
     } else{
       decade_split <- 1
@@ -361,11 +361,11 @@
       pi_init_t <- do.call(cbind,mapply(function(phi_tmp,perm){perm %*% phi_tmp},
                                         y[order(pi.ord)], perms_temp, SIMPLIFY = FALSE)) 
       rownames(pi_init_t) <- 1:n.blocks
-      perm_l <- lapply(perms_temp, function(z){apply(z, 1, which.max)}, SIMPLIFY = FALSE)
+      perm_l <- lapply(perms_temp, function(z){apply(z, 1, which.max)})
       mean_bm <- Reduce("+", mapply(function(bm_tmp,perm){bm_tmp[perm, perm]},
                                     x[order(pi.ord)], perm_l, SIMPLIFY = FALSE)) / length(x)
       return(list(pi=pi_init_t, bm=mean_bm))
-    },split_bm,split_pi)
+    },split_bm,split_pi, SIMPLIFY=FALSE)
     
     final_bms <- lapply(split_res, function(x)x$bm)
     final_pis <- lapply(split_res, function(x)x$pi)
@@ -400,7 +400,7 @@
                          1.0,
                          pi_init_t,
                          ctrl$kappa_init_t,
-                         qlogis(block_models[[target_ind]]),
+                         qlogis(final_bms[[length(final_bms)]]),
                          array(ctrl$alpha, c(1,n.blocks,ctrl$states)),
                          0.0,
                          ##sparsity,
