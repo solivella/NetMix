@@ -343,13 +343,39 @@
       }
     }
     block_models <- lapply(temp_res, function(x)x$BlockModel)
-    target_ind <- which.max(sapply(soc_mats, ncol))
-    perms_temp <- .findPerm(block_models, target_mat = block_models[[target_ind]], use_perms = ctrl$permute)
     pis_temp <- lapply(temp_res, function(x)x$MixedMembership) 
-    pi.ord <- as.numeric(lapply(pis_temp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get correct temporal order
+    
+    if(periods > 1){
+      decade_split <- cut(1:periods, periods %/% 10 + 1)
+    } else{
+      decade_split <- 1
+    }
+    split_bm <- split(block_models, decade_split)
+    split_pi <- split(pis_tmp, decade_split)
+    
+    
+    split_res <- mapply(function(x, y){
+      target_ind <- which.max(sapply(x, ncol))
+      perms_temp <- .findPerm(x, target_mat = x[[target_ind]], use_perms = ctrl$permute)
+      pi.ord <- as.numeric(lapply(y, function(z)strsplit(colnames(z), "@")[[1]][2])) # to get correct temporal order
+      pi_init_t <- do.call(cbind,mapply(function(phi_tmp,perm){perm %*% phi_tmp},
+                                        y[order(pi.ord)], perms_temp, SIMPLIFY = FALSE)) 
+      rownames(pi_init_t) <- 1:n.blocks
+      perm_l <- lapply(perms_temp, function(z){apply(z, 1, which.max)}, SIMPLIFY = FALSE)
+      mean_bm <- Reduce("+", mapply(function(bm_tmp,perm){bm_tmp[perm, perm]},
+                                    x[order(pi.ord)], perm_l, SIMPLIFY = FALSE)) / length(x)
+      return(list(pi=pi_init_t, bm=mean_bm))
+    },split_bm,split_pi)
+    
+    final_bms <- lapply(split_res, function(x)x$bm)
+    final_pis <- lapply(split_res, function(x)x$pi)
+    perms_temp <- .findPerm(final_bms, target_mat = final_bms[[length(final_bms)]], use_perms = ctrl$permute)
     pi_init_t <- do.call(cbind,mapply(function(phi_tmp,perm){perm %*% phi_tmp},
-                                       pis_temp[order(pi.ord)], perms_temp, SIMPLIFY = FALSE)) 
+                                      final_pis, perms_temp, SIMPLIFY = FALSE)) 
     rownames(pi_init_t) <- 1:n.blocks
+    
+    
+    
     Z_tmp <- matrix(0, ncol = n_dyads, nrow = 1)
     X_tmp <- matrix(1, ncol = ncol(pi_init_t), nrow = 1)
     ctrl$vi_iter <- 2
@@ -381,7 +407,8 @@
                          ctrl)
     if(fit_tmp$LowerBound >= max_ll){
       best_pi <- pi_init_t
-    }
+      max_ll <- fit_tmp$LowerBound 
+    } 
   }
   return(best_pi)
 }

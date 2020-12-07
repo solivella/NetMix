@@ -16,7 +16,7 @@
 \alias{.initPi}
 \title{Internal functions and generics for \code{mmsbm} package}
 \usage{
-approxB(y, d_id, pi_mat)
+approxB(y, d_id, pi_mat, directed = TRUE)
 
 getZ(pi_mat)
 

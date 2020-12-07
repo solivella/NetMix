@@ -474,25 +474,125 @@ mmsbm <- function(formula.dyad,
   if(identical(n.hmmstates, 1)){
     names(state_init) = 1
   }
+  # if(is.null(ctrl$mm_init_t)){
+  #   ctrl$mm_init_t <- .initPi(soc_mats,
+  #                               Y,
+  #                               dyads,
+  #                               edges,
+  #                               t_id_d,
+  #                               t_id_n,
+  #                               nodes_pp,
+  #                               dyads_pp,
+  #                               nt_id,
+  #                               node_id_period,
+  #                               mu_b,
+  #                               var_b,
+  #                               nrow(Z), n.blocks, periods, directed, ctrl)
+  # } else{
+  #   if(isFALSE(all.equal(colSums(ctrl$mm_init_t), rep(1.0, ncol(ctrl$mm_init_t)), check.names = FALSE)) || any(ctrl$mm_init_t < 0.0)){
+  #     stop("Elements in mm_init_t must be positive, and its columns must sum to one.")
+  #   }
+  #   ctrl$mm_init_t <- t(.transf(t(ctrl$mm_init_t)))
+  # } 
+  
   if(is.null(ctrl$mm_init_t)){
-    ctrl$mm_init_t <- .initPi(soc_mats,
-                                Y,
-                                dyads,
-                                edges,
-                                t_id_d,
-                                t_id_n,
-                                nodes_pp,
-                                dyads_pp,
-                                nt_id,
-                                node_id_period,
-                                mu_b,
-                                var_b,
-                                nrow(Z), n.blocks, periods, directed, ctrl)
+    temp_res <- vector("list", periods)
+    for(i in 1:periods){
+      if(!ctrl$init_gibbs) {
+        mn <- ncol(soc_mats[[i]]) 
+        if(directed){
+          D_o <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
+          D_i <- 1/sqrt(.colSums(soc_mats[[i]], mn, mn) + 1)
+          C_o <- t(D_o * soc_mats[[i]])
+          C_i <- t(D_i * t(soc_mats[[i]]))
+          U <- t(C_o * D_i) %*% C_o +
+            t(C_i * D_o) %*% C_i
+        } else {
+          D <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
+          U <- t(D * soc_mats[[i]]) * D
+        }
+        if(ctrl$spectral) {
+          n_elem <- n.blocks + 1
+          res <- RSpectra::eigs_sym(U, n_elem)
+          eta <- res$vectors[,1:n_elem] %*% diag(res$values[1:n_elem])
+          target <- eta[,2:n_elem] / (eta[,1] + 1e-8)
+          sig <- 1 - res$values[n_elem] / (res$values[n.blocks])
+          sig <- ifelse(is.finite(sig), sig, 0)
+          if(sig > 0.1){
+            target <- target[,1:(n_elem - 2), drop = FALSE]
+          }
+        } else {
+          target <- U
+        }
+        if(nrow(unique(target)) > n.blocks){
+          clust_internal <- fitted(kmeans(x = target,
+                                          centers = n.blocks,
+                                          iter.max = 15,
+                                          nstart = 10), "classes")
+          
+        } else {
+          init_c <- sample(1:nrow(target), n.blocks, replace = FALSE)
+          cents <- jitter(target[init_c, ])
+          clust_internal <- fitted(suppressWarnings(kmeans(x = target,
+                                                           centers = cents,
+                                                           iter.max = 15,
+                                                           algorithm = "Lloyd",
+                                                           nstart = 1)), "classes")
+        }
+        
+        phi_internal <- model.matrix(~ factor(clust_internal, 1:n.blocks) - 1)
+        phi_internal <- .transf(phi_internal)
+        rownames(phi_internal) <- rownames(soc_mats[[i]])
+        colnames(phi_internal) <- 1:n.blocks
+        MixedMembership <- t(phi_internal)
+        int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
+        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
+        temp_res[[i]] <- list(BlockModel = BlockModel,
+                              MixedMembership = MixedMembership)                         
+        
+      } else {
+        n_prior <- (dyads_pp[i] - nodes_pp[i]) * .05
+        a <- plogis(ctrl$mu_b) * n_prior
+        b <- n_prior - a
+        lda_beta_prior <- lapply(list(b,a),
+                                 function(prior){
+                                   mat <- matrix(prior[2], n.blocks, n.blocks)
+                                   diag(mat) <- prior[1]
+                                   return(mat)
+                                 })
+        ret <- lda::mmsb.collapsed.gibbs.sampler(network = soc_mats[[i]],
+                                                 K = n.blocks,
+                                                 num.iterations = 75L,
+                                                 burnin = 25L,
+                                                 alpha = ctrl$alpha,
+                                                 beta.prior = lda_beta_prior)
+        MixedMembership <- prop.table(ret$document_expects, 2)
+        colnames(MixedMembership) <- colnames(soc_mats[[i]])
+        int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
+        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
+        if(any(is.nan(BlockModel))){
+          BlockModel[is.nan(BlockModel)] <- 0.0
+        }
+        temp_res[[i]] <- list(BlockModel = BlockModel,
+                              MixedMembership = MixedMembership)
+        
+        
+      }
+    }
+    block_models <- lapply(temp_res, function(x)x$BlockModel)
+    target_ind <- which.max(sapply(soc_mats, ncol))
+    perms_temp <- .findPerm(block_models, target_mat = block_models[[target_ind]], use_perms = ctrl$permute)
+    phis_temp <- lapply(temp_res, function(x)x$MixedMembership) 
+    phi.ord <- as.numeric(lapply(phis_temp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get correct temporal order
+    ctrl$mm_init_t <- do.call(cbind,mapply(function(phi,perm){perm %*% phi},
+                                            phis_temp[order(phi.ord)], perms_temp, SIMPLIFY = FALSE)) 
+    rownames(ctrl$mm_init_t) <- 1:n.blocks
   } else{
     if(isFALSE(all.equal(colSums(ctrl$mm_init_t), rep(1.0, ncol(ctrl$mm_init_t)), check.names = FALSE)) || any(ctrl$mm_init_t < 0.0)){
       stop("Elements in mm_init_t must be positive, and its columns must sum to one.")
     }
     ctrl$mm_init_t <- t(.transf(t(ctrl$mm_init_t)))
+    
   } 
   
   if(is.null(ctrl$gamma_init)){
@@ -638,16 +738,16 @@ mmsbm <- function(formula.dyad,
         }
         tot_in_state <- rowSums(s_matrix)
         if(any(tot_in_state == 0.0)){
-          stop("Some HMM states are empty; consider reducing n.hmmstates, or increasing eta.")
+          warning("Some HMM states are empty; no standard errors will be returned for coefficients associated with them.")
         }  
         hess_tmp <- optimHess(c(beta_vec),alphaLB,
-                         tot_nodes = Nvec,
-                         c_t = t(C_samp),
-                         x_t = X_i,
-                         s_mat = s_matrix,
-                         t_id = tidn,
-                         var_beta = vbeta,
-                         mu_beta = mbeta)
+                              tot_nodes = Nvec,
+                              c_t = t(C_samp),
+                              x_t = X_i,
+                              s_mat = s_matrix,
+                              t_id = tidn,
+                              var_beta = vbeta,
+                              mu_beta = mbeta)
         vc_tmp <- Matrix::forceSymmetric(solve(hess_tmp))
         ev <- eigen(vc_tmp)$value
         if(any(ev<0)){

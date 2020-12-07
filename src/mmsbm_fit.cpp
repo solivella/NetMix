@@ -119,7 +119,9 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
     // 
     // //M-STEP
     // Sample batch of dyads for stochastic optim
+    if(svi){
     Model.sampleDyads(iter);
+    }
     Model.optim_ours(true); //optimize alphaLB
     Model.optim_ours(false); //optimize thetaLB
     //

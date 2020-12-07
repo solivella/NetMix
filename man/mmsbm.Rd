@@ -82,8 +82,11 @@ to 1 (i.e. no HMM).}
                 and ignored otherwise.}                    
    \item{opt_iter}{Number of maximum iterations of BFGS in global step. Defaults to 10e3.}
    \item{hessian}{Boolean indicating whether the Hessian matrix of regression coefficients should e returned. Defaults to \code{TRUE}.}
+   \item{assortative}{Boolean indicating whether blockmodel should be assortative (i.e. stronger connections within groups) or disassortative
+                      (i.e. stronger connections between groups). Defaults to \code{TRUE}.}
    \item{mu_b}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
-               and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)}.}
+               and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)} if \code{assortative=TRUE} (default)
+               and to \code{c(-5.0, 5.0)} otherwise.}
    \item{var_b}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
                and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(1.0, 1.0)}.}
    \item{mu_beta}{Either single numeric value, in which case the same prior mean is applied to all monadic coefficients, or
