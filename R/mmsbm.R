@@ -348,7 +348,7 @@ mmsbm <- function(formula.dyad,
   }
   ntid <- do.call(paste, c(mfm[c("(nid)","(tid)")], sep="@"))
   if(!all(dntid %in% ntid))
-    stop("Nodes in dyadic dataset missing from monadic dataset. Are node and time identifiers identical in data.dyad and data.monad?")
+    stop("Nodes in data.dyad missing from data.monad. Are node and time identifiers identical in data.dyad and data.monad?")
   match_ids <- ntid %in% dntid
   if(any(!match_ids)){
     if(ctrl$verbose){
@@ -412,32 +412,53 @@ mmsbm <- function(formula.dyad,
   
   dyads <- split.data.frame(dntid, mfd[, "(tid)"])
   edges <- split(Y, mfd[, "(tid)"])
-  soc_mats <- Map(function(dyad_mat, edge_vec){
-    nodes <- unique(c(dyad_mat))
-    nnode <- length(nodes)
-    adj_mat <- matrix(NA,
-                      nnode,
-                      nnode,
-                      dimnames = list(nodes,
-                                      nodes))
-    adj_mat[dyad_mat] <- edge_vec
-    if(!directed){
-      adj_mat[dyad_mat[,c(2,1)]] <- edge_vec
-    }
-    obs_prop <- mean(adj_mat, na.rm = TRUE)
-    if(anyNA(adj_mat)){
-      if(is.nan(obs_prop)){
-        obs_prop <- 0.01
-      }
-      adj_mat[is.na(adj_mat)] <- rbinom(sum(is.na(adj_mat)), 1, obs_prop)
-    }
-    diag(adj_mat) <- 0
-    if(!directed){
-      mat_ind <- which(upper.tri(adj_mat), arr.ind = TRUE)
-      adj_mat[mat_ind[,c(2,1)]] <- adj_mat[upper.tri(adj_mat)]
-    }
-    return(adj_mat)
-  }, dyads, edges)
+  
+  wsocmat_df <- tidyr::pivot_wider(mfd[,c("(sid)","(rid)","Y")],
+                             names_from=c("(rid)"),
+                             values_from="Y",
+                             values_fn=sum,
+                             values_fill=0)
+  if(directed){
+  rnames <- wsocmat_df[,1, drop=TRUE]
+  } else {
+    rnames <- c(wsocmat_df[,1, drop=TRUE],colnames(wsocmat_df)[n.node])
+  }
+  wsocmat <- as.matrix(wsocmat_df[,-1])
+  if(!directed){
+    wsocmat <- cbind(wsocmat[1,],wsocmat)
+    wsocmat <- rbind(c(wsocmat[,1],0),wsocmat)
+    wsocmat[lower.tri(wsocmat)] <- wsocmat[upper.tri(wsocmat)]
+  }
+  rownames(wsocmat) <- colnames(wsocmat) <- rnames
+  diag(wsocmat) <- 0
+  
+  soc_mats <- list(wsocmat)
+  # soc_mats <- Map(function(dyad_mat, edge_vec){
+  #   nodes <- unique(c(dyad_mat))
+  #   nnode <- length(nodes)
+  #   adj_mat <- matrix(NA,
+  #                     nnode,
+  #                     nnode,
+  #                     dimnames = list(nodes,
+  #                                     nodes))
+  #   adj_mat[dyad_mat] <- edge_vec
+  #   if(!directed){
+  #     adj_mat[dyad_mat[,c(2,1)]] <- edge_vec
+  #   }
+  #   obs_prop <- mean(adj_mat, na.rm = TRUE)
+  #   if(anyNA(adj_mat)){
+  #     if(is.nan(obs_prop)){
+  #       obs_prop <- 0.01
+  #     }
+  #     adj_mat[is.na(adj_mat)] <- rbinom(sum(is.na(adj_mat)), 1, obs_prop)
+  #   }
+  #   diag(adj_mat) <- 0
+  #   if(!directed){
+  #     mat_ind <- which(upper.tri(adj_mat), arr.ind = TRUE)
+  #     adj_mat[mat_ind[,c(2,1)]] <- adj_mat[upper.tri(adj_mat)]
+  #   }
+  #   return(adj_mat)
+  # }, dyads, edges)
   
   
   if(is.null(ctrl$kappa_init_t)){
@@ -476,7 +497,9 @@ mmsbm <- function(formula.dyad,
   }
   if(is.null(ctrl$mm_init_t)){
     ctrl$mm_init_t <- .initPi(soc_mats,
+                              mfm,
                                 Y,
+                              ntid,
                                 dyads,
                                 edges,
                                 t_id_d,
@@ -486,7 +509,7 @@ mmsbm <- function(formula.dyad,
                                 nt_id,
                                 node_id_period,
                                 mu_b,
-                                var_b,
+                                var_b, nrow(X),
                                 nrow(Z), n.blocks, periods, directed, ctrl)
   } else{
     if(isFALSE(all.equal(colSums(ctrl$mm_init_t), rep(1.0, ncol(ctrl$mm_init_t)), check.names = FALSE)) || any(ctrl$mm_init_t < 0.0)){

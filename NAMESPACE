@@ -12,6 +12,7 @@ importFrom("stats", "as.formula", "coef", "complete.cases", "density",
              "model.matrix", "model.response", "na.omit", "optimHess", "plogis",
              "predict", "dlogis", "qlogis", "quantile", "rbinom", "rgamma",
              "rmultinom", "sd", "simulate", "terms", "update", "update.formula")
+importFrom("tidyr","pivot_wider")
 importFrom("utils", "getS3method","head")
 importClassesFrom(Matrix)
 S3method(coef, mmsbm)

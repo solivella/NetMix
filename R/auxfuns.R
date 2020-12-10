@@ -241,7 +241,9 @@
 
 #' @rdname auxfuns
 .initPi <- function(soc_mats,
+                    data.monad,
                      Y,
+                    id_var,
                      dyads,
                      edges,
                      t_id_d,
@@ -251,14 +253,16 @@
                      nt_id,
                      node_id_period,
                      mu_b,
-                     var_b,
+                     var_b, n_nodes,
                      n_dyads, n.blocks, periods, directed, ctrl){
+  periods <- 1
   max_ll <- -Inf
-  best_pi <- matrix(as.double(0.0), ncol=n_dyads, nrow=n.blocks)
-  rownames(best_pi) <- 1:n.blocks
+  best_mm <- matrix(as.double(0.0), ncol=n_nodes, nrow=n.blocks)
+  rownames(best_mm) <- 1:n.blocks
   for(n in 1:ctrl$nstarts){
     temp_res <- vector("list", periods)
-    for(i in 1:periods){
+    #for(i in 1:periods){
+    i <- 1
       if(!ctrl$init_gibbs) {
         mn <- ncol(soc_mats[[i]]) 
         if(directed){
@@ -307,9 +311,9 @@
         pi_internal <- model.matrix(~ factor(clust_internal, 1:n.blocks) - 1)
         pi_internal <- .transf(pi_internal)
         rownames(pi_internal) <- rownames(soc_mats[[i]])
-        colnames(pi_internal) <- 1:n.blocks
+        colnames(pi_internal) <- paste0("bloc",1:n.blocks)
         MixedMembership <- t(pi_internal)
-        int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
+        int_dyad_id <- apply(dyads[[i]], 2, function(x)match(gsub("(.+)@.+","\\1",x), colnames(MixedMembership)) - 1)
         BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership, directed)
         temp_res[[i]] <- list(BlockModel = BlockModel,
                               MixedMembership = MixedMembership)                         
@@ -324,15 +328,16 @@
                                    diag(mat) <- prior[1]
                                    return(mat)
                                  })
-        ret <- lda::mmsb.collapsed.gibbs.sampler(network = soc_mats[[i]],
+        tmp_sm <- (soc_mats[[i]] > mean(soc_mats[[i]]))*1
+        ret <- lda::mmsb.collapsed.gibbs.sampler(network = tmp_sm,
                                                  K = n.blocks,
                                                  num.iterations = 100L,
                                                  burnin = 50L,
                                                  alpha = ctrl$alpha,
                                                  beta.prior = lda_beta_prior)
         MixedMembership <- prop.table(ret$document_expects, 2)
-        colnames(MixedMembership) <- colnames(soc_mats[[i]])
-        int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
+        colnames(MixedMembership) <- rownames(soc_mats[[i]])
+        int_dyad_id <- apply(dyads[[i]], 2, function(x)match(gsub("(.+)@.+","\\1",x), colnames(MixedMembership)) - 1)#apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
         BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership, directed)
         if(any(is.nan(BlockModel))){
           BlockModel[is.nan(BlockModel)] <- 0.0
@@ -341,43 +346,26 @@
                               MixedMembership = MixedMembership)
         
       }
-    }
+    #}
     block_models <- lapply(temp_res, function(x)x$BlockModel)
-    pis_tmp <- lapply(temp_res, function(x)x$MixedMembership) 
-    
-    if(periods >= 15){
-      decade_split <- cut(1:periods, periods %/% 10 + 1)
-    } else{
-      decade_split <- 1
-    }
-    split_bm <- split(block_models, decade_split)
-    split_pi <- split(pis_tmp, decade_split)
-    
-    
-    split_res <- mapply(function(x, y){
-      target_ind <- which.max(sapply(x, ncol))
-      perms_temp <- .findPerm(x, target_mat = x[[target_ind]], use_perms = ctrl$permute)
-      pi.ord <- as.numeric(lapply(y, function(z)strsplit(colnames(z), "@")[[1]][2])) # to get correct temporal order
-      pi_init_t <- do.call(cbind,mapply(function(phi_tmp,perm){perm %*% phi_tmp},
-                                        y[order(pi.ord)], perms_temp, SIMPLIFY = FALSE)) 
-      rownames(pi_init_t) <- 1:n.blocks
-      perm_l <- lapply(perms_temp, function(z){apply(z, 1, which.max)})
-      mean_bm <- Reduce("+", mapply(function(bm_tmp,perm){bm_tmp[perm, perm]},
-                                    x[order(pi.ord)], perm_l, SIMPLIFY = FALSE)) / length(x)
-      return(list(pi=pi_init_t, bm=mean_bm))
-    },split_bm,split_pi, SIMPLIFY=FALSE)
-    
-    final_bms <- lapply(split_res, function(x)x$bm)
-    final_pis <- lapply(split_res, function(x)x$pi)
-    perms_temp <- .findPerm(final_bms, target_mat = final_bms[[length(final_bms)]], use_perms = ctrl$permute)
-    pi_init_t <- do.call(cbind,mapply(function(phi_tmp,perm){perm %*% phi_tmp},
-                                      final_pis, perms_temp, SIMPLIFY = FALSE)) 
-    rownames(pi_init_t) <- 1:n.blocks
+    mm_tmp <- lapply(temp_res, function(x)x$MixedMembership) 
+    target_ind <- which.max(sapply(soc_mats, ncol))
+    perms_temp <- list(diag(n.blocks))#.findPerm(block_models, target_mat = block_models[[target_ind]], use_perms = ctrl$permute)
+    #mm.ord <- as.numeric(lapply(mm_tmp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get correct temporal order
+    mm_init_t <- do.call(cbind,mapply(function(mm,perm){perm %*% mm},
+                                           mm_tmp, perms_temp, SIMPLIFY = FALSE))
+    rownames(mm_init_t) <- paste0("bloc",1:n.blocks)
+    mm_init_df <- cbind(data.frame(nid = colnames(mm_tmp[[1]])), t(mm_init_t))
+    names(mm_init_df)[1] <- "(nid)"
+    mfm_mm <- merge(data.monad, mm_init_df)
+    mm_init_t <- as.matrix(t(mfm_mm[,rownames(mm_init_t)]))
+    rownames(mm_init_t) <- 1:n.blocks
+    colnames(mm_init_t) <- id_var
     
     
     
     Z_tmp <- matrix(0, ncol = n_dyads, nrow = 1)
-    X_tmp <- matrix(1, ncol = ncol(pi_init_t), nrow = 1)
+    X_tmp <- matrix(1, ncol = ncol(mm_init_t), nrow = 1)
     ctrl$vi_iter <- 2
     ctrl$verbose <- FALSE
     ##sparsity <- mean(Y >= 0.5)
@@ -398,19 +386,19 @@
                          array(1.0, c(1, n.blocks, ctrl$states)),
                          0.0,
                          1.0,
-                         pi_init_t,
+                         mm_init_t,
                          ctrl$kappa_init_t,
-                         qlogis(final_bms[[length(final_bms)]]),
+                         qlogis(block_models[[1]]),
                          array(ctrl$alpha, c(1,n.blocks,ctrl$states)),
                          0.0,
                          ##sparsity,
                          ctrl)
     if(fit_tmp$LowerBound >= max_ll){
-      best_pi <- pi_init_t
+      best_mm <- mm_init_t
       max_ll <- fit_tmp$LowerBound 
     } 
   }
-  return(best_pi)
+  return(best_mm)
 }
 
 
