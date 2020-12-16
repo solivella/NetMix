@@ -26,8 +26,6 @@
 #'    least three variables: the sender identifier (or identifier of the first node in an undirected networks dyad),
 #'    the receiver identifier (or identifier of the second node in an undirected network dyad), and the value
 #'    of the edge between them. Currently, only edges between zero and one (inclusive) are supported.
-#' @param data.monad Data frame. Nodal atributes. Must contain a node identifier matching the names of nodes
-#'    used in the \code{data.dyad} data frame. 
 #' @param n.blocks Integer value. How many latent groups should be used to estimate the model?
 #' @param n.hmmstates Integer value. How many hidden Markov state should be used in the HMM? Defaults 
 #'    to 1 (i.e. no HMM).  
@@ -56,21 +54,21 @@
 #'        \item{hessian}{Boolean indicating whether the Hessian matrix of regression coefficients should e returned. Defaults to \code{TRUE}.}
 #'        \item{assortative}{Boolean indicating whether blockmodel should be assortative (i.e. stronger connections within groups) or disassortative
 #'                           (i.e. stronger connections between groups). Defaults to \code{TRUE}.}
-#'        \item{mu_b}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
+#'        \item{mu_block}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
 #'                    and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)} if \code{assortative=TRUE} (default)
 #'                    and to \code{c(-5.0, 5.0)} otherwise.}
-#'        \item{var_b}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
+#'        \item{var_block}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
 #'                    and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(1.0, 1.0)}.}
 #'        \item{mu_beta}{Either single numeric value, in which case the same prior mean is applied to all monadic coefficients, or
-#'                       an array with that is \code{npredictors} by \code{n.blocks} by \code{n.hmmstates}, where \code{npredictors}
+#'                       an array that is \code{npredictors} by \code{n.blocks} by \code{n.hmmstates}, where \code{npredictors}
 #'                       is the number of monadic predictors for which a prior mean is being set (prior means need not be set for all)
 #'                       predictors). The rows in the array should be named to identify which variables a prior mean is being set for.
 #'                       Defaults to a common prior mean of 0.0 for all monadic coefficients.}            
-#'        \item{var_beta}{See \code{mu_beta}. Defaults to a single common prior variance of 1.0 for all monadic coefficients.}
+#'        \item{var_beta}{See \code{mu_beta}. Defaults to a single common prior variance of 5.0 for all monadic coefficients.}
 #'        \item{mu_gamma}{Either a single numeric value, in which case the same prior mean is applied to all dyadic coefficients, or
 #'                        a named vector of numeric values (with names corresponding to the name of the variable 
 #'                       for which a prior mean is being set). Defaults to a common prior mean of 0.0 for all dyadic coefficients.}
-#'        \item{var_gamma}{See \code{mu_gamma}. Defaults to a single common prior variance of 1.0 for all dyadic coefficients.}
+#'        \item{var_gamma}{See \code{mu_gamma}. Defaults to a single common prior variance of 5.0 for all dyadic coefficients.}
 #'        \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 10.3.}
 #'        \item{se_sim}{Number of samples from variational posterior of latent variables on which approximation to variance-covariance
 #'                      matrices are based. Defaults to 10.}
@@ -83,7 +81,7 @@
 #'                           Although initial values need not be provided for all nodes, column names must have a \code{nodeID@timeID} format to 
 #'                           avoid ambiguity. When only one year is observed, names should be \code{"nodeID@1"}.}
 #'        \item{kappa_init_t}{Matrix, \code{n.hmmstates} by number of years. Optional initial values for variational 
-#'                       parameters for state probabilities.}
+#'                       parameters for state probabilities. Columns must be named according to unique year values.}
 #'        \item{b_init_t}{Matrix, \code{n.blocks} by \code{n.blocks}. Optional initial values for blockmodel.}
 #'        \item{beta_init}{Array, \code{predictors} by \code{n.blocks} by \code{n.hmmstates}. Optional initial values for monadic coefficients. If }
 #'        \item{gamma_init}{Vector. Optional initial values for dyadic coefficients.}
@@ -178,11 +176,11 @@ mmsbm <- function(formula.dyad,
                dyad_vcov_samp = 100,
                opt_iter = 10e3,
                assortative = TRUE,
-               var_b = c(1.0, 1.0),
+               var_block = c(1.0, 1.0),
                mu_beta = 0.0,
                mu_gamma = 0.0,
-               var_beta = 1.0,
-               var_gamma = 1.0,
+               var_beta = 5.0,
+               var_gamma = 5.0,
                eta = 1.0,
                permute = TRUE,
                conv_tol = 1e-3,
@@ -190,23 +188,23 @@ mmsbm <- function(formula.dyad,
   ctrl[names(mmsbm.control)] <- mmsbm.control
   ctrl$conv_window <- floor(4 + 1/(ctrl$batch_size))
   set.seed(ctrl$seed)
-  if(is.null(ctrl$mu_b)){
-  if(ctrl$assortative == TRUE){
-    ctrl$mu_b <- c(5.0, -5.0)
+  if(is.null(ctrl$mu_block)){
+    if(ctrl$assortative == TRUE){
+      ctrl$mu_block <- c(5.0, -5.0)
+    } else {
+      ctrl$mu_block <- c(-5.0, 5.0)
+    } 
   } else {
-    ctrl$mu_b <- c(-5.0, 5.0)
-  } 
-  } else {
-    if((diff(ctrl$mu_b) > 0.0) & (ctrl$assortative)){
-      stop("If 'assortative' is TRUE, mu_b[1] must be greater than mu_b[2]. One of the two must be corrected.")
+    if(((diff(ctrl$mu_block) > 0.0) & (ctrl$assortative)) | ((diff(ctrl$mu_block) < 0.0) & (!ctrl$assortative))){
+      stop("Assortative argument is inconsistent with provided mu_b.")
     }
   }
 
-  mu_b <- var_b <- array(NA, c(n.blocks, n.blocks))
-  diag(mu_b) <- ctrl[["mu_b"]][1]
-  mu_b[upper.tri(mu_b)|lower.tri(mu_b)] <- ctrl[["mu_b"]][2]
-  diag(var_b) <- ctrl[["var_b"]][1]
-  var_b[upper.tri(var_b)|lower.tri(var_b)] <- ctrl[["var_b"]][2]
+  mu_block <- var_block <- array(NA, c(n.blocks, n.blocks))
+  diag(mu_block) <- ctrl[["mu_block"]][1]
+  mu_block[upper.tri(mu_block)|lower.tri(mu_block)] <- ctrl[["mu_block"]][2]
+  diag(var_block) <- ctrl[["var_block"]][1]
+  var_block[upper.tri(var_block)|lower.tri(var_block)] <- ctrl[["var_block"]][2]
   
   ## Perform control checks
   if(ctrl$svi){
@@ -410,57 +408,7 @@ mmsbm <- function(formula.dyad,
     cat("Obtaining initial values...\n")
   }
   
-  dyads <- split.data.frame(dntid, mfd[, "(tid)"])
-  edges <- split(Y, mfd[, "(tid)"])
-  
-  wsocmat_df <- tidyr::pivot_wider(mfd[,c("(sid)","(rid)","Y")],
-                             names_from=c("(rid)"),
-                             values_from="Y",
-                             values_fn=sum,
-                             values_fill=0)
-  if(directed){
-  rnames <- wsocmat_df[,1, drop=TRUE]
-  } else {
-    rnames <- c(wsocmat_df[,1, drop=TRUE],colnames(wsocmat_df)[n.node])
-  }
-  wsocmat <- as.matrix(wsocmat_df[,-1])
-  if(!directed){
-    wsocmat <- cbind(wsocmat[1,],wsocmat)
-    wsocmat <- rbind(c(wsocmat[,1],0),wsocmat)
-    wsocmat[lower.tri(wsocmat)] <- wsocmat[upper.tri(wsocmat)]
-  }
-  rownames(wsocmat) <- colnames(wsocmat) <- rnames
-  diag(wsocmat) <- 0
-  
-  soc_mats <- list(wsocmat)
-  # soc_mats <- Map(function(dyad_mat, edge_vec){
-  #   nodes <- unique(c(dyad_mat))
-  #   nnode <- length(nodes)
-  #   adj_mat <- matrix(NA,
-  #                     nnode,
-  #                     nnode,
-  #                     dimnames = list(nodes,
-  #                                     nodes))
-  #   adj_mat[dyad_mat] <- edge_vec
-  #   if(!directed){
-  #     adj_mat[dyad_mat[,c(2,1)]] <- edge_vec
-  #   }
-  #   obs_prop <- mean(adj_mat, na.rm = TRUE)
-  #   if(anyNA(adj_mat)){
-  #     if(is.nan(obs_prop)){
-  #       obs_prop <- 0.01
-  #     }
-  #     adj_mat[is.na(adj_mat)] <- rbinom(sum(is.na(adj_mat)), 1, obs_prop)
-  #   }
-  #   diag(adj_mat) <- 0
-  #   if(!directed){
-  #     mat_ind <- which(upper.tri(adj_mat), arr.ind = TRUE)
-  #     adj_mat[mat_ind[,c(2,1)]] <- adj_mat[upper.tri(adj_mat)]
-  #   }
-  #   return(adj_mat)
-  # }, dyads, edges)
-  
-  
+  ##Initial HMM states
   if(is.null(ctrl$kappa_init_t)){
     if((periods > 1) & (n.hmmstates > 1)){
       td_id <- cbind(mfd[,"(tid)"],paste(mfd[,"(sid)"],mfd[,"(rid)"], sep = "->"))
@@ -495,163 +443,230 @@ mmsbm <- function(formula.dyad,
   if(identical(n.hmmstates, 1)){
     names(state_init) = 1
   }
-  if(is.null(ctrl$mm_init_t)){
-    ctrl$mm_init_t <- .initPi(soc_mats,
-                              mfm,
-                                Y,
-                              ntid,
-                                dyads,
-                                edges,
-                                t_id_d,
-                                t_id_n,
-                                nodes_pp,
-                                dyads_pp,
-                                nt_id,
-                                node_id_period,
-                                mu_b,
-                                var_b, nrow(X),
-                                nrow(Z), n.blocks, periods, directed, ctrl)
-  } else{
-    if(isFALSE(all.equal(colSums(ctrl$mm_init_t), rep(1.0, ncol(ctrl$mm_init_t)), check.names = FALSE)) || any(ctrl$mm_init_t < 0.0)){
-      stop("Elements in mm_init_t must be positive, and its columns must sum to one.")
+  
+  ##Initial mm 
+  dyads <- split.data.frame(dntid, mfd[, "(tid)"])
+  edges <- split(Y, mfd[, "(tid)"])
+  # mfm_sub <- split(mfm[,c("(nid)","(tid)")], state_init[match(mfm[, "(tid)"], names(state_init))])
+  # mfd_sub <- split(mfd[,c("(sid)","(rid)","Y")], state_init[match(mfd[, "(tid)"], names(state_init))])
+  # soc_mats <- lapply(mfd_sub,
+  #   function(x, sym = !directed){
+  #     socmat <- tapply(x[,"Y"],list(x[,"(sid)"],x[,"(rid)"]), FUN=sum, default=0)
+  #     diag(socmat) <- 0
+  #     if(sym){
+  #       socmat <- forceSymmetric(socmat + t(socmat))
+  #     }
+  #     return(socmat)
+  #   })
+  
+  # wsocmat_df <- tidyr::pivot_wider(mfd[,c("(sid)","(rid)","Y")],
+  #                            names_from=c("(rid)"),
+  #                            values_from="Y",
+  #                            values_fn=sum,
+  #                            values_fill=0)
+  # my departure here
+  #rnames <- unique(c(mfd[,"(sid)"], mfd[,"(rid)"]))
+  #wsocmat_df <- sapply(rnames, function(x){
+  #  mfd.sub <- mfd[(mfd$`(sid)`==x | mfd$`(rid)`==x) & mfd$Y==1,]
+  #  return(sapply(rnames, function(y){sum(mfd.sub$Y[mfd.sub$`(sid)`==y | mfd.sub$`(rid)`==y])}))
+  #})
+  #diag(wsocmat_df) <- 0
+  #if(directed){
+  #rnames <- wsocmat_df[,1, drop=TRUE]
+  #} else {
+  #  n.node <- length(unique(c(mfd$`(sid)`, mfd$`(rid)`)))
+  #  rnames <- c(wsocmat_df[,1, drop=TRUE],colnames(wsocmat_df)[n.node]) # why append only the last receiver node name?
+  #}
+  #wsocmat <- as.matrix(wsocmat_df[,-1])
+  # what is happening below?  looks like it does more than guarantee symmetry
+  #if(!directed){
+  #  wsocmat <- cbind(wsocmat[1,],wsocmat)
+  #  wsocmat <- rbind(c(wsocmat[,1],0),wsocmat)
+  #  wsocmat[lower.tri(wsocmat)] <- wsocmat[upper.tri(wsocmat)]
+  #}
+  #rownames(wsocmat) <- colnames(wsocmat) <- rnames
+  #diag(wsocmat) <- 0
+  #soc_mats <- list(wsocmat)
+  soc_mats <- Map(function(dyad_mat, edge_vec){
+    nodes <- unique(c(dyad_mat))
+    nnode <- length(nodes)
+    adj_mat <- matrix(NA,
+                      nnode,
+                      nnode,
+                      dimnames = list(nodes,
+                                      nodes))
+    adj_mat[dyad_mat] <- edge_vec
+    if(!directed){
+      adj_mat[dyad_mat[,c(2,1)]] <- edge_vec
     }
-    ctrl$mm_init_t <- t(.transf(t(ctrl$mm_init_t)))
-  }
+    obs_prop <- mean(adj_mat, na.rm = TRUE)
+    if(anyNA(adj_mat)){
+      if(is.nan(obs_prop)){
+        obs_prop <- 0.01
+      }
+      adj_mat[is.na(adj_mat)] <- rbinom(sum(is.na(adj_mat)), 1, obs_prop)
+    }
+    diag(adj_mat) <- 0
+    if(!directed){
+      mat_ind <- which(upper.tri(adj_mat), arr.ind = TRUE)
+      adj_mat[mat_ind[,c(2,1)]] <- adj_mat[upper.tri(adj_mat)]
+    }
+    return(adj_mat)
+  }, dyads, edges)
   
   # if(is.null(ctrl$mm_init_t)){
-  #   temp_res <- vector("list", periods)
-  #   for(i in 1:periods){
-  #     if(!ctrl$init_gibbs) {
-  #       mn <- ncol(soc_mats[[i]]) 
-  #       if(directed){
-  #         D_o <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
-  #         D_i <- 1/sqrt(.colSums(soc_mats[[i]], mn, mn) + 1)
-  #         C_o <- t(D_o * soc_mats[[i]])
-  #         C_i <- t(D_i * t(soc_mats[[i]]))
-  #         U <- t(C_o * D_i) %*% C_o +
-  #           t(C_i * D_o) %*% C_i
-  #       } else {
-  #         D <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
-  #         U <- t(D * soc_mats[[i]]) * D
-  #       }
-  #       if(ctrl$spectral) {
-  #         n_elem <- n.blocks + 1
-  #         res <- RSpectra::eigs_sym(U, n_elem)
-  #         eta <- res$vectors[,1:n_elem] %*% diag(res$values[1:n_elem])
-  #         target <- eta[,2:n_elem] / (eta[,1] + 1e-8)
-  #         sig <- 1 - res$values[n_elem] / (res$values[n.blocks])
-  #         sig <- ifelse(is.finite(sig), sig, 0)
-  #         if(sig > 0.1){
-  #           target <- target[,1:(n_elem - 2), drop = FALSE]
-  #         }
-  #       } else {
-  #         target <- U
-  #       }
-  #       if(nrow(unique(target)) > n.blocks){
-  #         clust_internal <- fitted(kmeans(x = target,
-  #                                         centers = n.blocks,
-  #                                         iter.max = 15,
-  #                                         nstart = 10), "classes")
-  #         
-  #       } else {
-  #         init_c <- sample(1:nrow(target), n.blocks, replace = FALSE)
-  #         cents <- jitter(target[init_c, ])
-  #         clust_internal <- fitted(suppressWarnings(kmeans(x = target,
-  #                                                          centers = cents,
-  #                                                          iter.max = 15,
-  #                                                          algorithm = "Lloyd",
-  #                                                          nstart = 1)), "classes")
-  #       }
-  #       
-  #       phi_internal <- model.matrix(~ factor(clust_internal, 1:n.blocks) - 1)
-  #       phi_internal <- .transf(phi_internal)
-  #       rownames(phi_internal) <- rownames(soc_mats[[i]])
-  #       colnames(phi_internal) <- 1:n.blocks
-  #       MixedMembership <- t(phi_internal)
-  #       int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
-  #       BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
-  #       temp_res[[i]] <- list(BlockModel = BlockModel,
-  #                             MixedMembership = MixedMembership)                         
-  #       
-  #     } else {
-  #       n_prior <- (dyads_pp[i] - nodes_pp[i]) * .05
-  #       a <- plogis(ctrl$mu_b) * n_prior
-  #       b <- n_prior - a
-  #       lda_beta_prior <- lapply(list(b,a),
-  #                                function(prior){
-  #                                  mat <- matrix(prior[2], n.blocks, n.blocks)
-  #                                  diag(mat) <- prior[1]
-  #                                  return(mat)
-  #                                })
-  #       ret <- lda::mmsb.collapsed.gibbs.sampler(network = soc_mats[[i]],
-  #                                                K = n.blocks,
-  #                                                num.iterations = 75L,
-  #                                                burnin = 25L,
-  #                                                alpha = ctrl$alpha,
-  #                                                beta.prior = lda_beta_prior)
-  #       MixedMembership <- prop.table(ret$document_expects, 2)
-  #       colnames(MixedMembership) <- colnames(soc_mats[[i]])
-  #       int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
-  #       BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
-  #       if(any(is.nan(BlockModel))){
-  #         BlockModel[is.nan(BlockModel)] <- 0.0
-  #       }
-  #       temp_res[[i]] <- list(BlockModel = BlockModel,
-  #                             MixedMembership = MixedMembership)
-  #       
-  #       
-  #     }
-  #   }
-  #   block_models <- lapply(temp_res, function(x)x$BlockModel)
-  #   target_ind <- which.max(sapply(soc_mats, ncol))
-  #   perms_temp <- .findPerm(block_models, target_mat = block_models[[target_ind]], use_perms = ctrl$permute)
-  #   phis_temp <- lapply(temp_res, function(x)x$MixedMembership) 
-  #   phi.ord <- as.numeric(lapply(phis_temp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get correct temporal order
-  #   ctrl$mm_init_t <- do.call(cbind,mapply(function(phi,perm){perm %*% phi},
-  #                                           phis_temp[order(phi.ord)], perms_temp, SIMPLIFY = FALSE)) 
-  #   rownames(ctrl$mm_init_t) <- 1:n.blocks
+  #   ctrl$mm_init_t <- .initPi(soc_mats,
+  #                             mfm_sub,
+  #                               Y,
+  #                             ntid,
+  #                               dyads,
+  #                               edges,
+  #                               t_id_d,
+  #                               nodes_pp,
+  #                               dyads_pp,
+  #                               nt_id,
+  #                               node_id_period,
+  #                               mu_b,
+  #                               var_b, nrow(X),
+  #                               nrow(Z), n.blocks, length(soc_mats), directed, ctrl)
   # } else{
   #   if(isFALSE(all.equal(colSums(ctrl$mm_init_t), rep(1.0, ncol(ctrl$mm_init_t)), check.names = FALSE)) || any(ctrl$mm_init_t < 0.0)){
   #     stop("Elements in mm_init_t must be positive, and its columns must sum to one.")
   #   }
   #   ctrl$mm_init_t <- t(.transf(t(ctrl$mm_init_t)))
-  #   
-  # } 
-  # 
+  # }
+  
+  if(is.null(ctrl$mm_init_t)){
+    temp_res <- vector("list", periods)
+    for(i in 1:periods){
+      if(!ctrl$init_gibbs) {
+        mn <- ncol(soc_mats[[i]])
+        if(directed){
+          D_o <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
+          D_i <- 1/sqrt(.colSums(soc_mats[[i]], mn, mn) + 1)
+          C_o <- t(D_o * soc_mats[[i]])
+          C_i <- t(D_i * t(soc_mats[[i]]))
+          U <- t(C_o * D_i) %*% C_o +
+            t(C_i * D_o) %*% C_i
+        } else {
+          D <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
+          U <- t(D * soc_mats[[i]]) * D
+        }
+        if(ctrl$spectral) {
+          n_elem <- n.blocks + 1
+          #res <- RSpectra::eigs_sym(U, n_elem)
+          res <- eigen(U)
+          sel_val <- order(abs(res$values), decreasing = TRUE)[1:n_elem] 
+          eta <- res$vectors[,sel_val] %*% diag(res$values[sel_val])
+          target <- eta[,2:n_elem] / (eta[,1] + 1e-8)
+          sig <- 1 - (res$values[n_elem] / (res$values[n.blocks]))
+          sig <- ifelse(is.finite(sig), sig, 0)
+          if(abs(sig) > 0.1){
+            target <- target[,1:(n_elem - 2), drop = FALSE]
+          }
+        } else {
+          target <- U
+        }
+        if(nrow(unique(target)) > n.blocks){
+          clust_internal <- fitted(kmeans(x = target,
+                                          centers = n.blocks,
+                                          iter.max = 15,
+                                          nstart = 10), "classes")
+
+        } else {
+          init_c <- sample(1:nrow(target), n.blocks, replace = FALSE)
+          cents <- jitter(target[init_c, ])
+          clust_internal <- fitted(suppressWarnings(kmeans(x = target,
+                                                           centers = cents,
+                                                           iter.max = 15,
+                                                           algorithm = "Lloyd",
+                                                           nstart = 1)), "classes")
+        }
+
+        phi_internal <- model.matrix(~ factor(clust_internal, 1:n.blocks) - 1)
+        phi_internal <- .transf(phi_internal)
+        rownames(phi_internal) <- rownames(soc_mats[[i]])
+        colnames(phi_internal) <- 1:n.blocks
+        MixedMembership <- t(phi_internal)
+        int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
+        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
+        temp_res[[i]] <- list(BlockModel = BlockModel,
+                              MixedMembership = MixedMembership)
+
+      } else {
+        n_prior <- (dyads_pp[i] - nodes_pp[i]) * .05
+        a <- plogis(ctrl$mu_b) * n_prior
+        b <- n_prior - a
+        lda_beta_prior <- lapply(list(b,a),
+                                 function(prior){
+                                   mat <- matrix(prior[2], n.blocks, n.blocks)
+                                   diag(mat) <- prior[1]
+                                   return(mat)
+                                 })
+        ret <- lda::mmsb.collapsed.gibbs.sampler(network = soc_mats[[i]],
+                                                 K = n.blocks,
+                                                 num.iterations = 75L,
+                                                 burnin = 25L,
+                                                 alpha = ctrl$alpha,
+                                                 beta.prior = lda_beta_prior)
+        MixedMembership <- prop.table(ret$document_expects, 2)
+        colnames(MixedMembership) <- colnames(soc_mats[[i]])
+        int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
+        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
+        if(any(is.nan(BlockModel))){
+          BlockModel[is.nan(BlockModel)] <- 0.0
+        }
+        temp_res[[i]] <- list(BlockModel = BlockModel,
+                              MixedMembership = MixedMembership)
+
+
+      }
+    }
+    block_models <- lapply(temp_res, function(x)x$BlockModel)
+    target_ind <- which.max(sapply(soc_mats, ncol))
+    perms_temp <- .findPerm(block_models, target_mat = block_models[[target_ind]], use_perms = ctrl$permute)
+    phis_temp <- lapply(temp_res, function(x)x$MixedMembership)
+    phi.ord <- as.numeric(lapply(phis_temp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get correct temporal order
+    ctrl$mm_init_t <- do.call(cbind,mapply(function(phi,perm){perm %*% phi},
+                                            phis_temp[order(phi.ord)], perms_temp, SIMPLIFY = FALSE))
+    rownames(ctrl$mm_init_t) <- 1:n.blocks
+  } else{
+    if(isFALSE(all.equal(colSums(ctrl$mm_init_t), rep(1.0, ncol(ctrl$mm_init_t)), check.names = FALSE)) || any(ctrl$mm_init_t < 0.0)){
+      stop("Elements in mm_init_t must be positive, and its columns must sum to one.")
+    }
+    ctrl$mm_init_t <- t(.transf(t(ctrl$mm_init_t)))
+
+  }
+  
+  
+  
+
+
   if(is.null(ctrl$gamma_init)){
     if(ncol(Z) > 0){
-      ctrl$gamma_init <- coef(lm.fit(as.matrix(Z),log((Y+1e-5)/(1-Y+1e-5))))
+      ctrl$gamma_init <- rnorm(length(ctrl$mu_gamma), ctrl$mu_gamma, sqrt(ctrl$var_gamma))
     } else {
       ctrl$gamma_init <- 0
     }
   }
   if(ncol(Z) == 0)
     Z <- matrix(0, nrow = nrow(Z), ncol = 1)
-  if(anyNA(ctrl$gamma_init)){
-    stop("Singular design matrix; check dyadic predictors.")
-  }
-  
+
   if(is.null(ctrl$b_init_t)){
-    ctrl$b_init_t <- qlogis(approxB(Y, nt_id, ctrl$mm_init_t, directed))
-    if(any(is.infinite(ctrl$b_init_t))){
-      which.inf <- which(is.infinite(ctrl$b_init_t))
-      ctrl$b_init_t[which.inf] <- ifelse(ctrl$b_init_t[which.inf] > 0, 25, -25) 
-    }
+    # ctrl$b_init_t <- qlogis(approxB(Y, nt_id, ctrl$mm_init_t, directed))
+    # if(any(is.infinite(ctrl$b_init_t))){
+    #   which.inf <- which(is.infinite(ctrl$b_init_t))
+    #   ctrl$b_init_t[which.inf] <- ifelse(ctrl$b_init_t[which.inf] > 0, 25, -25)
+    # }
+    ctrl$b_init_t <- array(rnorm(mu_block, mu_block, sqrt(var_block)), c(n.blocks, n.blocks))
   }
   if(is.null(ctrl$beta_init)){
-    X_state <- split.data.frame(X, state_init[t_id_n + 1])
-    pi_state <- split.data.frame(t(ctrl$mm_init_t), state_init[t_id_n + 1])
-    ctrl$beta_init <- mapply(function(X_sub, pi_sub){
-      pi_temp <- .transf(pi_sub)
-      lm.fit(X_sub, log(pi_temp))$coefficients
-    },
-    X_state, pi_state,
-    SIMPLIFY = "array")
+    ctrl$beta_init <- vapply(seq.int(n.hmmstates),
+           function(m){
+             array(rnorm(ctrl$mu_beta[,,m], ctrl$mu_beta[,,m],sqrt(ctrl$var_beta[,,m])), dim(ctrl$mu_beta[,,m]))
+           }, ctrl$mu_beta[,,1])
   }
-  if(anyNA(ctrl$beta_init)){
-    stop("Singular design matrix; check monadic predictors.")
-  }
-  ## Estimate model
+  # ## Estimate model
   if(ctrl$verbose){
     cat("Estimating model...\n");
   }
@@ -673,8 +688,8 @@ mmsbm <- function(formula.dyad,
                    nt_id,
                    ##nt_id[ho_ind,, drop=FALSE],
                    node_id_period,
-                   mu_b,
-                   var_b,
+                   mu_block,
+                   var_block,
                    ctrl$mu_beta,
                    ctrl$var_beta,
                    ctrl$mu_gamma,

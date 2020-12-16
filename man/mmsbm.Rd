@@ -50,9 +50,6 @@ least three variables: the sender identifier (or identifier of the first node in
 the receiver identifier (or identifier of the second node in an undirected network dyad), and the value
 of the edge between them. Currently, only edges between zero and one (inclusive) are supported.}
 
-\item{data.monad}{Data frame. Nodal atributes. Must contain a node identifier matching the names of nodes
-used in the \code{data.dyad} data frame.}
-
 \item{n.blocks}{Integer value. How many latent groups should be used to estimate the model?}
 
 \item{n.hmmstates}{Integer value. How many hidden Markov state should be used in the HMM? Defaults 
@@ -84,21 +81,21 @@ to 1 (i.e. no HMM).}
    \item{hessian}{Boolean indicating whether the Hessian matrix of regression coefficients should e returned. Defaults to \code{TRUE}.}
    \item{assortative}{Boolean indicating whether blockmodel should be assortative (i.e. stronger connections within groups) or disassortative
                       (i.e. stronger connections between groups). Defaults to \code{TRUE}.}
-   \item{mu_b}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
+   \item{mu_block}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
                and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)} if \code{assortative=TRUE} (default)
                and to \code{c(-5.0, 5.0)} otherwise.}
-   \item{var_b}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
+   \item{var_block}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
                and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(1.0, 1.0)}.}
    \item{mu_beta}{Either single numeric value, in which case the same prior mean is applied to all monadic coefficients, or
-                  an array with that is \code{npredictors} by \code{n.blocks} by \code{n.hmmstates}, where \code{npredictors}
+                  an array that is \code{npredictors} by \code{n.blocks} by \code{n.hmmstates}, where \code{npredictors}
                   is the number of monadic predictors for which a prior mean is being set (prior means need not be set for all)
                   predictors). The rows in the array should be named to identify which variables a prior mean is being set for.
                   Defaults to a common prior mean of 0.0 for all monadic coefficients.}            
-   \item{var_beta}{See \code{mu_beta}. Defaults to a single common prior variance of 1.0 for all monadic coefficients.}
+   \item{var_beta}{See \code{mu_beta}. Defaults to a single common prior variance of 5.0 for all monadic coefficients.}
    \item{mu_gamma}{Either a single numeric value, in which case the same prior mean is applied to all dyadic coefficients, or
                    a named vector of numeric values (with names corresponding to the name of the variable 
                   for which a prior mean is being set). Defaults to a common prior mean of 0.0 for all dyadic coefficients.}
-   \item{var_gamma}{See \code{mu_gamma}. Defaults to a single common prior variance of 1.0 for all dyadic coefficients.}
+   \item{var_gamma}{See \code{mu_gamma}. Defaults to a single common prior variance of 5.0 for all dyadic coefficients.}
    \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 10.3.}
    \item{se_sim}{Number of samples from variational posterior of latent variables on which approximation to variance-covariance
                  matrices are based. Defaults to 10.}
@@ -111,7 +108,7 @@ to 1 (i.e. no HMM).}
                       Although initial values need not be provided for all nodes, column names must have a \code{nodeID@timeID} format to 
                       avoid ambiguity. When only one year is observed, names should be \code{"nodeID@1"}.}
    \item{kappa_init_t}{Matrix, \code{n.hmmstates} by number of years. Optional initial values for variational 
-                  parameters for state probabilities.}
+                  parameters for state probabilities. Columns must be named according to unique year values.}
    \item{b_init_t}{Matrix, \code{n.blocks} by \code{n.blocks}. Optional initial values for blockmodel.}
    \item{beta_init}{Array, \code{predictors} by \code{n.blocks} by \code{n.hmmstates}. Optional initial values for monadic coefficients. If }
    \item{gamma_init}{Vector. Optional initial values for dyadic coefficients.}

@@ -247,7 +247,6 @@
                      dyads,
                      edges,
                      t_id_d,
-                     t_id_n,
                      nodes_pp,
                      dyads_pp,
                      nt_id,
@@ -255,14 +254,12 @@
                      mu_b,
                      var_b, n_nodes,
                      n_dyads, n.blocks, periods, directed, ctrl){
-  periods <- 1
   max_ll <- -Inf
   best_mm <- matrix(as.double(0.0), ncol=n_nodes, nrow=n.blocks)
   rownames(best_mm) <- 1:n.blocks
   for(n in 1:ctrl$nstarts){
     temp_res <- vector("list", periods)
-    #for(i in 1:periods){
-    i <- 1
+    for(i in 1:periods){
       if(!ctrl$init_gibbs) {
         mn <- ncol(soc_mats[[i]]) 
         if(directed){
@@ -319,7 +316,7 @@
                               MixedMembership = MixedMembership)                         
         
       } else {
-        n_prior <- (dyads_pp[i] - nodes_pp[i]) * .05
+        n_prior <- (dyads_pp[i] - ncol(soc_mats[[i]])) * .05
         a <- plogis(ctrl$mu_b) * n_prior
         b <- n_prior - a
         lda_beta_prior <- lapply(list(b,a),
@@ -346,18 +343,23 @@
                               MixedMembership = MixedMembership)
         
       }
-    #}
+    }
     block_models <- lapply(temp_res, function(x)x$BlockModel)
     mm_tmp <- lapply(temp_res, function(x)x$MixedMembership) 
     target_ind <- which.max(sapply(soc_mats, ncol))
-    perms_temp <- list(diag(n.blocks))#.findPerm(block_models, target_mat = block_models[[target_ind]], use_perms = ctrl$permute)
-    #mm.ord <- as.numeric(lapply(mm_tmp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get correct temporal order
-    mm_init_t <- do.call(cbind,mapply(function(mm,perm){perm %*% mm},
-                                           mm_tmp, perms_temp, SIMPLIFY = FALSE))
-    rownames(mm_init_t) <- paste0("bloc",1:n.blocks)
-    mm_init_df <- cbind(data.frame(nid = colnames(mm_tmp[[1]])), t(mm_init_t))
-    names(mm_init_df)[1] <- "(nid)"
-    mfm_mm <- merge(data.monad, mm_init_df)
+    perms_temp <- .findPerm(block_models, target_mat = block_models[[target_ind]], use_perms = ctrl$permute)
+    mm_init_t <- do.call(cbind,mapply(
+      function(mm, perm, df){
+        mm_perm <- perm %*% mm
+        rownames(mm_perm) <- paste0("bloc",1:n.blocks)
+        mm_df <- cbind(data.frame(nid = colnames(mm_perm), t(mm_perm)))
+        names(mm_df)[1] <- "(nid)"
+        mfm_mm <- merge(df, mm_df)
+        mm_t <- t(as.matrix(mfm_mm[,rownames(mm_perm)]))
+        #colnames(mm_t) <- paste(df
+        return(mm_t)
+      },mm_tmp, perms_temp, data.monad, SIMPLIFY = FALSE))
+    
     mm_init_t <- as.matrix(t(mfm_mm[,rownames(mm_init_t)]))
     rownames(mm_init_t) <- 1:n.blocks
     colnames(mm_init_t) <- id_var
@@ -388,7 +390,7 @@
                          1.0,
                          mm_init_t,
                          ctrl$kappa_init_t,
-                         qlogis(block_models[[1]]),
+                         qlogis(block_models[[target_ind]]),
                          array(ctrl$alpha, c(1,n.blocks,ctrl$states)),
                          0.0,
                          ##sparsity,
@@ -397,7 +399,7 @@
       best_mm <- mm_init_t
       max_ll <- fit_tmp$LowerBound 
     } 
-  }
+    }
   return(best_mm)
 }
 
