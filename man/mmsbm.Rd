@@ -85,7 +85,7 @@ to 1 (i.e. no HMM).}
                and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)} if \code{assortative=TRUE} (default)
                and to \code{c(-5.0, 5.0)} otherwise.}
    \item{var_block}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
-               and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(1.0, 1.0)}.}
+               and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, 5.0)}.}
    \item{mu_beta}{Either single numeric value, in which case the same prior mean is applied to all monadic coefficients, or
                   an array that is \code{npredictors} by \code{n.blocks} by \code{n.hmmstates}, where \code{npredictors}
                   is the number of monadic predictors for which a prior mean is being set (prior means need not be set for all)
@@ -96,7 +96,7 @@ to 1 (i.e. no HMM).}
                    a named vector of numeric values (with names corresponding to the name of the variable 
                   for which a prior mean is being set). Defaults to a common prior mean of 0.0 for all dyadic coefficients.}
    \item{var_gamma}{See \code{mu_gamma}. Defaults to a single common prior variance of 5.0 for all dyadic coefficients.}
-   \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 10.3.}
+   \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 1.0.}
    \item{se_sim}{Number of samples from variational posterior of latent variables on which approximation to variance-covariance
                  matrices are based. Defaults to 10.}
    \item{dyad_vcov_samp}{Number of dyads to sample in computation of variance-covariance of dyadic and blockmodel parameters. 

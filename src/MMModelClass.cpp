@@ -502,7 +502,7 @@ double MMModel::LB()
       res -= kappa_t(m, t) * log(kappa_t(m,t) + 1e-8);
     }
   }
-  return -res;
+  return res;
 }
 
 double MMModel::LL()
