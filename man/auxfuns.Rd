@@ -6,6 +6,7 @@
 \alias{alphaLB}
 \alias{auxfuns}
 \alias{.cbind.fill}
+\alias{.scaleVars}
 \alias{.transf_muvar}
 \alias{.bar.legend}
 \alias{.mpower}
@@ -24,15 +25,9 @@ alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 
 .cbind.fill(...)
 
-.transf_muvar(
-  orig,
-  is_var,
-  is_array,
-  des.mat,
-  nblock = NULL,
-  nstate = NULL,
-  devs = NULL
-)
+.scaleVars(x, keep_const = TRUE)
+
+.transf_muvar(orig, is_var, is_array, des.mat, nblock = NULL, nstate = NULL)
 
 .bar.legend(colPalette, range)
 
@@ -92,6 +87,10 @@ sender (first column) and receiver (second column) node id's for each dyad.}
 
 \item{...}{Numeric vectors; vectors of potentially different length to be cbind-ed.}
 
+\item{x}{A model data frame.}
+
+\item{keep_const}{Should the intercept be kept after standarization?}
+
 \item{orig}{Object to be transformed.}
 
 \item{is_var}{Boolean. Is the object to be transformed a variance term?}
@@ -103,8 +102,6 @@ sender (first column) and receiver (second column) node id's for each dyad.}
 \item{nblock}{Number of groups in model, defaults to \code{NULL}.}
 
 \item{nstate}{Number of hidden Markov states in model, defaults to \code{NULL}.}
-
-\item{devs}{Vector of standard deviations to use in transformation of variances. Defaults to \code{NULL}.}
 
 \item{colPalette}{A function produced by \code{colorRamp}.}
 
@@ -135,6 +132,8 @@ It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.}
 \item{C_mat}{Numeric matrix; matrix of posterior counts of block instantiations per node.}
 
 \item{soc_mats, Y, dyads, edges, t_id_d, t_id_n, nodes_pp, dyads_pp, nt_id, node_id_period, mu_b, var_b, n_dyads, n.blocks, periods, directed, ctrl}{Internal arguments for initialization.}
+
+\item{devs}{Vector of standard deviations to use in transformation of variances. Defaults to \code{NULL}.}
 }
 \value{
 See individual return section for each function:

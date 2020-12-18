@@ -438,7 +438,7 @@ void MMModel::optim_ours(bool alpha)
                 &maskalpha[0], -1.0e+35, 1.0e-6, 1, this, &fncountAlpha, &grcountAlpha, &m_failAlpha);
     
     for(arma::uword i = 0; i < npar; ++i){
-      beta[i] = (1 - step_size) * betaold[i] + step_size * beta[i];
+      beta[i] = (1.0 - step_size) * betaold[i] + step_size * beta[i];
     }
     
     //Rcpp::Rcout << beta << std::endl;

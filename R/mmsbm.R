@@ -58,17 +58,17 @@
 #'                    and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)} if \code{assortative=TRUE} (default)
 #'                    and to \code{c(-5.0, 5.0)} otherwise.}
 #'        \item{var_block}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
-#'                    and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, 5.0)}.}
+#'                    and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(1.0, 1.0)}.}
 #'        \item{mu_beta}{Either single numeric value, in which case the same prior mean is applied to all monadic coefficients, or
 #'                       an array that is \code{npredictors} by \code{n.blocks} by \code{n.hmmstates}, where \code{npredictors}
 #'                       is the number of monadic predictors for which a prior mean is being set (prior means need not be set for all)
 #'                       predictors). The rows in the array should be named to identify which variables a prior mean is being set for.
 #'                       Defaults to a common prior mean of 0.0 for all monadic coefficients.}            
-#'        \item{var_beta}{See \code{mu_beta}. Defaults to a single common prior variance of 5.0 for all monadic coefficients.}
+#'        \item{var_beta}{See \code{mu_beta}. Defaults to a single common prior variance of 1.0 for all monadic coefficients.}
 #'        \item{mu_gamma}{Either a single numeric value, in which case the same prior mean is applied to all dyadic coefficients, or
 #'                        a named vector of numeric values (with names corresponding to the name of the variable 
 #'                       for which a prior mean is being set). Defaults to a common prior mean of 0.0 for all dyadic coefficients.}
-#'        \item{var_gamma}{See \code{mu_gamma}. Defaults to a single common prior variance of 5.0 for all dyadic coefficients.}
+#'        \item{var_gamma}{See \code{mu_gamma}. Defaults to a single common prior variance of 1.0 for all dyadic coefficients.}
 #'        \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 1.0.}
 #'        \item{se_sim}{Number of samples from variational posterior of latent variables on which approximation to variance-covariance
 #'                      matrices are based. Defaults to 10.}
@@ -176,11 +176,12 @@ mmsbm <- function(formula.dyad,
                dyad_vcov_samp = 100,
                opt_iter = 10e3,
                assortative = TRUE,
-               var_block = c(5.0, 5.0),
+               mu_block = c(5.0, -5.0),
+               var_block = c(1.0, 1.0),
                mu_beta = 0.0,
                mu_gamma = 0.0,
-               var_beta = 5.0,
-               var_gamma = 5.0,
+               var_beta = 1.0,
+               var_gamma = 1.0,
                eta = 1.0,
                permute = TRUE,
                conv_tol = 1e-3,
@@ -188,23 +189,13 @@ mmsbm <- function(formula.dyad,
   ctrl[names(mmsbm.control)] <- mmsbm.control
   ctrl$conv_window <- floor(4 + 1/(ctrl$batch_size))
   set.seed(ctrl$seed)
-  if(is.null(ctrl$mu_block)){
-    if(ctrl$assortative == TRUE){
-      ctrl$mu_block <- c(5.0, -5.0)
-    } else {
-      ctrl$mu_block <- c(-5.0, 5.0)
-    } 
-  } else {
-    if(((diff(ctrl$mu_block) > 0.0) & (ctrl$assortative)) | ((diff(ctrl$mu_block) < 0.0) & (!ctrl$assortative))){
-      stop("Assortative argument is inconsistent with provided mu_block.")
+  if(((ctrl$assortative == FALSE) & (diff(ctrl$mu_block) < 0.0)) | ((ctrl$assortative == TRUE) & (diff(ctrl$mu_block) > 0.0))){
+    if(!is.null(mmsbm.control$mu_block)){
+      warning("Value of mu_block is not consistent with assortative argument. Switching signs.")
     }
-  }
-
-  mu_block <- var_block <- array(NA, c(n.blocks, n.blocks))
-  diag(mu_block) <- ctrl[["mu_block"]][1]
-  mu_block[upper.tri(mu_block)|lower.tri(mu_block)] <- ctrl[["mu_block"]][2]
-  diag(var_block) <- ctrl[["var_block"]][1]
-  var_block[upper.tri(var_block)|lower.tri(var_block)] <- ctrl[["var_block"]][2]
+    ctrl$mu_block <- ctrl$mu_block * -1
+  } 
+  
   
   ## Perform control checks
   if(ctrl$svi){
@@ -361,21 +352,14 @@ mmsbm <- function(formula.dyad,
     ctrl$node_est <- rep(1, length(ntid))
   }
   Y <- stats::model.response(mfd)
-  X <- base::scale(model.matrix(terms(mfm), mfm))
+  X <- .scaleVars(mfm)
   X_mean <- attr(X, "scaled:center")
   X_sd <- attr(X, "scaled:scale")
-  if(any(X_sd==0)){
-    constx <- which(X_sd==0)
-    X[,constx] <- 1
-  }
   n_monad_pred <- ncol(X)
-  Z <- scale(model.matrix(terms(mfd), mfd))
+  
+  Z <- .scaleVars(mfd, FALSE)
   Z_mean <- attr(Z, "scaled:center")
   Z_sd <- attr(Z, "scaled:scale")
-  if(any(Z_sd==0)){
-    constz <- which(Z_sd==0)
-    Z <- Z[,-constz, drop = FALSE]
-  }
   n_dyad_pred <- ncol(Z)
  
   
@@ -383,10 +367,14 @@ mmsbm <- function(formula.dyad,
   ## Modify prior means and variances to match transformed model matrix
   
   ctrl$mu_gamma <- .transf_muvar(ctrl$mu_gamma, FALSE, FALSE, Z)
-  ctrl$var_gamma <- .transf_muvar(ctrl$var_gamma, TRUE, FALSE, Z, devs=Z_sd[-which(Z_sd==0)])
+  ctrl$var_gamma <- .transf_muvar(ctrl$var_gamma, TRUE, FALSE, Z)
   ctrl$mu_beta <- .transf_muvar(ctrl$mu_beta, FALSE, TRUE, X, n.blocks, n.hmmstates)
-  ctrl$var_beta <- .transf_muvar(ctrl$var_beta, TRUE, TRUE, X, n.blocks, n.hmmstates, c(1,X_sd[-1]))
-  
+  ctrl$var_beta <- .transf_muvar(ctrl$var_beta, TRUE, TRUE, X, n.blocks, n.hmmstates)
+  mu_block <- var_block <- array(NA, c(n.blocks, n.blocks))
+  diag(mu_block) <- ctrl[["mu_block"]][1]
+  mu_block[upper.tri(mu_block)|lower.tri(mu_block)] <- ctrl[["mu_block"]][2]
+  diag(var_block) <- ctrl[["var_block"]][1]
+  var_block[upper.tri(var_block)|lower.tri(var_block)] <- ctrl[["var_block"]][2]
   
   
   nt_id <- cbind(match(dntid[,1], ntid) - 1, match(dntid[,2], ntid) - 1)
@@ -527,7 +515,7 @@ mmsbm <- function(formula.dyad,
   #                               nt_id,
   #                               node_id_period,
   #                               mu_b,
-  #                               var_b, nrow(X),
+  #                               var_block, nrow(X),
   #                               nrow(Z), n.blocks, length(soc_mats), directed, ctrl)
   # } else{
   #   if(isFALSE(all.equal(colSums(ctrl$mm_init_t), rep(1.0, ncol(ctrl$mm_init_t)), check.names = FALSE)) || any(ctrl$mm_init_t < 0.0)){
@@ -716,17 +704,17 @@ mmsbm <- function(formula.dyad,
   
   
   ## Rescale and name coefficients
-  fit[["DyadCoef"]] <- fit[["DyadCoef"]] / Z_sd[-which(Z_sd==0)]
+  fit[["DyadCoef"]] <- c(fit[["DyadCoef"]]) / Z_sd
   if(length(fit[["DyadCoef"]])){
-    Z <- t(t(Z) * Z_sd[-1] + Z_mean[-1])
-    fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]])
+    Z <- t(t(Z) * Z_sd + Z_mean)
+    fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean %*% fit[["DyadCoef"]])
     names(fit[["DyadCoef"]]) <- colnames(Z) 
   }
   
   fit[["MonadCoef"]] <- vapply(1:n.hmmstates,
                                function(ind, coefs, sd_vec, mean_vec){
                                  mat <- coefs[,,ind, drop=FALSE]
-                                 constx <- which(sd_vec==0)
+                                 constx <- which(rownames(mat)=="(Intercept)")
                                  mat[-constx, , 1] <- mat[-constx, , 1] / sd_vec[-constx]
                                  if(length(constx)!=0){
                                    mat[constx, ,1] <- mat[constx, ,1] - mean_vec[-constx] %*% mat[-constx, , 1]
@@ -823,10 +811,10 @@ mmsbm <- function(formula.dyad,
       }, 
       fit[["DyadCoef"]])
     group_mat <- matrix(1:(n.blocks^2), n.blocks, n.blocks)
-    lambda_vec <- c(c(var_b), ctrl$var_gamma)
+    lambda_vec <- c(c(var_block), ctrl$var_gamma)
     if(!directed){
       group_mat[upper.tri(group_mat)] <- group_mat[lower.tri(group_mat)]
-      lambda_vec <- c(c(var_b[lower.tri(var_b, TRUE)]), ctrl$var_gamma)
+      lambda_vec <- c(c(var_block[lower.tri(var_block, TRUE)]), ctrl$var_gamma)
     } 
     hessTheta_list <- mapply(
       function(send_samp, rec_samp, y_vec, Z_d, par_theta, mu_b_mat, var_b_mat, var_g, mu_g, dir_net, group_mat, lambda_vec)

@@ -15,6 +15,8 @@
 #' @param use_perms Boolean; should all row/column permutations be explored when
 #'                  realigning matrices? defaults to \code{TRUE}.
 #' @param X Numeric matrix; design matrix of monadic predictors.
+#' @param x A model data frame.
+#' @param keep_const Should the intercept be kept after standarization?
 #' @param beta Numeric array; array of coefficients associated with monadic predictors. 
 #'             It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.
 #' @param alpha_list List of mixed-membership parameter matrices. 
@@ -69,37 +71,48 @@
   return(mat)
 }
 
+#' @rdname auxfuns
+.scaleVars <- function(x, keep_const = TRUE){
+  A <- model.matrix(terms(x), x)
+  which_cont <- which(apply(A, 2, function(a)length(unique(a))>2))
+  A_sd <- rep(1, ncol(A))
+  A_sd[which_cont] <- apply(A[,which_cont], 2, sd)*2
+  A <- scale(A, TRUE, A_sd)
+  constx <- which(colnames(A)=="(Intercept)")
+  if(keep_const){
+    A[,constx] <- 1
+  } else {
+    attr_tmp <- list(attr(A, "scaled:center")[-constx],
+                     attr(A, "scaled:scale")[-constx])
+    A <- A[,-constx, drop = FALSE]
+    attr(A, "scaled:center") <- attr_tmp[[1]]
+    attr(A, "scaled:scale") <- attr_tmp[[2]]
+  }
+  return(A)
+}
 
 #' @rdname auxfuns
-.transf_muvar <- function(orig, is_var, is_array, des.mat, nblock=NULL, nstate=NULL,devs=NULL){
+.transf_muvar <- function(orig, is_var, is_array, des.mat, nblock=NULL, nstate=NULL){
   if(is_array){
-    tmp <- array(ifelse(is_var,1.0, 0.0), c(ncol(des.mat), nblock, nstate))
+    tmp <- array(ifelse(is_var, 1.0, 0.0), c(ncol(des.mat), nblock, nstate))
     rownames(tmp) <- colnames(des.mat)
   } else {
-    tmp <- array(ifelse(is_var,1.0, 0.0), ncol(des.mat))
+    tmp <- array(ifelse(is_var, 1.0, 0.0), ncol(des.mat))
     names(tmp) <- colnames(des.mat)
   }
-  if(length(orig) == 0){
-    if(length(dim(tmp))==1){
-      non_miss <- !grepl("_missing", colnames(des.mat))
-      tmp[non_miss] <- orig
+  if(length(orig) > 1){
+    if(is_array){
+      tmp[rownames(orig),,] <- orig
     } else {
-      tmp[non_miss,,] <- orig
+      tmp[names(orig)] <- orig
     }
   } else {
-    if(length(dim(tmp))==1){
-      tmp[names(orig)] <- orig
+    non_miss <- !grepl("_missing", colnames(des.mat))
+    if(is_array){
+      tmp[non_miss,,] <- orig
     } else {
-      tmp[rownames(orig),,] <- orig
+      tmp[non_miss] <- orig
     }
-  }
-  if(is_var){
-    if(length(dim(tmp))==1){
-      tmp <- sqrt(tmp)/devs
-    } else {
-      tmp <- sqrt(tmp)/rep(devs, nblock*nstate)
-    }
-    tmp <- tmp^2
   }
   return(tmp)
 }
