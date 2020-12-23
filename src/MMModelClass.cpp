@@ -441,7 +441,6 @@ void MMModel::optim_ours(bool alpha)
       beta[i] = (1.0 - step_size) * betaold[i] + step_size * beta[i];
     }
     
-    Rcpp::Rcout << step_size << std::endl;
   } else {
     // thetaGr(N_B_PAR + N_DYAD_PRED,
     //         &theta_gr[0], true);
@@ -798,7 +797,6 @@ void MMModel::sampleDyads(arma::uword iter)
   }
   
   reweightFactor = (1. * N_DYAD) / arma::sum(dyad_in_batch);
-  Rprintf("Here!\n");
   step_size = 1.0 / pow(delay + iter, forget_rate);
 }
 
@@ -843,27 +841,23 @@ void MMModel::convCheck(bool& conv,
   
    
   conv = true;
-  
+
   for( ; beta_new_it != beta_new_end; ++beta_new_it,++beta_old_it){
     if(fabs(*beta_new_it - *beta_old_it) > tol){
       conv = false;
-      //Rprintf("Old %f, new %f, changed by %f \n.", *beta_old_it, *beta_new_it,fabs(*beta_new_it - *beta_old_it));
       return;
     }  
   }
-  
+
   for( ; b_new_it != b_new_end; ++b_new_it,++b_old_it){
     if(fabs(*b_new_it - *b_old_it) > tol){
       conv = false;
-      //Rprintf("B changed\n.");
       return;
     }  
   }
-  
   for( ; gamma_new_it != gamma_new_end; ++gamma_new_it,++gamma_old_it){
     if(fabs(*gamma_new_it - *gamma_old_it) > tol){
       conv = false;
-      //Rprintf("Gamma changed\n.");
       return;
     }  
   }

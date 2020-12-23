@@ -76,7 +76,7 @@
   A <- model.matrix(terms(x), x)
   which_cont <- which(apply(A, 2, function(a)length(unique(a))>2))
   A_sd <- rep(1, ncol(A))
-  A_sd[which_cont] <- apply(A[,which_cont], 2, sd)*2
+  A_sd[which_cont] <- apply(A[,which_cont, drop = FALSE], 2, sd)*2
   A <- scale(A, TRUE, A_sd)
   constx <- which(colnames(A)=="(Intercept)")
   if(keep_const){
