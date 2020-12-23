@@ -441,7 +441,7 @@ void MMModel::optim_ours(bool alpha)
       beta[i] = (1.0 - step_size) * betaold[i] + step_size * beta[i];
     }
     
-    //Rcpp::Rcout << beta << std::endl;
+    Rcpp::Rcout << step_size << std::endl;
   } else {
     // thetaGr(N_B_PAR + N_DYAD_PRED,
     //         &theta_gr[0], true);
@@ -798,6 +798,7 @@ void MMModel::sampleDyads(arma::uword iter)
   }
   
   reweightFactor = (1. * N_DYAD) / arma::sum(dyad_in_batch);
+  Rprintf("Here!\n");
   step_size = 1.0 / pow(delay + iter, forget_rate);
 }
 
@@ -816,14 +817,56 @@ void MMModel::convCheck(bool& conv,
   //double cor_val = arma::as_scalar(arma::cor(ll, arma::regspace(1, ll.n_elem)));
   // Rcpp::Rcout << b_old << std::endl;
   // Rcpp::Rcout << b_new << std::endl;
-  double c1 = arma::as_scalar(arma::cor(arma::vectorise(beta_new), arma::vectorise(beta_old)));
-  double c2 = arma::as_scalar(arma::cor(arma::vectorise(b_new), arma::vectorise(b_old)));
-  double c3 = arma::as_scalar(arma::cor(gamma_new, gamma_old));
-  Rcpp::NumericVector cor_vec = {c1, c2, c3};
-  //Rcpp::Rcout << cor_vec << std::endl;
-  Rcpp::LogicalVector nans = Rcpp::is_nan(cor_vec);
-  cor_vec[nans] = 1.0;
-  conv = Rcpp::is_true(Rcpp::all(cor_vec > (1.0 - tol)));
+  // double c1 = arma::as_scalar(arma::cor(arma::vectorise(beta_new), arma::vectorise(beta_old)));
+  // double c2 = arma::as_scalar(arma::cor(arma::vectorise(b_new), arma::vectorise(b_old)));
+  // double c3 = arma::as_scalar(arma::cor(gamma_new, gamma_old));
+  // Rcpp::NumericVector cor_vec = {c1, c2, c3};
+  // //Rcpp::Rcout << cor_vec << std::endl;
+  // Rcpp::LogicalVector nans = Rcpp::is_nan(cor_vec);
+  // cor_vec[nans] = 1.0;
+  // conv = Rcpp::is_true(Rcpp::all(cor_vec > (1.0 - tol)));
+  
+  arma::cube::const_iterator beta_old_it = beta_old.begin(),
+    beta_new_it = beta_new.begin(),
+    beta_old_end = beta_old.end(),
+    beta_new_end = beta_new.end();
+  
+  arma::mat::const_iterator b_old_it = b_old.begin(),
+    b_new_it = b_new.begin(),
+    b_old_end = b_old.end(),
+    b_new_end = b_new.end();
+  
+  arma::vec::const_iterator gamma_old_it = gamma_old.begin(),
+    gamma_new_it = gamma_new.begin(),
+    gamma_old_end = gamma_old.end(),
+    gamma_new_end = gamma_new.end();
+  
+   
+  conv = true;
+  
+  for( ; beta_new_it != beta_new_end; ++beta_new_it,++beta_old_it){
+    if(fabs(*beta_new_it - *beta_old_it) > tol){
+      conv = false;
+      //Rprintf("Old %f, new %f, changed by %f \n.", *beta_old_it, *beta_new_it,fabs(*beta_new_it - *beta_old_it));
+      return;
+    }  
+  }
+  
+  for( ; b_new_it != b_new_end; ++b_new_it,++b_old_it){
+    if(fabs(*b_new_it - *b_old_it) > tol){
+      conv = false;
+      //Rprintf("B changed\n.");
+      return;
+    }  
+  }
+  
+  for( ; gamma_new_it != gamma_new_end; ++gamma_new_it,++gamma_old_it){
+    if(fabs(*gamma_new_it - *gamma_old_it) > tol){
+      conv = false;
+      //Rprintf("Gamma changed\n.");
+      return;
+    }  
+  }
   
   //Rprintf("Cor is %f\n", cor_val);
   //Rcpp::Rcout << ll << std::endl;

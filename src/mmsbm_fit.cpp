@@ -146,9 +146,9 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
     // }
       ll_vec.push_back(newLL);
       beta_old = beta_new;
-      b_old =b_new;
+      b_old = b_new;
       gamma_old = gamma_new;
-    oldLL = newLL;
+      oldLL = newLL;
     
     if(verbose){
       if((iter+1) % 1 == 0) {
@@ -161,6 +161,7 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
       Rprintf("Final LB: %f.                     \n", iter+1, newLL);
   }
   
+  ll_vec.erase(ll_vec.begin());
   
   //Form return objects
   arma::mat C_res = Model.getC();
