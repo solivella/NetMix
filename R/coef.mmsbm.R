@@ -39,8 +39,10 @@ coef.mmsbm <- function(object,
                        ...)
 {
   switch(param,
-         MonadCoef = object$MonadCoef,
+         MonadCoef1 = object$MonadCoef1,
+         MonadCoef2 = object$MonadCoef2,
          DyadCoef = object$DyadCoef,
-         All = list(MonadCoef = object$MonadCoef,
+         All = list(MonadCoef1 = object$MonadCoef1,
+                    MonadCoef2 = object$MonadCoef2,
                     DyadCoef = object$DyadCoef))
 }

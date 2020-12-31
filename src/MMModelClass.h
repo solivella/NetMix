@@ -185,7 +185,7 @@ private:
   static double thetaLBW(int, double*, void*);
   void thetaGr(int, double*);
   static void thetaGrW(int, double*, double*, void*);
-
+  
   void updatePhiInternal(arma::uword, arma::uword,
                          double*,
                          double* ,

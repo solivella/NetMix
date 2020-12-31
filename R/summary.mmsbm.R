@@ -44,9 +44,9 @@
 summary.mmsbm <- function(object, ...){
   summ <- list("Number of Dyads" = nrow(object$dyadic.data),
                "Number of Blocks" = ncol(object$BlockModel), 
-               "Percent of Observations in Each Block" = rowMeans(object$MixedMembership),
+               "Percent of Observations in Each Block" = rowMeans(object$MixedMembership1),
                "Blockmodel Matrix" = exp(object$BlockModel) / (1 + exp(object$BlockModel)),
-               "Monadic Coefficients" = object$MonadCoef)
+               "Monadic Coefficients" = object$MonadCoef1)
   if(length(object$DyadCoef)){
     summ$`Dyadic Coefficients` <- object$DyadCoef
   }
@@ -61,11 +61,11 @@ summary.mmsbm <- function(object, ...){
       colnames(summ$`Dyadic Coefficients`) <- c("Coefficient", "Std. Error")
     }
     
-    mse <- sqrt(diag(object$vcov_monad))
+    mse <- sqrt(diag(object$vcov_monad[[1]]))
     summ$`Monadic Coefficients` <- cbind(c(summ$`Monadic Coefficients`),
                                          mse)
     colnames(summ$`Monadic Coefficients`) <- c("Coefficient", "Std. Error")
-    rownames(summ$`Monadic Coefficients`) <- rownames(object$vcov_monad)
+    rownames(summ$`Monadic Coefficients`) <- rownames(object$vcov_monad[[1]])
 
   }
   print(summ)

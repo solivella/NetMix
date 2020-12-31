@@ -59,16 +59,16 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     e.weight <- (1/diff(range(igraph::E(block.G)$weight))) * (igraph::E(block.G)$weight - max(igraph::E(block.G)$weight)) + 1
     e.cols <- rgb(colRamp(e.weight), maxColorValue = 255)
     times.arg <- if(g.mode == "directed") {
-      x$n_blocks
+      x$n_blocks1
     } else {
-      rev(seq_len(x$n_blocks))
+      rev(seq_len(x$n_blocks1))
     }
-    v.size <- rowMeans(x$MixedMembership)*100 + 20
+    v.size <- rowMeans(x$MixedMembership1)*100 + 20
     radian.rescale <- function(x, start=0, direction=1) {
       c.rotate <- function(x) (x + start) %% (2 * pi) * direction
       c.rotate(scales::rescale(x, c(0, 2 * pi), range(x)))
     }
-    loop.rads <- radian.rescale(x=1:x$n_blocks, direction=-1, start=0)
+    loop.rads <- radian.rescale(x=1:x$n_blocks1, direction=-1, start=0)
     loop.rads <- rep(loop.rads, times = times.arg)
     igraph::plot.igraph(block.G, main = "",
                         edge.width=4, edge.color=e.cols,  edge.curved = x$forms$directed, edge.arrow.size = 0.65,
@@ -80,10 +80,10 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
   }
   
   if(type=="membership"){
-    avgmems <- lapply(1:nrow(x$MixedMembership), function(x){
-      tapply(x$MixedMembership[x,], x$monadic.data[,"(tid)"], mean)})
-    avgmems <- as.data.frame(cbind(rep(unique(as.character(x$monadic.data[,"(tid)"])), nrow(x$MixedMembership)),unlist(avgmems),
-                                   rep(1:nrow(x$MixedMembership), each=length(unique(x$monadic.data[,"(tid)"])))))
+    avgmems <- lapply(1:nrow(x$MixedMembership1), function(x){
+      tapply(x$MixedMembership1[x,], x$monadic.data[[1]][,"(tid)"], mean)})
+    avgmems <- as.data.frame(cbind(rep(unique(as.character(x$monadic.data[[1]][,"(tid)"])), nrow(x$MixedMembership1)),unlist(avgmems),
+                                   rep(1:nrow(x$MixedMembership1), each=length(unique(x$monadic.data[[1]][,"(tid)"])))))
     colnames(avgmems) <- c("Time", "Avg.Membership", "Group")
     avgmems$Group <- factor(avgmems$Group, levels=length(unique(avgmems$Group)):1)
     if(class(avgmems$Avg.Membership) == "factor"){avgmems$Avg.Membership <- as.numeric(as.character(avgmems$Avg.Membership))}
@@ -104,7 +104,7 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     plot(unique(x$dyadic.data[,"(tid)"]), tapply(FX[[5]], x$dyadic.data[,"(tid)"], mean), type="o",
          xlab="Time", ylab=paste("Effect of", cov, "on Pr(Edge Formation)"), main="Marginal Effect over Time")
     
-    nodenames <- names(sort(table(x$monadic.data[,"(nid)"]), decreasing=TRUE))
+    nodenames <- names(sort(table(x$monadic.data[[1]][,"(nid)"]), decreasing=TRUE))
     nodes <- sort(FX[[3]])[names(sort(FX[[3]])) %in% nodenames]
     plot(1, type="n", xlab="Node-Level Estimated Effect", ylab="", 
          xlim=c(min(nodes), max(nodes) + 0.001),

@@ -7,6 +7,7 @@
 mmsbm(
   formula.dyad,
   formula.monad = ~1,
+  bipartite = FALSE,
   senderID,
   receiverID,
   nodeID = NULL,
@@ -14,7 +15,7 @@ mmsbm(
   data.dyad,
   data.monad = NULL,
   n.blocks,
-  n.hmmstates = 1,
+  n.hmmstates,
   directed = TRUE,
   mmsbm.control = list()
 )
@@ -25,9 +26,6 @@ binary edges should be used as a LHS, and any dyadic predictors
 can be included on the RHS (when no dyadic covariates are available, use \code{y ~ 1}).
 Same syntax as a \code{glm} formula.}
 
-\item{formula.monad}{An optional \code{formula} object. LHS is ignored. RHS contains 
-names of nodal atrributes found in \code{data.monad}.}
-
 \item{senderID}{Character string. Quoted name of the variable in \code{data.dyad} identifying 
 the sender node. For undirected networks, the variable simply contains name of first node 
 in dyad. Cannot contain special charecter "`@`".}
@@ -35,11 +33,6 @@ in dyad. Cannot contain special charecter "`@`".}
 \item{receiverID}{Character string. Quoted name of the variable in \code{data.dyad} identifying 
 the receiver node. For undirected networks, the variable simply contains name of second node 
 in dyad. Cannot contain special charecter "`@`".}
-
-\item{nodeID}{Character string. Quoted name of the variable in \code{data.monad} identifying 
-a node in either \code{data.dyad[,senderID]} or \code{data.dyad[,senderID]}. If not \code{NULL},
-every node \code{data.dyad[,senderID]} or \code{data.dyad[,senderID]} must be present in 
-\code{data.monad[,nodeID]}. Cannot contain special charecter "`@`".}
 
 \item{timeID}{Character string. Quoted name of the variable in both \code{data.dyad} and
 \code{data.monad} indicating the time in which network (and correspding nodal atrributes)
@@ -50,11 +43,6 @@ least three variables: the sender identifier (or identifier of the first node in
 the receiver identifier (or identifier of the second node in an undirected network dyad), and the value
 of the edge between them. Currently, only edges between zero and one (inclusive) are supported.}
 
-\item{data.monad}{Data frame. Nodal atributes. Must contain a node identifier matching the names of nodes
-used in the \code{data.dyad} data frame.}
-
-\item{n.blocks}{Integer value. How many latent groups should be used to estimate the model?}
-
 \item{n.hmmstates}{Integer value. How many hidden Markov state should be used in the HMM? Defaults 
 to 1 (i.e. no HMM).}
 
@@ -62,87 +50,130 @@ to 1 (i.e. no HMM).}
 
 \item{mmsbm.control}{A named list of optional algorithm control parameters.
 \describe{
-   \item{seed}{Integer. Seed the RNG. By default, a random seed is generated and returned for reproducibility purposes.}
-   \item{nstart}{Integer. Number of random initialization trials. Defaults to 5.}
+   \item{seed}{RNG seed. Defaults to \code{NULL}, which does not seed the RNG}
+   \item{bipartite}{Boolean; is the network bipartite.}
+   \item{nstart}{Integer. Number of random initialization trials. Defaults to 5.}            
    \item{spectral}{Boolean. Type of initialization algorithm for mixed-membership vectors in static case. If \code{TRUE} (default),
-               use spectral clustering with degree correction; otherwise, use kmeans algorithm.}
-   \item{init_gibbs}{Boolean. Should a collapsed Gibbs sampler of non-regression mmsbm be used to initialize
-               mixed-membership vectors, instead of a spectral or simple kmeans initialization?
-               Setting to \code{TRUE} will result in slower initialization and faster model estimation. When \code{TRUE}, results are typically very sensitive to
-               choice of alpha (see below).}            
+               use spectral clustering with degree correction; otherwise, use kmeans algorithm}
+   \item{init_gibbs}{Boolean. Should a collapsed Gibbs sampler of non-regression mmsbmB be used to initialize
+               each time period? Setting to \code{TRUE} will result in slower initialization and faster model estimation. Setting to \code{TRUE} will be result in faster estimation that is very sensitive to
+               choice of alpha (see below)}            
    \item{alpha}{Numeric positive value. Concentration parameter for collapsed Gibbs sampler to find initial
-                mixed-membership values when \code{init_gibbs=TRUE}. Defaults to 1.0.}            
-   \item{missing}{Means of handling missing data. One of "indicator method" (default) or "listwise deletion".}  
-   \item{svi}{Boolean; should stochastic variational inference be used? Defaults to \code{TRUE}.}     
+                mixed-membership values in dynamic case when \code{init_gibbs=TRUE}. Defaults to 1.0}
+   \item{missing}{Means of handling missing data. One of "indicator method" (default) or "listwise deletion".}   
+   \item{assortative}{Boolean indicating whether blockmodel should be assortative (i.e. stronger connections within groups) or disassortative
+                      (i.e. stronger connections between groups). Defaults to \code{TRUE}.}        
+   \item{svi}{Boolean; should stochastic variational inference be used? Defaults to \code{TRUE}.}   
    \item{vi_iter}{Number of maximum iterations in stochastic variational updates. Defaults to 5e2.}
-   \item{batch_size}{When \code{svi=TRUE}, proportion of nodes sampled in each local. Defaults to 0.05 when \code{svi=TRUE}, and to 1.0 otherwise.}                                 
+   \item{batch_size}{Numeric vector. When \code{svi=TRUE}, proportion of family 1 and family 2 nodes sampled in each local. Defaults to c(0.05, 0.05) when \code{svi=TRUE}, and to c(1.0, 1.0) otherwise.}
    \item{forget_rate}{When \code{svi=TRUE}, value between (0.5,1], controlling speed of decay of weight of prior
                        parameter values in global steps. Defaults to 0.75 when \code{svi=TRUE}, and to 0.0 otherwise.}
    \item{delay}{When \code{svi=TRUE}, non-negative value controlling weight of past iterations in global steps. Defaults to 1.0 when \code{svi=TRUE},
-                and ignored otherwise.}                    
+                and ignored otherwise.}
    \item{opt_iter}{Number of maximum iterations of BFGS in global step. Defaults to 10e3.}
    \item{hessian}{Boolean indicating whether the Hessian matrix of regression coefficients should e returned. Defaults to \code{TRUE}.}
-   \item{mu_b}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
-               and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)}.}
-   \item{var_b}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
-               and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(1.0, 1.0)}.}
-   \item{mu_beta}{Either single numeric value, in which case the same prior mean is applied to all monadic coefficients, or
-                  an array with that is \code{npredictors} by \code{n.blocks} by \code{n.hmmstates}, where \code{npredictors}
-                  is the number of monadic predictors for which a prior mean is being set (prior means need not be set for all)
+   \item{mu_block}{Numeric vector with two elements: prior mean of blockmodel's main diagonal elements, and
+               and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)}}
+   \item{var_block}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
+               and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(1.0, 1.0)}}
+   \item{mu_beta1}{Either single numeric value, in which case the same prior mean is applied to all family 1 monadic coefficients, or
+                  an array with that is \code{npredictors1} by \code{n.blocks1} by \code{n.hmmstates}, where \code{npredictors1}
+                  is the number of family 1 monadic predictors for which a prior mean is being set (prior means need not be set for all)
                   predictors). The rows in the array should be named to identify which variables a prior mean is being set for.
-                  Defaults to a common prior mean of 0.0 for all monadic coefficients.}            
-   \item{var_beta}{See \code{mu_beta}. Defaults to a single common prior variance of 1.0 for all monadic coefficients.}
+                  Defaults to a common prior mean of 0.0 for all monadic coefficients.}           
+   \item{var_beta1}{See \code{mu_beta1}. Defaults to a single common prior variance of 1.0 for all family 1 monadic coefficients.}
+   \item{mu_beta2}{Either single numeric value, in which case the same prior mean is applied to all family 2 monadic coefficients, or
+                  an array with that is \code{npredictors2} by \code{n.blocks2} by \code{n.hmmstates}, where \code{npredictors2}
+                  is the number of family 2 monadic predictors for which a prior mean is being set (prior means need not be set for all)
+                  predictors). The rows in the array should be named to identify which variables a prior mean is being set for.
+                  Defaults to a common prior mean of 0.0 for all monadic coefficients.}   
+   \item{var_beta2}{See \code{mu_beta2}. Defaults to a single common prior variance of 1.0 for all family 2 monadic coefficients.}  
    \item{mu_gamma}{Either a single numeric value, in which case the same prior mean is applied to all dyadic coefficients, or
                    a named vector of numeric values (with names corresponding to the name of the variable 
                   for which a prior mean is being set). Defaults to a common prior mean of 0.0 for all dyadic coefficients.}
    \item{var_gamma}{See \code{mu_gamma}. Defaults to a single common prior variance of 1.0 for all dyadic coefficients.}
-   \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 10.3.}
+   \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 10.3}
    \item{se_sim}{Number of samples from variational posterior of latent variables on which approximation to variance-covariance
                  matrices are based. Defaults to 10.}
    \item{dyad_vcov_samp}{Number of dyads to sample in computation of variance-covariance of dyadic and blockmodel parameters. 
                          Defaults to 1000.}
-   \item{fixed_mm}{Optional character vector, with \code{"nodeID@timeID"} as elements, indicating which mixed-membership vectors
+   \item{fixed_mm1}{Optional character vector, with \code{"nodeID1@timeID"} as elements, indicating which mixed-membership vectors
                    should remain constant at their initial values throughout estimation. When only one year is observed, elements should be 
-                    \code{"nodeID@1"}. Typically used with \code{mm_init_t}.}                      
-   \item{mm_init_t}{Matrix, \code{n.blocks} by nodes across years. Optional initial values for mixed-membership vectors.
-                      Although initial values need not be provided for all nodes, column names must have a \code{nodeID@timeID} format to 
-                      avoid ambiguity. When only one year is observed, names should be \code{"nodeID@1"}.}
+                    \code{"nodeID1@1"}. Typically used with \code{mm_init_t1}.}  
+   \item{fixed_mm2}{Optional character vector, with \code{"nodeID2@timeID"} as elements, indicating which mixed-membership vectors
+                   should remain constant at their initial values throughout estimation. When only one year is observed, elements should be 
+                    \code{"nodeID2@1"}. Typically used with \code{mm_init_t2}.}
+   \item{mm_init_t1}{Matrix, \code{n.blocks1} by nodes across years. Optional initial values for mixed-membership vectors.
+                      Although initial values need not be provided for all nodes, column names must have a \code{nodeID1@timeID} format to 
+                      avoid ambiguity. When only one year is observed, names should be \code{"nodeID1@1"}.}
+   \item{mm_init_t2}{Matrix, \code{n.blocks2} by nodes across years. Optional initial values for mixed-membership vectors.
+                      Although initial values need not be provided for all nodes, column names must have a \code{nodeID2@timeID} format to 
+                      avoid ambiguity. When only one year is observed, names should be \code{"nodeID2@1"}.}
    \item{kappa_init_t}{Matrix, \code{n.hmmstates} by number of years. Optional initial values for variational 
                   parameters for state probabilities.}
-   \item{b_init_t}{Matrix, \code{n.blocks} by \code{n.blocks}. Optional initial values for blockmodel.}
-   \item{beta_init}{Array, \code{predictors} by \code{n.blocks} by \code{n.hmmstates}. Optional initial values for monadic coefficients. If }
+   \item{block_init_t}{Matrix, \code{n.blocks1} by \code{n.blocks2}. Optional initial values for blockmodel.}
+   \item{beta1_init}{Array, predictors by \code{n.blocks1} by \code{n.hmmstates}. Optional initial values for family 1 monadic coefficients.}
+   \item{beta2_init}{Array, predictors by \code{n.blocks2} by \code{n.hmmstates}. Optional initial values for family 2 monadic coefficients.}
    \item{gamma_init}{Vector. Optional initial values for dyadic coefficients.}
    \item{permute}{Boolean. Should all permutations be tested to realign initial block models in dynamic case? If \code{FALSE}, realignment is 
                  done via faster graph matching algorithm, but may not be exact. Defaults to \code{TRUE}.}
-   \item{conv_tol}{Numeric value. Absolute tolerance for VI convergence. Defaults to 1e-3.}
-   \item{verbose}{Boolean. Should extra information be printed as model iterates? Defaults to FALSE.}
+   \item{conv_tol}{Numeric value. Absolute tolerance for VI convergence. Defaults to 1e-4}
+   \item{verbose}{Boolean. Should extra information be printed as model iterates? Defaults to FALSE}
    }}
+
+\item{formula.monad1}{An optional \code{formula} object. LHS is ignored. RHS contains 
+names of nodal atrributes found in \code{data.monad1}.}
+
+\item{formula.monad2}{An optional \code{formula} object. LHS is ignored. RHS contains 
+names of nodal atrributes found in \code{data.monad2}.}
+
+\item{nodeID1}{Character string. Quoted name of the variable in \code{data.monad1} identifying 
+a node in either \code{data.dyad[,senderID]} or \code{data.dyad[,receiverID]}. If not \code{NULL},
+every node \code{data.dyad[,senderID]} or \code{data.dyad[,senderID]} must be present in 
+\code{data.monad1[,nodeID1]}. Cannot contain special charecter "`@`".}
+
+\item{nodeID2}{Character string. Quoted name of the variable in \code{data.monad2} identifying 
+a node in either \code{data.dyad[,senderID]} or \code{data.dyad[,receiverID]}. If not \code{NULL},
+every node \code{data.dyad[,senderID]} or \code{data.dyad[,senderID]} must be present in 
+\code{data.monad2[,nodeID2]}. Cannot contain special charecter "`@`".}
+
+\item{data.monad1}{Data frame for Family 1. Nodal atributes. Must contain a node identifier matching the names of nodes
+used in the \code{data.dyad} data frame for nodes of Family 1.}
+
+\item{data.monad2}{Data frame for Family 2. Nodal atributes. Must contain a node identifier matching the names of nodes
+used in the \code{data.dyad} data frame for nodes of Family 2.}
+
+\item{n.blocks1}{Integer value. How many latent groups in Family 1 should be used to estimate the model?}
+
+\item{n.blocks2}{Integer value. How many latent groups in Family 2 should be used to estimate the model?}
+
+\item{missing}{Means of handling missing data. One of "indicator method" (default) or "listwise deletion".}
 }
 \value{
-Object of class \code{mmsbm}. List with named components:
+Object of class \code{mmsbmB}. List with named components:
     \describe{
-      \item{MixedMembership}{Matrix of variational posterior of mean of mixed-membership vectors. \code{nodes} by
-                             \code{n.blocks}.}
-      \item{BlockModel}{\code{n.blocks} by \code{n.blocks} matrix of estimated tie log-odds between members
+      \item{MixedMembership 1}{Matrix of variational posterior of mean of mixed-membership vectors for family 1. \code{nodes1} by \
+                             \code{n.groups1}}
+      \item{MixedMembership 2}{Matrix of variational posterior of mean of mixed-membership vectors for family 2. \code{nodes2} by \
+                             \code{n.groups2}}
+      \item{BlockModel}{\code{n.groups1} by \code{n.groups2} matrix of estimated tie log-odds between members
                         of corresponding latent groups. The blockmodel.}
       \item{vcov_blockmodel}{If \code{hessian=TRUE}, variance-covariance matrix of parameters in blockmodel, ordered in column-major order.}
-      \item{MonadCoef}{Array of estimated coefficient values for monadic covariates. Has \code{n.blocks} columns,
+      \item{MonadCoef1}{Array of estimated coefficient values for family 1 monadic covariates. Has \code{n.groups1} columns,
                        and \code{n.hmmstates} slices.}
-      \item{vcov_monad}{If \code{hessian=TRUE}, variance-covariance matrix of monadic coefficients.}                  
-      \item{DyadCoef}{Vector estimated coefficient values for dyadic covariates.}
+      \item{MonadCoef2}{Array of estimated coefficient values for family 2 monadic covariates. Has \code{n.groups2} columns,
+                       and \code{n.hmmstates} slices.}
+      \item{DyadCoef}{Vector estimated coefficient values for dyadic covariates}
       \item{vcov_dyad}{If \code{hessian=TRUE}, variance-covariance matrix of dyadic coefficients.}
-      \item{TransitionKernel}{Matrix of estimated HMM transition probabilities.}
+      \item{TransitionKernel}{Matrix of estimated HMM transition probabilities}
       \item{Kappa}{Matrix of marginal probabilities of being in an HMM state at any given point in time. 
-                   \code{n.hmmstates} by years (or whatever time interval networks are observed at).}
+                   \code{n.hmmstates} by years (or whatever time interval networks are observed at)}
       \item{LowerBound}{Final LB value}
-      \item{lb}{Vector of all LB across iterations, useful to check early convergence issues.}              
-      \item{niter}{Final number of VI iterations.}
+      \item{niter}{Final number of VI iterations}
       \item{converged}{Convergence indicator; zero indicates failure to converge.}
-      \item{NodeIndex}{Order in which nodes are stored in all return objects.}
-      \item{monadic.data, dyadic.data}{Model frames used during estimation (stripped of attributes).}
-      \item{forms}{Values of selected formal arguments used by other methods.}
-      \item{seed}{The value of RNG seed used during estimation.}
-      \item{call}{Original (unevaluated) function call.}
+      \item{NodeIndex1}{Order in which family 1 nodes are stored in all return objects.}
+      \item{NodeIndex2}{Order in which family 2 nodes are stored in all return objects.}
+      \item{monadic.data1, monadic.data2, dyadic.data, n_states, n_blocks1, n_blocks2, directed}{Original values of parameters used during estimation}
     }
 }
 \description{

@@ -77,7 +77,7 @@ predict.mmsbm <- function(object,
     object$DyadCoef <- c(0, object$DyadCoef)
   }
   if(!is.null(new.data.monad)){
-    nid <- ifelse(object$forms$nodeID %in% colnames(new.data.monad), object$forms$nodeID, "(nid)")
+    nid <- ifelse(object$forms$nodeID[[1]] %in% colnames(new.data.monad), object$forms$nodeID[[1]], "(nid)")
     monad <- new.data.monad
     if(is.null(object$forms$timeID)){
       tid <- "(tid)"
@@ -85,19 +85,19 @@ predict.mmsbm <- function(object,
     } else {
       tid <- object$forms$timeID
     }
-    C_mat <- matrix(0, ncol = object$forms$n.blocks, nrow = nrow(monad))
+    C_mat <- matrix(0, ncol = object$forms$n.blocks[1], nrow = nrow(monad))
   } else {
     nid <- "(nid)"
     tid <- "(tid)"
-    monad <- object$monadic.data
+    monad <- object$monadic.data[[1]]
     C_mat <- object$CountMatrix
   }
-  n_blk <- object$n_blocks
-  mform <- object$forms$formula.monad
-  if(any(grepl("missing", rownames(object$MonadCoef)))){
+  n_blk <- object$n_blocks1
+  mform <- object$forms$formula.monad[[1]]
+  if(any(grepl("missing", rownames(object$MonadCoef1)))){
     mform <- update(as.formula(mform), 
-                    paste(c("~ .", rownames(object$MonadCoef)[grep("missing", 
-                                      rownames(object$MonadCoef))]), collapse=" + "))
+                    paste(c("~ .", rownames(object$MonadCoef1)[grep("missing", 
+                                      rownames(object$MonadCoef1))]), collapse=" + "))
   }
 
     if(is.null(mform)){
@@ -105,7 +105,7 @@ predict.mmsbm <- function(object,
     } else {
       X_m <- model.matrix(eval(mform), monad)
     }
-    alpha <- .compute.alpha(X_m, object$MonadCoef)
+    alpha <- .compute.alpha(X_m, object$MonadCoef1)
     if(forecast){
       ts <- unique(monad[,tid])
       new_kappa <- as.matrix(object$Kappa[,ncol(object$Kappa)] %*% .mpower(object$TransitionKernel, forecast))

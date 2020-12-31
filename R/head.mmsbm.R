@@ -4,9 +4,9 @@
 #'
 #' @param x An object of class \code{mmsbm}, a result of a call to \code{mmsbm}. 
 #' @param n Numeric or integer; specifies how many units will be identified for each group.
-#' @param t Optional vector of time periods to be used for assessing latent group membership.
+#' @param time Optional vector of time periods to be used for assessing latent group membership.
 #' @param node Logical; indicates whether latent group memberships should be averaged at the node level.  If FALSE, the function returns the node-time period units with highest estimated membership in each latent group.
-#' @param t.correct Logical; indicates whether latent group memberships should be corrected for temporal trends.  If TRUE, the function returns the node-time period units with highest estimated membership in each latent group.  
+#' @param time.correct Logical; indicates whether latent group memberships should be corrected for temporal trends.  If TRUE, the function returns the node-time period units with highest estimated membership in each latent group.  
 #' @param ... Currently ignored
 #'     
 #' @return List of length \code{n.blocks}.  Each entry contains a sorted vector of average latent membership probabilities of length \code{n}.
@@ -38,25 +38,25 @@
 #' 
 
 
-head.mmsbm <- function(x,  n=6, t=NULL, node=TRUE, t.correct=FALSE, ...){
-  if(is.null(t)){t <- unique(x$monadic.data$`(tid)`)}
-  Mem <- x$MixedMembership[,x$monadic.data[,"(tid)"] %in% t]
+head.mmsbm <- function(x,  n=6, time=NULL, node=TRUE, time.correct=FALSE, ...){
+  if(is.null(time)){time <- unique(x$monadic.data[[1]]$`(tid)`)}
+  Mem <- x$MixedMembership1[,x$monadic.data[[1]][,"(tid)"] %in% time]
   if(!node){
     return(lapply(1:nrow(Mem), function(i){sort(Mem[i,], decreasing=TRUE)[1:n]}))
   }
-  if(t.correct){
-    Nodes <- x$monadic.data[,"(nid)"][x$monadic.data[,"(tid)"] %in% t]
+  if(time.correct){
+    Nodes <- x$monadic.data[[1]][,"(nid)"][x$monadic.data[[1]][,"(tid)"] %in% time]
     ts <- unlist(lapply(strsplit(colnames(Mem), "@"), "[[", 2))
     tm <- apply(Mem, 1, function(i){tapply(i, ts, mean)})
-    Mem <- do.call(cbind, sapply(t, function(i){Mem[,ts==i] - tm[as.character(i),]}))
+    Mem <- do.call(cbind, sapply(time, function(i){Mem[,ts==i] - tm[as.character(i),]}))
   }
   if(node){
-    Nodes <- x$monadic.data[,"(nid)"][x$monadic.data[,"(tid)"] %in% t]
+    Nodes <- x$monadic.data[[1]][,"(nid)"][x$monadic.data[[1]][,"(tid)"] %in% time]
     node.mems <- t(do.call(cbind, lapply(unique(Nodes), function(i){
       rowMeans(as.matrix(Mem[,Nodes==i]))})))
     rownames(node.mems) <- as.character(unique(Nodes))
-    return(lapply(1:x$n_blocks, function(i){
-      node.mems[order(node.mems[,i], decreasing=T)[1:n],i]}))
+    return(lapply(1:x$n_blocks1, function(i){
+      node.mems[order(node.mems[,i], decreasing=TRUE)[1:n],i]}))
   }
 }
 

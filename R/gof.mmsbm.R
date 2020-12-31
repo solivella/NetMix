@@ -98,17 +98,17 @@ gof.mmsbm <- function(x,
            "Indegree" = sapply(nets,
                              function(y){
                                igraph::degree_distribution(y,
-                                                           mode = "in")[1:(nrow(fm$monadic.data)-2)]
+                                                           mode = "in")[1:(nrow(fm$monadic.data[[1]])-2)]
                              }),
            "Outdegree" = sapply(nets,
                              function(y){
                                igraph::degree_distribution(y,
-                                                           mode = "out")[1:(nrow(fm$monadic.data)-2)]
+                                                           mode = "out")[1:(nrow(fm$monadic.data[[1]])-2)]
                              }),
            "Degree" = sapply(nets,
                                 function(y){
                                   igraph::degree_distribution(y,
-                                                              mode = "all")[1:(nrow(fm$monadic.data)-2)]
+                                                              mode = "all")[1:(nrow(fm$monadic.data[[1]])-2)]
                                 }),
            "Geodesics" = lapply(nets,
                                function(y){

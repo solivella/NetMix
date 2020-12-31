@@ -45,19 +45,19 @@
 
 covFX <- function(fm, cov, shift, max.val=FALSE){
   predict.ties <- predict(fm, type="response")
-  monadic.data2 <- fm$monadic.data
-  monadic.data2[,cov] <- fm$monadic.data[,cov] + shift
+  new.monadic.data <- fm$monadic.data[[1]]
+  new.monadic.data[,cov] <- fm$monadic.data[[1]][,cov] + shift
   if(!isFALSE(max.val)){
-    monadic.data2[which(fm$monadic.data[,cov] == max(fm$monadic.data[,cov])),cov] <- max.val
+    new.monadic.data[which(fm$monadic.data[[1]][,cov] == max(fm$monadic.data[[1]][,cov])),cov] <- max.val
   }
-  predict.ties2 <- predict(fm, new.data.monad=monadic.data2, type="response")
+  predict.ties2 <- predict(fm, new.data.monad=new.monadic.data, type="response")
   FX <- list(mean(predict.ties2 - predict.ties), #avg
              tapply(predict.ties2-predict.ties, fm$dyadic.data[,"(tid)"], mean), #time
-             sapply(unique(fm$monadic.data[,"(nid)"]), function(x){ #node
+             sapply(unique(fm$monadic.data[[1]][,"(nid)"]), function(x){ #node
                mean((predict.ties2-predict.ties)[fm$dyadic.data[,"(sid)"]==x | fm$dyadic.data[,"(rid)"]==x])}),
              tapply(predict.ties2-predict.ties, paste(fm$dyadic.data[,"(sid)"], fm$dyadic.data[,"(rid)"], sep="_"), mean),#dyad
              predict.ties2 - predict.ties) #dyad-time
-  names(FX[[3]]) <- unique(fm$monadic.data[,"(nid)"])
+  names(FX[[3]]) <- unique(fm$monadic.data[[1]][,"(nid)"])
   names(FX[[5]]) <- paste(fm$dyadic.data[,"(sid)"], fm$dyadic.data[,"(rid)"], sep="_")
   names(FX) <- c(paste("Overall Avg. Effect of", cov), paste("Avg. Effect of", cov, "by Time"),
                  paste("Avg. Effect of", cov, "by Node"), paste("Avg. Effect of", cov, "by Dyad"),

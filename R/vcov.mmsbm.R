@@ -39,10 +39,12 @@ vcov.mmsbm <- function(object,
                        ...)
 {
   switch(param,
-         MonadCoef = object$vcov_monad,
+         MonadCoef1 = object$vcov_monad[[1]],
+         MonadCoef2 = object$vcov_monad[[2]],
          DyadCoef = object$vcov_dyad,
          BlockModel = object$vcov_blockmodel,
-         All = list(MonadCoef = object$vcov_monad,
+         All = list(MonadCoef1 = object$vcov_monad[[1]],
+                    MonadCoef2 = object$vcov_monad[[2]],
                     DyadCoef = object$vcov_dyad,
                     BlockModel = object$vcov_blockmodel))
 }

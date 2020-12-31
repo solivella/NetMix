@@ -688,7 +688,7 @@ double MMModelB::LB()
       res -= kappa_t(m, t) * log(kappa_t(m,t) + 1e-8);
     }
   }
-  return -res;
+  return res;
 }
 double MMModelB::LL()
 {
@@ -1105,15 +1105,84 @@ void MMModelB::sampleDyads(arma::uword iter)
  * CONVERGENCE CHECKER
  */
 void MMModelB::convCheck(bool& conv,
-                         const arma::vec& ll,
-                         const double& tol)
+                        const arma::cube& beta1_new,
+                        const arma::cube& beta1_old,
+                        const arma::cube& beta2_new,
+                        const arma::cube& beta2_old,
+                        const arma::mat& b_new,  
+                        const arma::mat& b_old, 
+                        const arma::vec& gamma_new, 
+                        const arma::vec& gamma_old, 
+                        const double& tol)
 {
   //double cor_val = arma::as_scalar(arma::cor(ll, arma::regspace(1, ll.n_elem)));
-  //Rprintf("Cor is %f, std is %f\n", cor_val, arma::stddev(ll));
-  conv = (fabs(arma::as_scalar((ll.tail(1)-ll.head(1))/ll.head(1))) < tol);
-  //if((arma::stddev(ll) == 0.0) | (fabs(cor_val) <= tol) | (cor_val < -0.5)){
-    //conv = true;
-  //}
+  // Rcpp::Rcout << b_old << std::endl;
+  // Rcpp::Rcout << b_new << std::endl;
+  // double c1 = arma::as_scalar(arma::cor(arma::vectorise(beta_new), arma::vectorise(beta_old)));
+  // double c2 = arma::as_scalar(arma::cor(arma::vectorise(b_new), arma::vectorise(b_old)));
+  // double c3 = arma::as_scalar(arma::cor(gamma_new, gamma_old));
+  // Rcpp::NumericVector cor_vec = {c1, c2, c3};
+  // //Rcpp::Rcout << cor_vec << std::endl;
+  // Rcpp::LogicalVector nans = Rcpp::is_nan(cor_vec);
+  // cor_vec[nans] = 1.0;
+  // conv = Rcpp::is_true(Rcpp::all(cor_vec > (1.0 - tol)));
+  
+  arma::cube::const_iterator beta1_old_it = beta1_old.begin(),
+    beta2_old_it = beta2_old.begin(),
+    beta1_new_it = beta1_new.begin(),
+    beta2_new_it = beta2_new.begin(),
+    beta1_old_end = beta1_old.end(),
+    beta2_old_end = beta2_old.end(),
+    beta1_new_end = beta1_new.end(),
+    beta2_new_end = beta2_new.end();;
+  
+  arma::mat::const_iterator b_old_it = b_old.begin(),
+    b_new_it = b_new.begin(),
+    b_old_end = b_old.end(),
+    b_new_end = b_new.end();
+  
+  arma::vec::const_iterator gamma_old_it = gamma_old.begin(),
+    gamma_new_it = gamma_new.begin(),
+    gamma_old_end = gamma_old.end(),
+    gamma_new_end = gamma_new.end();
+  
+  
+  conv = true;
+  
+  for( ; beta1_new_it != beta1_new_end; ++beta1_new_it,++beta1_old_it){
+    if(fabs(*beta1_new_it - *beta1_old_it) > tol){
+      conv = false;
+      return;
+    }  
+  }
+  
+  for( ; beta2_new_it != beta2_new_end; ++beta2_new_it,++beta2_old_it){
+    if(fabs(*beta2_new_it - *beta2_old_it) > tol){
+      conv = false;
+      return;
+    }  
+  }
+  
+  for( ; b_new_it != b_new_end; ++b_new_it,++b_old_it){
+    if(fabs(*b_new_it - *b_old_it) > tol){
+      conv = false;
+      return;
+    }  
+  }
+  for( ; gamma_new_it != gamma_new_end; ++gamma_new_it,++gamma_old_it){
+    if(fabs(*gamma_new_it - *gamma_old_it) > tol){
+      conv = false;
+      return;
+    }  
+  }
+  
+  //Rprintf("Cor is %f\n", cor_val);
+  //Rcpp::Rcout << ll << std::endl;
+  //conv = (fabs(arma::as_scalar((ll.tail(1)-ll.head(1))/ll.head(1))) < tol);
+  //conv = (cor_val > (1.0-tol));
+  // if((arma::stddev(ll) == 0.0) | (fabs(cor_val) <= tol)){
+  //   conv = true;
+  // }
 }
 
 /**

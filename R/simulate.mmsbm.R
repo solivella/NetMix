@@ -65,7 +65,7 @@ simulate.mmsbm <- function(object,
     dyad <- object$dyadic.data
   }
   if(!is.null(new.data.monad)){
-    nid <- object$forms$nodeID
+    nid <- object$forms$nodeID[[1]]
     monad <- new.data.monad
     if(is.null(object$forms$timeID)){
       tid <- "(tid)"
@@ -73,21 +73,21 @@ simulate.mmsbm <- function(object,
     } else {
       tid <- object$forms$timeID
     }
-    C_mat <- matrix(0, ncol = object$forms$n.blocks, nrow = nrow(monad))
+    C_mat <- matrix(0, ncol = object$forms$n.blocks[1], nrow = nrow(monad))
   } else {
     nid <- "(nid)"
     tid <- "(tid)"
-    monad <- object$monadic.data
+    monad <- object$monadic.data[[1]]
     C_mat <- object$CountMatrix
   }
   if(! (tid %in% c(names(dyad), names(monad)))){
     stop("Dynamic model estimated, but no timeID provided in new data.")
   }
   X_d <- model.matrix(eval(object$forms$formula.dyad), dyad)
-  if(is.null(object$forms$formula.monad)){
+  if(is.null(object$forms$formula.monad[[1]])){
     X_m <- model.matrix(~ 1, data = monad)
   } else {
-    X_m <- model.matrix(eval(object$forms$formula.monad), monad)
+    X_m <- model.matrix(eval(object$forms$formula.monad[[1]]), monad)
   }
   if(length(object$DyadCoef)==0){
     object$DyadCoef <- as.vector(0)
@@ -98,7 +98,7 @@ simulate.mmsbm <- function(object,
                  paste(monad[,nid],monad[,tid],sep="@"))
   r_ind <- match(paste(dyad[,rid],dyad[,tid],sep="@"), 
                  paste(monad[,nid],monad[,tid],sep="@"))
-  n_blk <- object$n_blocks
+  n_blk <- object$n_blocks1
   n_dyad <- nrow(X_d)
   
   unique_t <- unique(monad[,tid])
@@ -119,7 +119,7 @@ simulate.mmsbm <- function(object,
     colnames(states) <- unique_t
     states_ind <- matrix(states[,match(monad[,tid], colnames(object$Kappa))], nrow = nrow(object$Kappa))
     
-    alpha_mats <- .compute.alpha(X_m, object$MonadCoef)
+    alpha_mats <- .compute.alpha(X_m, object$MonadCoef1)
     
     pi_l <- lapply(alpha_mats,
                    function(x){

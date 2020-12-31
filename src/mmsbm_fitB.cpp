@@ -83,9 +83,12 @@ Rprintf("Create model instance... \n");
   double tol = Rcpp::as<double>(control["conv_tol"]),
     newLL, oldLL;
   
-  oldLL = -arma::datum::inf;
+  oldLL = ModelB.LB();
   newLL = 0.0;
-  arma::vec running_ll(win_size, arma::fill::zeros);
+  //arma::vec running_ll(win_size, arma::fill::zeros);
+  arma::cube beta1_new, beta1_old, beta2_new, beta2_old; 
+  arma::mat b_old, b_new;
+  arma::vec gamma_new, gamma_old;
   std::vector<double> ll_vec;
   
   while(iter < VI_ITER && conv == false){
@@ -100,24 +103,35 @@ Rprintf("Create model instance... \n");
     //
     //M-STEP
     // Sample batch of dyads for stochastic optim
-    ModelB.sampleDyads(iter);
+    if(svi){
+      ModelB.sampleDyads(iter);
+    }
     ModelB.optim_ours(true);//optimize alphaLB 1,2
     ModelB.optim_ours(false);//optimize thetaLB
     //
     //Check convergence
-    if(svi){
-      newLL = ModelB.LB();
-      std::rotate(running_ll.begin(), running_ll.begin() + 1, running_ll.end());
-      running_ll[win_size - 1] = newLL;
-      if(iter > win_size) {
-        ModelB.convCheck(conv, running_ll, tol);
-      }
-    } else {
-      newLL = ModelB.LB();
-      //Rprintf("New %f, old %f\n", newLL, oldLL);
-      conv = (fabs((newLL-oldLL)/oldLL) < tol);
-    }
+    newLL = ModelB.LB();
+    beta1_new = ModelB.getBeta1();
+    beta2_new = ModelB.getBeta2();
+    b_new = ModelB.getB();
+    gamma_new = ModelB.getGamma();
+    ModelB.convCheck(conv, beta1_new, beta1_old, beta2_new, beta2_old,
+                     b_new, b_old, gamma_new, gamma_old, tol);
+    //   std::rotate(running_ll.begin(), running_ll.begin() + 1, running_ll.end());
+    //   running_ll[win_size - 1] = newLL;
+    //   if(iter > win_size) {
+    //     Model.convCheck(conv, running_ll, tol);
+    //   }
+    // } else {
+    //   newLL = Model.LB();
+    //   //Rprintf("New %f, old %f\n", newLL, oldLL);
+    //   conv = (fabs((newLL-oldLL)/oldLL) < tol);
+    // }
     ll_vec.push_back(newLL);
+    beta1_old = beta1_new;
+    beta2_old = beta2_new;
+    b_old = b_new;
+    gamma_old = gamma_new;
     oldLL = newLL;
     
     if(verbose){
@@ -147,8 +161,8 @@ Rprintf("Create model instance... \n");
   arma::cube beta2_res = ModelB.getBeta2();
   
   Rcpp::List res;
-  res["MixedMembership 1"] = postmm_res1; //** //phi_res1; 
-  res["MixedMembership 2"] = postmm_res2; //**//phi_res2;
+  res["MixedMembership1"] = postmm_res1; //** //phi_res1; 
+  res["MixedMembership2"] = postmm_res2; //**//phi_res2;
   res["CountMatrix1"] = C_res1;//**
   res["CountMatrix2"] = C_res2;//**
   res["SenderPhi"] = send_phi;

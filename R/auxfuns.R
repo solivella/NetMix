@@ -6,7 +6,10 @@
 #' 
 #' @details These functions are meant for internal use only.
 #' 
-#' @param mat Numeric matrix
+#' @param fomula,formula.dyad,formula.monad1,formula.monad2 A formula object.
+#' @param data,data.dyad,data.monad1,data.monad2 A data-frame object.
+#' @param method String, indicating type of missing data handling procesure. 
+#' @param mat Numeric matrix.
 #' @param p Numeric scalar; power to raise matrix to.
 #' @param block_list List of matrices; each element is a square, numeric matrix 
 #'                   that defines a blockmodel,
@@ -40,9 +43,8 @@
 #' @param nblock Number of groups in model, defaults to \code{NULL}.
 #' @param nstate Number of hidden Markov states in model, defaults to \code{NULL}.
 #' @param devs Vector of standard deviations to use in transformation of variances. Defaults to \code{NULL}.
-#' @param formula.dyad,formula.monad1,formula.monad2,data.dyad,data.monad1,data.monad2,missing Arguments for internal function handling missing values
-#' @param dyads,all.nodes1,all.nodes2,directed Arguments to internal function creating adjacency/affiliation matrices from data.frames
-#' @param .soc_mats,Y,dyads,edges,t_id_d,t_id_n,nodes_pp,dyads_pp,nt_id,node_id_period,mu_b,var_b,n_dyads,n.blocks,periods,directed,ctrl Internal arguments for initialization.
+#' @param dyads,all.nodes1,all.nodes2 Arguments to internal function creating adjacency/affiliation matrices from data.frames
+#' @param .soc_mats,Y,dyads,edges,t_id_d,t_id_n,nodes_pp,dyads_pp,nt_id,node_id_period,mu_b,var_b,n_dyads,n.blocks,periods,ctrl Internal arguments for initialization.
 #' @param m1,bootrep,blist1,blist2 Arguments to internal fiunctions for bootstrapping 
 #' @param ... Numeric vectors; vectors of potentially different length to be cbind-ed.
 #' 
@@ -76,37 +78,116 @@
   return(mat)
 }
 
+#' @rdname auxfuns
+.monadData <- function(form, d, timeID, nodeID, dntid){
+  mfm <- do.call(model.frame, list(formula = as.formula(form),
+                                   data = d,
+                                   drop.unused.levels = TRUE,
+                                   tid = as.name(timeID),
+                                   nid = as.name(nodeID)))
+  mfm[,"(nid)"] <- as.character(mfm[,"(nid)"]) 
+  if(anyDuplicated(mfm[,c("(tid)","(nid)")])){
+    stop("timeID and nodeID do not uniquely identify observations in one of the monadic datasets.")
+  }
+  
+  ntid <- do.call(paste, c(mfm[c("(nid)","(tid)")], sep="@"))
+  if(!all(dntid %in% ntid))
+    stop("Nodes in dyadic dataset missing from monadic dataset.
+          Are node and time identifiers identical in data.dyad and the monadic datasets?")
+  match_ids <- ntid %in% dntid
+  if(any(!match_ids)){
+    if(ctrl$verbose){
+      cat("\tSome nodes in one of the monadic datsets are not present in data.dyad; dropping them.\n")
+    }
+    mfm <- mfm[match_ids, ]
+    ntid <- do.call(paste, c(mfm[c("(nid)","(tid)")], sep="@"))
+  }
+  mfm[,"(nid)"] <- as.character(mfm[,"(nid)"]) 
+  
+  return(list(mf = mfm,
+              id = ntid))
+}
 
 #' @rdname auxfuns
-.transf_muvar <- function(orig, is_var, is_array, des.mat, nblock=NULL, nstate=NULL,devs=NULL){
+.missHandle <- function(form, dat, method){
+  data_terms <- terms.formula(form)
+  var_names <- attr(data_terms, "term.labels")
+  if(length(var_names)){
+    ret <- list()
+    if(identical(method, "indicator method")){
+      miss.d <- apply(dat[,var_names, drop = FALSE], 2, anyNA)
+      md <- names(miss.d[miss.d])
+      if(length(md)>0){
+        m.ind <- apply(dat[,md, drop = FALSE], 2, function(x){
+          ifelse(is.na(x), 1, 0)
+        })
+        colnames(m.ind) <- paste(md, "_missing", sep="")
+        dat[,md] <- apply(dat[,md, drop = FALSE], 2, function(x){
+          x[is.na(x)] <- 0
+          return(x)
+        })
+        ret$data <- cbind(dat, m.ind)
+        fc <- as.formula(paste0("~.+",
+                                paste(colnames(m.ind), collapse=" + ")))
+        ret$form <- update.formula(form, fc)
+      } else {
+        ret <- list(form = form,
+                    dat = dat)
+      }
+    } else { ## method = "listwise delete"
+      keep_ind <- apply(as.matrix(dat[,var_names, drop = FALSE]), 1, function(x){!any(is.na(x))})
+      ret$dat <- data[keep_ind,,drop = FALSE]
+      ret$form <- form
+    }
+  } else {
+    ret <- list(form = form,
+                dat = dat)
+  }
+  return(ret)
+}
+
+#' @rdname auxfuns
+.scaleVars <- function(x, keep_const = TRUE){
+  A <- model.matrix(terms(x), x)
+  which_cont <- which(apply(A, 2, function(a)length(unique(a))>2))
+  A_sd <- rep(1, ncol(A))
+  A_sd[which_cont] <- apply(A[,which_cont, drop = FALSE], 2, sd)*2
+  A <- scale(A, TRUE, A_sd)
+  constx <- which(colnames(A)=="(Intercept)")
+  if(keep_const){
+    A[,constx] <- 1
+  } else {
+    attr_tmp <- list(attr(A, "scaled:center")[-constx],
+                     attr(A, "scaled:scale")[-constx])
+    A <- A[,-constx, drop = FALSE]
+    attr(A, "scaled:center") <- attr_tmp[[1]]
+    attr(A, "scaled:scale") <- attr_tmp[[2]]
+  }
+  return(A)
+}
+
+#' @rdname auxfuns
+.transf_muvar <- function(orig, is_var, is_array, des.mat, nblock=NULL, nstate=NULL){
   if(is_array){
-    tmp <- array(ifelse(is_var,1.0, 0.0), c(ncol(des.mat), nblock, nstate))
+    tmp <- array(ifelse(is_var, 1.0, 0.0), c(ncol(des.mat), nblock, nstate))
     rownames(tmp) <- colnames(des.mat)
   } else {
-    tmp <- array(ifelse(is_var,1.0, 0.0), ncol(des.mat))
+    tmp <- array(ifelse(is_var, 1.0, 0.0), ncol(des.mat))
     names(tmp) <- colnames(des.mat)
   }
-  if(length(orig) == 0){
-    if(length(dim(tmp))==1){
-      non_miss <- !grepl("_missing", colnames(des.mat))
-      tmp[non_miss] <- orig
+  if(length(orig) > 1){
+    if(is_array){
+      tmp[rownames(orig),,] <- orig
     } else {
-      tmp[non_miss,,] <- orig
+      tmp[names(orig)] <- orig
     }
   } else {
-    if(length(dim(tmp))==1){
-      tmp[names(orig)] <- orig
+    non_miss <- !grepl("_missing", colnames(des.mat))
+    if(is_array){
+      tmp[non_miss,,] <- orig
     } else {
-      tmp[rownames(orig),,] <- orig
+      tmp[non_miss] <- orig
     }
-  }
-  if(is_var){
-    if(length(dim(tmp))==1){
-      tmp <- sqrt(tmp)/devs
-    } else {
-      tmp <- sqrt(tmp)/rep(devs, nblock*nstate)
-    }
-    tmp <- tmp^2
   }
   return(tmp)
 }
@@ -151,7 +232,7 @@
   
   par(new = TRUE, pty = "m", plt = smallplot, err = -1)
   graphics::image(ix, iy, iz, xaxt = "n", yaxt = "n", xlab = "", 
-        ylab = "", col = col, breaks = breaks)
+                  ylab = "", col = col, breaks = breaks)
   axis.args <- c(list(side =  4, at = seq(0,1, length.out = 10),
                       labels = round(seq(range[1], range[2], length.out=10),2), 
                       cex.axis=0.75,
@@ -228,6 +309,68 @@
 }
 
 #' @rdname auxfuns
+.vcovBeta <- function(all_phi, beta_coef, n.sim, n.blk, n.hmm, n.nodes, n.periods,
+                      mu.beta, var.beta, est_kappa, t_id_n, X){
+  all_phi <- split.data.frame(rbind(t(fit[["SenderPhi"]]),
+                                    t(fit[["ReceiverPhi"]])),
+                              c(nt_id))
+  sampleC_perm <- lapply(all_phi,
+                         function(mat){
+                           apply(mat, 2, function(vec)poisbinom::rpoisbinom(n.sim, vec))
+                         })
+  sampleC_perm <- cbind(do.call(rbind, sampleC_perm), # samples
+                        rep(1:length(all_phi), each = n.sim), #node id
+                        rep(1:n.sim, times = length(all_phi))) #sample id
+  sampleC_perm <- sampleC_perm[order(sampleC_perm[,n.blocks + 2], sampleC_perm[,n.blocks + 1]),]
+  C_samples <- split.data.frame(sampleC_perm[,1:n.blocks], sampleC_perm[,n.blocks + 2])
+  S_samples <- replicate(n.sim, apply(est_kappa, 2, function(x)sample(1:n.hmm, 1, prob = x)), simplify = FALSE)
+  hessBeta_list <- mapply(
+    function(C_samp, S_samp, tidn, X_i, Nvec, beta_vec, vbeta, mbeta, periods)
+    {
+      if(n.hmm > 1) {
+        s_matrix <- t(model.matrix(~factor(S_samp, 1:n.hmm) - 1))
+      } else {
+        s_matrix <- matrix(1, ncol=periods)
+      }
+      tot_in_state <- rowSums(s_matrix)
+      if(any(tot_in_state == 0.0)){
+        warning("Some HMM states are empty; no standard errors will be returned for coefficients associated with them.")
+      }  
+      hess_tmp <- optimHess(c(beta_vec),alphaLB,
+                            tot_nodes = Nvec,
+                            c_t = t(C_samp),
+                            x_t = X_i,
+                            s_mat = s_matrix,
+                            t_id = tidn,
+                            var_beta = vbeta,
+                            mu_beta = mbeta)
+      vc_tmp <- Matrix::forceSymmetric(solve(hess_tmp))
+      ev <- eigen(vc_tmp)$value
+      if(any(ev<0)){
+        vc_tmp <- vc_tmp - diag(min(ev)-1e-4, ncol(vc_tmp))
+      }
+      ch_vc <- chol(vc_tmp)
+      return(t(ch_vc) %*% ch_vc)
+    },
+    C_samples, S_samples,
+    MoreArgs = list(tidn = t_id_n,
+                    X_i = X,
+                    Nvec = n.nodes,
+                    beta_vec = beta_coef, 
+                    vbeta = var.beta, 
+                    mbeta = mu.beta,
+                    periods = n.periods),
+    SIMPLIFY=FALSE)
+  vcov_monad <- Reduce("+", hessBeta_list)/n.sim
+  
+  colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:n.hmm), each = prod(dim(fbeta_coef)[1:2])),
+                                                                rep(colnames(beta_coef), each = nrow(fbeta_coef), times = n.hmm),
+                                                                rep(rownames(beta_coef), times = n.blk*n.hmm),
+                                                                sep=":")
+  return(vcov_monad)
+}
+
+#' @rdname auxfuns
 .e.pi <- function(alpha_list, kappa, C_mat = NULL){
   if(is.null(C_mat)){
     pi_l <- alpha_list
@@ -247,62 +390,95 @@
 }
 
 #' @rdname auxfuns
+.transfBeta <- function(coefs, n.hmmstates, mean_vec,  sd_vec, n.blk, cnames){
+  res <- vapply(1:n.hmmstates,
+                function(ind, coefs, sd_vec, mean_vec){
+                  mat <- coefs[,,ind, drop=FALSE]
+                  constx <- which(sd_vec==0)
+                  mat[-constx, , 1] <- mat[-constx, , 1] / sd_vec[-constx]
+                  if(length(constx)!=0){
+                    mat[constx, ,1] <- mat[constx, ,1] - mean_vec[-constx] %*% mat[-constx, , 1]
+                  }
+                  return(mat)
+                },
+                array(0.0, c(nrow(coefs), n.blk)),
+                coefs = coefs,
+                sd_vec = sd_vec,
+                mean_vec = mean_vec)
+  rownames(res) <- cnames
+  colnames(res) <- paste("Group", 1:n.blk)
+  return(res)
+}
+
+#' @rdname auxfuns
 .initPi <- function(soc_mats,
-                     Y,
-                     dyads,
-                     edges,
-                     t_id_d,
-                     t_id_n,
-                     nodes_pp,
-                     dyads_pp,
-                     nt_id,
-                     node_id_period,
-                     mu_b,
-                     var_b,
-                     n_dyads, n.blocks, periods, directed, ctrl){
-  max_ll <- -Inf
-  best_pi <- matrix(as.double(0.0), ncol=n_dyads, nrow=n.blocks)
-  rownames(best_pi) <- 1:n.blocks
-  for(n in 1:ctrl$nstarts){
+                    bipartite,
+                    dyads,
+                    edges,
+                    nodes_pp,
+                    dyads_pp,
+                    n.blocks, periods, directed, ctrl){
+  res <- vector("list", 2L)
+  if(bipartite){
+    phi_init_temp <- lapply(soc_mats, function(mat){
+      clust.o<-blockcluster::coclusterBinary(mat,nbcocluster=c(n.blocks[1],n.blocks[2]))
+      phi1_init_temp<-matrix(0,nrow=nrow(mat),ncol=n.blocks[1])
+      phi2_init_temp<-matrix(0,nrow=ncol(mat),ncol=n.blocks[2])
+      for(i in 1:nrow(mat)){#node1
+        val<-clust.o@rowclass[i]+1
+        phi1_init_temp[i,val]<-1
+      }
+      for(j in 1:ncol(mat)){#node2
+        val<-clust.o@colclass[j]+1
+        phi2_init_temp[j,val]<-1
+      }
+      res<-vector("list",length=2)
+      res[[1]]<-t(phi1_init_temp)
+      res[[2]]<-t(phi2_init_temp)
+      return(res)
+    }
+    )
+    res[[1]] <- do.call(cbind, lapply(phi_init_temp, `[[`, 1))#1st matrix of each element of big list
+    res[[2]] <- do.call(cbind, lapply(phi_init_temp, `[[`, 2))#2nd matrix of each element of big list
+  } else {
     temp_res <- vector("list", periods)
     for(i in 1:periods){
       if(!ctrl$init_gibbs) {
-        mn <- ncol(soc_mats[[i]]) 
-        if(!ctrl$assortative){
-          soc_mats[[i]] <- 1 - soc_mats[[i]]
-        }
+        mn <- ncol(soc_mats[[i]])
         if(directed){
           D_o <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
           D_i <- 1/sqrt(.colSums(soc_mats[[i]], mn, mn) + 1)
-          C_o <- t(D_o * (soc_mats[[i]] + sqrt(mean(.rowMeans(soc_mats[[i]], mn, mn)))))
-          C_i <- t(D_i * (t(soc_mats[[i]]) + sqrt(mean(.colMeans(soc_mats[[i]], mn, mn)))))
+          C_o <- t(D_o * soc_mats[[i]])
+          C_i <- t(D_i * t(soc_mats[[i]]))
           U <- t(C_o * D_i) %*% C_o +
             t(C_i * D_o) %*% C_i
         } else {
           D <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
-          U <- t(D * (soc_mats[[i]] + mean(.rowMeans(soc_mats[[i]], mn, mn)/2))) * D
+          U <- t(D * soc_mats[[i]]) * D
         }
         if(ctrl$spectral) {
-          n_elem <- n.blocks + 1
-          res <- RSpectra::eigs_sym(U, n_elem)
-          eta <- res$vectors[,1:n_elem] %*% diag(res$values[1:n_elem])
+          n_elem <- n.blocks[1] + 1
+          #res <- RSpectra::eigs_sym(U, n_elem)
+          res <- eigen(U)
+          sel_val <- order(abs(res$values), decreasing = TRUE)[1:n_elem] 
+          eta <- res$vectors[,sel_val] %*% diag(res$values[sel_val])
           target <- eta[,2:n_elem] / (eta[,1] + 1e-8)
-          sig <- 1 - res$values[n_elem] / (res$values[n.blocks])
+          sig <- 1 - (res$values[n_elem] / (res$values[n.blocks[1]]))
           sig <- ifelse(is.finite(sig), sig, 0)
-          if(sig > 0.1){
+          if(abs(sig) > 0.1){
             target <- target[,1:(n_elem - 2), drop = FALSE]
           }
         } else {
           target <- U
         }
-        if(nrow(unique(round(target, 12))) > n.blocks){
+        if(nrow(unique(target)) > n.blocks[1]){
           clust_internal <- fitted(kmeans(x = target,
-                                          centers = n.blocks,
+                                          centers = n.blocks[1],
                                           iter.max = 15,
                                           nstart = 10), "classes")
           
         } else {
-          init_c <- sample(1:nrow(target), n.blocks, replace = FALSE)
+          init_c <- sample(1:nrow(target), n.blocks[1], replace = FALSE)
           cents <- jitter(target[init_c, ])
           clust_internal <- fitted(suppressWarnings(kmeans(x = target,
                                                            centers = cents,
@@ -311,181 +487,61 @@
                                                            nstart = 1)), "classes")
         }
         
-        pi_internal <- model.matrix(~ factor(clust_internal, 1:n.blocks) - 1)
-        pi_internal <- .transf(pi_internal)
-        rownames(pi_internal) <- rownames(soc_mats[[i]])
-        colnames(pi_internal) <- 1:n.blocks
-        MixedMembership <- t(pi_internal)
-        int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
-        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership, NULL, directed)
+        phi_internal <- model.matrix(~ factor(clust_internal, 1:n.blocks[1]) - 1)
+        phi_internal <- .transf(phi_internal)
+        rownames(phi_internal) <- rownames(soc_mats[[i]])
+        colnames(phi_internal) <- 1:n.blocks[1]
+        MixedMembership <- t(phi_internal)
+        int_dyad_id <- apply(dyads[[i]][,c("(sid)","(rid)")],
+                             2,
+                             function(x)match(x, colnames(MixedMembership)) - 1)
+        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
         temp_res[[i]] <- list(BlockModel = BlockModel,
-                              MixedMembership = MixedMembership)                         
+                              MixedMembership = MixedMembership)
         
       } else {
         n_prior <- (dyads_pp[i] - nodes_pp[i]) * .05
-        a <- plogis(ctrl$mu_b) * n_prior
+        a <- plogis(ctrl$mu_block) * n_prior
         b <- n_prior - a
         lda_beta_prior <- lapply(list(b,a),
                                  function(prior){
-                                   mat <- matrix(prior[2], n.blocks, n.blocks)
+                                   mat <- matrix(prior[2], n.blocks[1], n.blocks[1])
                                    diag(mat) <- prior[1]
                                    return(mat)
                                  })
         ret <- lda::mmsb.collapsed.gibbs.sampler(network = soc_mats[[i]],
-                                                 K = n.blocks,
-                                                 num.iterations = 100L,
-                                                 burnin = 50L,
+                                                 K = n.blocks[1],
+                                                 num.iterations = 75L,
+                                                 burnin = 25L,
                                                  alpha = ctrl$alpha,
                                                  beta.prior = lda_beta_prior)
         MixedMembership <- prop.table(ret$document_expects, 2)
         colnames(MixedMembership) <- colnames(soc_mats[[i]])
-        int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
-        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership, NULL, directed)
+        int_dyad_id <- apply(dyads[[i]][,c("(sid)","(rid)")], 2,
+                             function(x)match(x, colnames(MixedMembership)) - 1)
+        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
         if(any(is.nan(BlockModel))){
           BlockModel[is.nan(BlockModel)] <- 0.0
         }
         temp_res[[i]] <- list(BlockModel = BlockModel,
                               MixedMembership = MixedMembership)
         
+        
       }
     }
     block_models <- lapply(temp_res, function(x)x$BlockModel)
     target_ind <- which.max(sapply(soc_mats, ncol))
     perms_temp <- .findPerm(block_models, target_mat = block_models[[target_ind]], use_perms = ctrl$permute)
-    pis_temp <- lapply(temp_res, function(x)x$MixedMembership) 
-    pi.ord <- as.numeric(lapply(pis_temp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get correct temporal order
-    pi_init_t <- do.call(cbind,mapply(function(phi_tmp,perm){perm %*% phi_tmp},
-                                       pis_temp[order(pi.ord)], perms_temp, SIMPLIFY = FALSE)) 
-    rownames(pi_init_t) <- 1:n.blocks
-    Z_tmp <- matrix(0, ncol = n_dyads, nrow = 1)
-    X_tmp <- matrix(1, ncol = ncol(pi_init_t), nrow = 1)
-    ctrl$vi_iter <- 2
-    ctrl$verbose <- FALSE
-    ##sparsity <- mean(Y >= 0.5)
-    fit_tmp <- mmsbm_fit(Z_tmp,
-                         ##Z_tmp,
-                         X_tmp,
-                         Y,
-                         ##Y,
-                         t_id_d,
-                         t_id_n,
-                         nodes_pp,
-                         ##nt_id,
-                         nt_id,
-                         node_id_period,
-                         mu_b,
-                         var_b,
-                         array(0.0, c(1, n.blocks, ctrl$states)),
-                         array(1.0, c(1, n.blocks, ctrl$states)),
-                         0.0,
-                         1.0,
-                         pi_init_t,
-                         ctrl$kappa_init_t,
-                         qlogis(block_models[[target_ind]]),
-                         array(ctrl$alpha, c(1,n.blocks,ctrl$states)),
-                         0.0,
-                         ##sparsity,
-                         ctrl)
-    if(fit_tmp$LowerBound >= max_ll){
-      best_pi <- pi_init_t
-    }
+    phis_temp <- lapply(temp_res, function(x)x$MixedMembership)
+    phi.ord <- as.numeric(lapply(phis_temp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get correct temporal order
+    mm_init_t <- do.call(cbind,mapply(function(phi,perm){perm %*% phi},
+                                      phis_temp[order(phi.ord)], perms_temp, SIMPLIFY = FALSE))
+    rownames(mm_init_t) <- 1:n.blocks[1]
+    res[[1]] <- mm_init_t 
   }
-  return(best_pi)
-}
+  return(res)
+} 
 
-
-#' @rdname auxfuns
-.missing <- function(formula.dyad, formula.monad1, formula.monad2=NULL, 
-                     data.dyad, data.monad1, data.monad2=NULL, missing){
-  
-  if(missing=="indicator method"){
-    # dyadic dataset
-    if(length(all.vars(formula.dyad[[3]]))){
-      miss.d <- apply(data.dyad[,all.vars(formula.dyad[[3]]), drop = FALSE], 2, function(x){length(na.omit(x))}) < nrow(data.dyad)
-      md <- names(miss.d[miss.d])
-      if(length(md)>0){
-        m.ind <- apply(as.data.frame(data.dyad[,md]), 2, function(x){
-          ifelse(is.na(x), 1, 0)
-        })
-        colnames(m.ind) <- paste(md, "_missing", sep="")
-        data.dyad[,md] <- apply(as.data.frame(data.dyad[,md]), 2, function(x){
-          x[is.na(x)] <- 0
-          return(x)
-        })
-        data.dyad <- cbind(data.dyad, m.ind)
-        fc <- paste(as.character(formula.dyad[[2]]), as.character(formula.dyad[[1]]),
-                    paste(c(all.vars(formula.dyad)[-1], colnames(m.ind)), collapse=" + "))
-        formula.dyad <- eval(parse(text=fc))
-      }
-    }
-    # monadic1 dataset
-    if(length(all.vars(formula.monad1[[2]]))){
-      miss.m <- apply(data.monad1[,all.vars(formula.monad1[[2]]), drop = FALSE], 2, function(x){length(na.omit(x))}) < nrow(data.monad1)
-      mm <- names(miss.m[miss.m])
-      if(length(mm)>0){
-        m.ind <- apply(as.data.frame(data.monad1[,mm]), 2, function(x){
-          ifelse(is.na(x), 1, 0)
-        })
-        colnames(m.ind) <- paste(mm, "_missing", sep="")
-        data.monad1[,mm] <- as.vector(apply(as.data.frame(data.monad1[,mm]), 2, function(x){
-          x[is.na(x)] <- 0
-          return(x)
-        }))
-        data.monad1 <- cbind(data.monad1, m.ind)
-        fc <- paste("~", paste(c(all.vars(formula.monad1), colnames(m.ind)),  collapse=" + "))
-        formula.monad1 <- eval(parse(text=fc))
-      }
-    }
-    # monadic2 dataset
-    if(length(all.vars(formula.monad2[[2]]))){
-      miss.m <- apply(data.monad2[,all.vars(formula.monad2[[2]]), drop = FALSE], 2, function(x){length(na.omit(x))}) < nrow(data.monad2)
-      mm <- names(miss.m[miss.m])
-      if(length(mm)>0){
-        m.ind <- apply(as.data.frame(data.monad2[,mm]), 2, function(x){
-          ifelse(is.na(x), 1, 0)
-        })
-        colnames(m.ind) <- paste(mm, "_missing", sep="")
-        data.monad2[,mm] <- as.vector(apply(as.data.frame(data.monad2[,mm]), 2, function(x){
-          x[is.na(x)] <- 0
-          return(x)
-        }))
-        data.monad2 <- cbind(data.monad2, m.ind)
-        fc <- paste("~", paste(c(all.vars(formula.monad2), colnames(m.ind)),  collapse=" + "))
-        formula.monad2 <- eval(parse(text=fc))
-      }
-    }
-  }
-  if(missing=="listwise deletion"){
-    if(length(all.vars(formula.dyad[[3]]))){
-      mdyad <- apply(data.dyad[,all.vars(formula.dyad[[3]])], 1, function(x){!any(is.na(x))})
-    } else {
-      mdyad <- TRUE
-    }
-    #monad1
-    if(length(all.vars(formula.monad1[[2]]))){
-      mmonad1 <- apply(data.monad1[,all.vars(formula.monad1[[2]])], 1, function(x){!any(is.na(x))})
-    } else {
-      mmonad1 <- TRUE
-    }
-    #monad2
-    if(length(all.vars(formula.monad2[[2]]))){
-      mmonad2 <- apply(data.monad2[,all.vars(formula.monad2[[2]])], 1, function(x){!any(is.na(x))})
-    } else {
-      mmonad2 <- TRUE
-    }
-    
-    data.dyad <- data.dyad[mdyad,]
-    data.monad1 <- data.monad1[mmonad1,]
-    data.monad2 <- data.monad2[mmonad2,]
-    d.keep <- lapply(unique(data.dyad[,timeID]), function(x){
-      nts <- data.monad1[data.monad1[,timeID]==x,nodeID] #### How to change this to also include data.monad2?
-      dd <- data.dyad[data.dyad[,timeID]==x,]
-      dd <- dd[dd[,senderID] %in% nts & dd[,receiverID] %in% nts,]
-      return(dd)
-    })
-    data.dyad <- do.call("rbind", d.keep)
-  }
-}
 
 #' @rdname auxfuns
 .createSocioB <- function(dyads, all.nodes1, all.nodes2, directed){

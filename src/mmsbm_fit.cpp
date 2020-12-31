@@ -81,23 +81,23 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
                 //sparsity,
                 control
   );
-
+  
   // VARIATIONAL EM
   arma::uword iter = 0, nworse = 0,
     win_size = control["conv_window"],
-    VI_ITER = control["vi_iter"],
-    N_BLK = control["blocks"],
-    N_STATE = control["states"];
+                      VI_ITER = control["vi_iter"],
+                                       N_BLK = control["blocks1"],
+                                                      N_STATE = control["states"];
   
   bool conv = false,
     verbose = Rcpp::as<bool>(control["verbose"]),
     svi = Rcpp::as<bool>(control["svi"]);
   
   double tol = Rcpp::as<double>(control["conv_tol"]),
-     newLL, oldLL;
+    newLL, oldLL;
   
   oldLL = Model.LB();
-  newLL = 0.0;
+  newLL = oldLL;
   //arma::vec running_ll(win_size, arma::fill::zeros);
   arma::cube beta_new, beta_old; 
   arma::mat b_old, b_new;
@@ -119,13 +119,15 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
     // 
     // //M-STEP
     // Sample batch of dyads for stochastic optim
-    Model.sampleDyads(iter);
+    if(svi){
+      Model.sampleDyads(iter);
+    }
     Model.optim_ours(true); //optimize alphaLB
     Model.optim_ours(false); //optimize thetaLB
     //
     //Check convergence
     
-
+    
     // if(svi){
     newLL = Model.LB();
     beta_new = Model.getBeta();
@@ -142,10 +144,10 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
     //   //Rprintf("New %f, old %f\n", newLL, oldLL);
     //   conv = (fabs((newLL-oldLL)/oldLL) < tol);
     // }
-      ll_vec.push_back(newLL);
-      beta_old = beta_new;
-      b_old =b_new;
-      gamma_old = gamma_new;
+    ll_vec.push_back(newLL);
+    beta_old = beta_new;
+    b_old = b_new;
+    gamma_old = gamma_new;
     oldLL = newLL;
     
     if(verbose){
@@ -156,9 +158,10 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
     ++iter;
   }
   if(verbose){
-      Rprintf("Final LB: %f.                     \n", iter+1, newLL);
+    Rprintf("Final LB: %f.                     \n", iter+1, newLL);
   }
   
+  //ll_vec.erase(ll_vec.begin());
   
   //Form return objects
   arma::mat C_res = Model.getC();
@@ -174,18 +177,18 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
   
   
   Rcpp::List res;
-  res["MixedMembership"] = postmm_res;
+  res["MixedMembership1"] = postmm_res;
   res["CountMatrix"] = C_res;
   res["SenderPhi"] = send_phi;
   res["ReceiverPhi"] = rec_phi;
-  res["TotNodes"] = tot_nodes;
+  res["TotNodes1"] = tot_nodes;
   res["BlockModel"] = B;
   res["DyadCoef"] = gamma_res;
   res["TransitionKernel"] = A;
-  res["MonadCoef"] = beta_res;
+  res["MonadCoef1"] = beta_res;
   res["Kappa"] = kappa_res;
   res["n_states"] = N_STATE;
-  res["n_blocks"] = N_BLK;
+  res["n_blocks1"] = N_BLK;
   res["LowerBound"] = newLL;
   res["niter"] = iter + 1;
   res["converged"] = conv;
