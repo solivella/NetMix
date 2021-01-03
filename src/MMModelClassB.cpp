@@ -205,6 +205,8 @@ MMModelB::MMModelB(const arma::mat& z_t,
   }
   if(N_DYAD_PRED > 0)
     std::copy(gamma.begin(), gamma.end(), theta_par.begin() + N_B_PAR);
+  
+  Rprintf("Flag 1 ... \n");
   //Assign initial values to alpha and theta
   computeAlpha(N_NODE1,
 	       N_BLK1,
@@ -232,7 +234,7 @@ MMModelB::MMModelB(const arma::mat& z_t,
      node_in_batch2,
      N_NODE_BATCH2);
   
-  
+  Rprintf("Flag 2 ... \n");
   computeTheta();
   //Define iterator at the end of param. objects
   beta1_end = beta1.end();

@@ -33,7 +33,7 @@ Rcpp::List mmsbm_fitBi(const arma::mat& z_t,
 )
 {
   //Create model instance
-Rprintf("Create model instance... \n");
+Rprintf("Create model instance... \n"); //Bug in ModelB-- crashing
   MMModelB ModelB(z_t,
                 x1_t,
                 x2_t,
@@ -64,7 +64,7 @@ Rprintf("Create model instance... \n");
                 gamma_init,
                 control
 		);
-
+  Rprintf("Post model instance... \n");
   // VARIATIONAL EM
   arma::uword iter = 0, nworse = 0,
     win_size = control["conv_window"],//**
