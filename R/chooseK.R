@@ -87,6 +87,7 @@
 chooseK<-function(formula.dyad,
                   formula.monad1=~1,
                   formula.monad2=~1,
+                  bipartite=TRUE,
                   senderID, 
                   receiverID,
                   nodeID1 = NULL,
