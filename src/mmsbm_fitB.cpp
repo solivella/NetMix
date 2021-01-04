@@ -83,7 +83,9 @@ Rprintf("Create model instance... \n"); //Bug in ModelB-- crashing
   double tol = Rcpp::as<double>(control["conv_tol"]),
     newLL, oldLL;
   
+  Rprintf("Pre ModelB.LB ... \n");
   oldLL = ModelB.LB();
+  Rprintf("Post ModelB.LB ... \n");
   newLL = 0.0;
   //arma::vec running_ll(win_size, arma::fill::zeros);
   arma::cube beta1_new, beta1_old, beta2_new, beta2_old; 
@@ -94,8 +96,9 @@ Rprintf("Create model instance... \n"); //Bug in ModelB-- crashing
   while(iter < VI_ITER && conv == false){
     Rcpp::checkUserInterrupt();
     // E-STEP
-    
+    Rprintf("Pre ModelB.updatePhi ... \n");
     ModelB.updatePhi();
+    Rprintf("Post ModelB.updatePhi ... \n");
     
     if(N_STATE > 1){
           ModelB.updateKappa();
@@ -103,14 +106,22 @@ Rprintf("Create model instance... \n"); //Bug in ModelB-- crashing
     //
     //M-STEP
     // Sample batch of dyads for stochastic optim
+    Rprintf("Pre ModelB.sampleDyads ... \n");
     if(svi){
       ModelB.sampleDyads(iter);
     }
+    Rprintf("Post ModelB.sampleDyads ... \n");
+    
+    Rprintf("Pre ModelB.optim_ours(true) ... \n");
     ModelB.optim_ours(true);//optimize alphaLB 1,2
+    Rprintf("Post ModelB.optim_ours(true) ... \n");
     ModelB.optim_ours(false);//optimize thetaLB
+    Rprintf("Post ModelB.optim_ours(false) ... \n");
     //
     //Check convergence
+    Rprintf("Pre ModelB.LB ... \n");
     newLL = ModelB.LB();
+    Rprintf("Post ModelB.LB ... \n");
     beta1_new = ModelB.getBeta1();
     beta2_new = ModelB.getBeta2();
     b_new = ModelB.getB();
