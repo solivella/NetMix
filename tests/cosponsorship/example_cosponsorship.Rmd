@@ -97,9 +97,9 @@ library(xtable)
 
 ```{r,echo=FALSE,eval=FALSE,warning=FALSE,message=FALSE}
 ## Call in the data ##
-dyad.data<-readRDS("tests/cosponsorship/cosponsor_data/dyad-data-107.rds")
-senate<-readRDS("tests/cosponsorship/cosponsor_data/senate-107.rds")
-bills<-readRDS("tests/cosponsorship/cosponsor_data/bills-107.rds")
+dyad.data<-readRDS("cosponsor_data/dyad-data-107.rds")
+senate<-readRDS("cosponsor_data/senate-107.rds")
+bills<-readRDS("cosponsor_data/bills-107.rds")
 bills<-subset(bills, select = -c(Minor,Major) )
 node1=nrow(senate)
 node2=nrow(bills)
@@ -111,13 +111,19 @@ Summarizing information on the Congress:
 * Number of bills
 
 ```{r summary-stat107, echo=FALSE, eval=TRUE}
-linesep = if (booktabs) c('', '', '', '', '\\addlinespace') else '\\hline'
-d<-cbind(subset(senate,select=c(labels),subset=party=="Democrat"),subset(senate,select=c(labels),subset=party=="Republican"))
-names(d)<-c("Democrat","Republican")
+d<-cbind(subset(senate,select=c(labels),subset=party=="Democrat")[1:25,],subset(senate,select=c(labels),subset=party=="Democrat")[26:50,],subset(senate,select=c(labels),subset=party=="Republican")[1:25,],subset(senate,select=c(labels),subset=party=="Republican")[26:50,])
+#names(d)<-c("Democrat","Democrat","Republican","Republican")
 rownames(d)<-NULL
- kbl(d, format="latex", booktabs = T, linesep = "") %>% 
-   kable_styling(font_size=5,full_width=F, position="center",latex_options =c("scale_down")) %>%# c("striped","scale_down")) %>%
-  footnote(general = "On November 4, 2002, Jesse Ventura appointed Dean Barkley to complete the Senate term of Paul Wellstone, who died in a plane crash on October 25. The appointment was announced during the Senate debate between Republican Norm Coleman and Democrat Walter Mondale, who had taken Wellstone's place on the ballot; Ventura intended to upstage the debate. Barkley served until the 107th United States Congress ended on January 3, 2003, when he was replaced by Coleman, who won the election. Lisa Ann Murkowski replaced Frank Murkowski. She was appointed to the U.S. Senate by her father, who resigned his seat in December 2002 to become the Governor of Alaska. She completed her father's unexpired term, which ended in January 2005. She does not appear in the congressional bills dataset under session 107 and so is omitted.",threeparttable = T)
+ kable(d, format="latex", booktabs = T, linesep = "",caption = "Senators in 107th Congressional Session. Notes: On November 4, 2002, Jesse Ventura appointed Dean Barkley to complete the Senate term of Paul Wellstone, who died in a plane crash on October 25. The appointment was announced during the Senate debate between Republican Norm Coleman and Democrat Walter Mondale, who had taken Wellstone's place on the ballot; Ventura intended to upstage the debate. Barkley served until the 107th United States Congress ended on January 3, 2003, when he was replaced by Coleman, who won the election. Lisa Ann Murkowski replaced Frank Murkowski. She was appointed to the U.S. Senate by her father, who resigned his seat in December 2002 to become the Governor of Alaska. She completed her father's unexpired term, which ended in January 2005. She does not appear in the congressional bills dataset under session 107 and so is omitted.", label="senators107") %>% 
+   add_header_above(c("Democrats" = 2, "Republicans" = 2), font_size=12) %>%
+   kable_styling(font_size=8, position="center"
+                 ,bootstrap_options = "striped") %>%
+   column_spec(1:2, width = "12em", bold = FALSE, italic = FALSE, color = "demblue") %>%
+   column_spec(3:4, width = "12em", bold = FALSE, italic = FALSE, color = "repred") #%>%
+  #footnote(general = "",threeparttable = T)
+ 
+ #bills: table in latex (generated using tablesgenerator.com)
+ table(bills$billsponsor_party,bills$billtype)
 ```
 
 ## Estimate the Model
@@ -217,13 +223,12 @@ k1=3/k2=3 and k1=3/k2=4 are the combinations with the highest out of sample AUCs
 
 **K1=3,K2=4**
 ```{r,eval=FALSE,echo=FALSE,warning=FALSE,message=FALSE}
-
 formula.monad1 = ~ seniority + ideol1 + ideol2 + as.factor(party) + sex
 formula.monad2 = ~ as.factor(Major2) + billsponsor_seniority + billsponsor_ideol1 + 
                 billsponsor_ideol2 + billsponsor_party + billsponsor_sex
 data.monad1 = senate
 data.monad2 = bills
-n.blocks1 = 2#blocks for legislators
+n.blocks1 = 3#blocks for legislators
 n.blocks2 = 2#blocks for bills
 nodeID1 = "node1"
 nodeID2 = "node2"
@@ -823,25 +828,38 @@ node2=nrow(bills)
 
 Summarizing information on the Congress:
 
-* Number of Democrats, Republicans
+* Number of Democrats, Republicans, Independent
 * Number of bills
 
-```{r summary-stat107, echo=FALSE, eval=TRUE}
+```{r summary-stat108, echo=FALSE, eval=TRUE}
 #senators
 #linesep = if (booktabs) c('', '', '', '', '\\addlinespace') else '\\hline'
-d<-cbind(c(senate$labels[which(senate$party=="Democrat")],rep("",3)),subset(senate,select=c(labels),subset=party=="Republican"))
-names(d)<-c("Democrat","Republican")
-rownames(d)<-NULL
- kbl(d, format="latex", booktabs = T, linesep = "", caption="108th Congressional Session Senators") %>% 
-   kable_styling(font_size=3,full_width=F, position="center",latex_options =c("scale_down")) %>%# c("striped","scale_down")) %>%
-  footnote(general = "",threeparttable = T)
+d<-cbind(c(senate$labels[which(senate$party=="Democrat")][1:25],""),c(senate$labels[which(senate$party=="Democrat")][26:48],rep("",3)),c(senate$labels[which(senate$party=="Republican")][1:25],""),senate$labels[which(senate$party=="Republican")][26:51], c(senate$labels[which(senate$party=="Independent")],rep("",25)))
+ kable(d, format="html", booktabs = T, linesep = "",padding=-1L) %>% 
+   add_header_above(c("Democrats" = 2, "Republicans" = 2, "Independent" = 1), font_size=12) %>%
+   kable_styling(font_size=9, position="center"
+                 ,bootstrap_options = "striped") %>%
+   column_spec(1:2, width = "15em", bold = FALSE, italic = FALSE, color = "navy") %>%
+   column_spec(3:4, width = "15em", bold = FALSE, italic = FALSE, color = "maroon") %>%
+   column_spec(5, width = "15em", bold = FALSE, italic = FALSE, color = "darkgray") %>%
+  footnote(general = "The only independent in this session was Jim Jeffords. Jeffords served as a Republican up to 2001, and then switched to become an independent after and began caucusing with Democrats.",threeparttable = T)
  
-#bills
-kbl(table(bills$billsponsor_party,bills$billtype),format="latex", booktabs = T, linesep = "", caption="108th Congressional Session Bills") %>% 
-  kable_styling(font_size=3,full_width=F, position="center",latex_options =c("scale_down")) %>%
-  footnote(general = "SC stands for concurrent resolutions, SE for resolutions, SJ for joint resolutions, SN for bills, and SP for amendments.",threeparttable = T)
+#bills: table in latex (generated using tablesgenerator.com)
+ table(bills$billsponsor_party,bills$billtype)
 ```
 
+```{r summary-stat107, echo=FALSE, eval=TRUE}
+d<-cbind(subset(senate,select=c(labels),subset=party=="Democrat")[1:25,],subset(senate,select=c(labels),subset=party=="Democrat")[26:50,],subset(senate,select=c(labels),subset=party=="Republican")[1:25,],subset(senate,select=c(labels),subset=party=="Republican")[26:50,])
+#names(d)<-c("Democrat","Democrat","Republican","Republican")
+rownames(d)<-NULL
+ kable(d, format="html", booktabs = T, linesep = "",padding=-1L) %>% 
+   add_header_above(c("Democrats" = 1, "Republicans" = 3), font_size=12) %>%
+   kable_styling(font_size=9, position="center"
+                 ,bootstrap_options = "striped") %>%
+   column_spec(1:2, width = "15em", bold = FALSE, italic = FALSE, color = "navy") %>%
+   column_spec(3:4, width = "15em", bold = FALSE, italic = FALSE, color = "maroon") %>%
+  footnote(general = "On November 4, 2002, Jesse Ventura appointed Dean Barkley to complete the Senate term of Paul Wellstone, who died in a plane crash on October 25. The appointment was announced during the Senate debate between Republican Norm Coleman and Democrat Walter Mondale, who had taken Wellstone's place on the ballot; Ventura intended to upstage the debate. Barkley served until the 107th United States Congress ended on January 3, 2003, when he was replaced by Coleman, who won the election. Lisa Ann Murkowski replaced Frank Murkowski. She was appointed to the U.S. Senate by her father, who resigned his seat in December 2002 to become the Governor of Alaska. She completed her father's unexpired term, which ended in January 2005. She does not appear in the congressional bills dataset under session 107 and so is omitted.",threeparttable = T)
+```
 
 
 ## Estimate the Model
