@@ -7,45 +7,41 @@
 #'     binary edges should be used as a LHS, and any dyadic predictors 
 #'     can be included on the RHS (when no dyadic covariates are available, use \code{y ~ 1}).
 #'     Same syntax as a \code{glm} formula. 
-#' @param formula.monad1 An optional \code{formula} object. LHS is ignored. RHS contains 
-#'     names of nodal atrributes found in \code{data.monad1}.  
-#' @param formula.monad2 An optional \code{formula} object. LHS is ignored. RHS contains 
-#'     names of nodal atrributes found in \code{data.monad2}.  
+#' @param formula.monad Optional. Either a \code{formula} object (when \code{bipartite=FALSE}) or
+#'     a list of two \code{formula} objects (when \code{bipartite=FALSE}). In both instances, formula RHS
+#'    containing names of nodal attributes found in \code{data.monad}, and LHS is ignored. 
+#'     names of nodal attributes found in \code{data.monad1}. 
+#' @param bipartite Boolean. Is the network bipartite? Defaults to \code{FALSE}. 
 #' @param senderID Character string. Quoted name of the variable in \code{data.dyad} identifying 
 #'     the sender node. For undirected networks, the variable simply contains name of first node 
 #'     in dyad. Cannot contain special charecter "`@`". 
 #' @param receiverID Character string. Quoted name of the variable in \code{data.dyad} identifying 
 #'     the receiver node. For undirected networks, the variable simply contains name of second node 
 #'     in dyad. Cannot contain special charecter "`@`".
-#' @param nodeID1 Character string. Quoted name of the variable in \code{data.monad1} identifying 
+#' @param nodeID Either character string (when \code{bipartite = FALSE}) or list of two character strings (\code{bipartite = TRUE}).
+#'     In both cases, the strings are quoted name(s) of the variable(s) in \code{data.monad} identifying 
 #'     a node in either \code{data.dyad[,senderID]} or \code{data.dyad[,receiverID]}. If not \code{NULL},
 #'     every node \code{data.dyad[,senderID]} or \code{data.dyad[,senderID]} must be present in 
-#'     \code{data.monad1[,nodeID1]}. Cannot contain special charecter "`@`".
-#' @param nodeID2 Character string. Quoted name of the variable in \code{data.monad2} identifying 
-#'     a node in either \code{data.dyad[,senderID]} or \code{data.dyad[,receiverID]}. If not \code{NULL},
-#'     every node \code{data.dyad[,senderID]} or \code{data.dyad[,senderID]} must be present in 
-#'     \code{data.monad2[,nodeID2]}. Cannot contain special charecter "`@`".
-#' @param timeID Character string. Quoted name of the variable in both \code{data.dyad} and
-#'     \code{data.monad} indicating the time in which network (and correspding nodal atrributes)
-#'     were observed. The variable itself must be composed of integers. Cannot contain special charecter "`@`".
+#'     one of the dataframes contained in \code{data.monad}. Names cannot contain special character "`@`".
+#' @param timeID Either character string (when \code{bipartite = FALSE}) or list of two character strings (\code{bipartite = TRUE}). 
+#'  In both cases, the strings are quoted name(s) of the variable(s) in both \code{data.dyad} and the elements in
+#'     \code{data.monad} indicating the time in which network (and corresponding nodal attributes)
+#'     were observed. The variable itself must be composed of integers. Names cannot contain special character "`@`".
 #' @param data.dyad Data frame. Sociomatrix in ``long'' (i.e. dyadic) format. Must contain at
 #'    least three variables: the sender identifier (or identifier of the first node in an undirected networks dyad),
 #'    the receiver identifier (or identifier of the second node in an undirected network dyad), and the value
-#'    of the edge between them. Currently, only edges between zero and one (inclusive) are supported.
-#' @param data.monad1 Data frame for Family 1. Nodal atributes. Must contain a node identifier matching the names of nodes
-#'    used in the \code{data.dyad} data frame for nodes of Family 1. 
-#' @param data.monad2 Data frame for Family 2. Nodal atributes. Must contain a node identifier matching the names of nodes
-#'    used in the \code{data.dyad} data frame for nodes of Family 2. 
-#' @param n.blocks1 Integer value. How many latent groups in Family 1 should be used to estimate the model?
-#' @param n.blocks2 Integer value. How many latent groups in Family 2 should be used to estimate the model?
+#'    of the edge between them. Currently, only edge values between zero and one (inclusive) are supported.
+#' @param data.monad Either data.frame (when \code{bipartite = FALSE}) or list of two data.frames strings (\code{bipartite = TRUE}).
+#'  Nodal attributes. Must contain a node identifier matching the names of nodes
+#'    used in the \code{data.dyad} data frame for nodes. 
+#' @param n.blocks Integer value (when \code{bipartite = FALSE}) or vector of two integers. How many latent groups (in either family type) should be used to estimate the model?
 #' @param n.hmmstates Integer value. How many hidden Markov state should be used in the HMM? Defaults 
-#'    to 1 (i.e. no HMM).  
+#'    to 1 (i.e. no HMM). Currently, dynamic models are only supported for non-bipartite models.  
 #' @param directed Boolean. Is the network directed? Defaults to \code{TRUE}.
 #' @param missing Means of handling missing data. One of "indicator method" (default) or "listwise deletion".
 #' @param mmsbm.control A named list of optional algorithm control parameters.
 #'     \describe{
 #'        \item{seed}{RNG seed. Defaults to \code{NULL}, which does not seed the RNG}
-#'        \item{bipartite}{Boolean; is the network bipartite.}
 #'        \item{nstart}{Integer. Number of random initialization trials. Defaults to 5.}            
 #'        \item{spectral}{Boolean. Type of initialization algorithm for mixed-membership vectors in static case. If \code{TRUE} (default),
 #'                    use spectral clustering with degree correction; otherwise, use kmeans algorithm}
@@ -70,22 +66,16 @@
 #'                    and prior mean of blockmodel's offdiagonal elements. Defaults to \code{c(5.0, -5.0)}}
 #'        \item{var_block}{Numeric vector with two positive elements: prior variance of blockmodel's main diagonal elements, and
 #'                    and prior variance of blockmodel's offdiagonal elements. Defaults to \code{c(1.0, 1.0)}}
-#'        \item{mu_beta1}{Either single numeric value, in which case the same prior mean is applied to all family 1 monadic coefficients, or
-#'                       an array with that is \code{npredictors1} by \code{n.blocks1} by \code{n.hmmstates}, where \code{npredictors1}
-#'                       is the number of family 1 monadic predictors for which a prior mean is being set (prior means need not be set for all)
+#'        \item{mu_beta}{List with one or two elements, depending on \code{bipartite}. Each element must be either single numeric value, in which case the same prior mean is applied to all family 1 monadic coefficients, or
+#'                       an array with that is \code{npredictors} by \code{n.blocks} by \code{n.hmmstates}, where \code{npredictors}
+#'                       is the number of  monadic predictors in the corresponding family for which a prior mean is being set (prior means need not be set for all 
 #'                       predictors). The rows in the array should be named to identify which variables a prior mean is being set for.
 #'                       Defaults to a common prior mean of 0.0 for all monadic coefficients.}           
-#'        \item{var_beta1}{See \code{mu_beta1}. Defaults to a single common prior variance of 1.0 for all family 1 monadic coefficients.}
-#'        \item{mu_beta2}{Either single numeric value, in which case the same prior mean is applied to all family 2 monadic coefficients, or
-#'                       an array with that is \code{npredictors2} by \code{n.blocks2} by \code{n.hmmstates}, where \code{npredictors2}
-#'                       is the number of family 2 monadic predictors for which a prior mean is being set (prior means need not be set for all)
-#'                       predictors). The rows in the array should be named to identify which variables a prior mean is being set for.
-#'                       Defaults to a common prior mean of 0.0 for all monadic coefficients.}   
-#'        \item{var_beta2}{See \code{mu_beta2}. Defaults to a single common prior variance of 1.0 for all family 2 monadic coefficients.}  
+#'        \item{var_beta}{See \code{mu_beta}. Defaults to a single common prior variance of 5.0 for all monadic coefficients.}
 #'        \item{mu_gamma}{Either a single numeric value, in which case the same prior mean is applied to all dyadic coefficients, or
 #'                        a named vector of numeric values (with names corresponding to the name of the variable 
 #'                       for which a prior mean is being set). Defaults to a common prior mean of 0.0 for all dyadic coefficients.}
-#'        \item{var_gamma}{See \code{mu_gamma}. Defaults to a single common prior variance of 1.0 for all dyadic coefficients.}
+#'        \item{var_gamma}{See \code{mu_gamma}. Defaults to a single common prior variance of 5.0 for all dyadic coefficients.}
 #'        \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 10.3}
 #'        \item{se_sim}{Number of samples from variational posterior of latent variables on which approximation to variance-covariance
 #'                      matrices are based. Defaults to 10.}
@@ -172,7 +162,7 @@ mmsbm <- function(formula.dyad,
                   data.dyad,
                   data.monad = NULL,
                   n.blocks,
-                  n.hmmstates,
+                  n.hmmstates = 1,
                   directed = TRUE,
                   mmsbm.control = list()){
   
@@ -204,7 +194,6 @@ mmsbm <- function(formula.dyad,
                states = n.hmmstates,
                times = 1,
                seed = sample(500,1),
-               bipartite = TRUE,
                svi = TRUE,
                nstarts = 5,
                spectral = TRUE,
@@ -239,9 +228,8 @@ mmsbm <- function(formula.dyad,
                threads = 1,
                conv_tol = 1e-3,
                verbose = FALSE)
-  
-  
   ctrl[names(mmsbm.control)] <- mmsbm.control
+  ctrl$bipartite <- bipartite
   ctrl$directed <- directed
   ctrl$conv_window <- floor(4 + 1/(ctrl$batch_size[1])) #currently just for batch size of 1
   set.seed(ctrl$seed)
@@ -377,14 +365,14 @@ mmsbm <- function(formula.dyad,
   }
   
   #Monadic data 1: mfm1
-  mfm_tmp1 <- .monadData(formula.monad[[1]], data.monad[[1]], timeID, nodeID[[1]], dntid1) 
+  mfm_tmp1 <- .monadData(formula.monad[[1]], data.monad[[1]], timeID, nodeID[[1]], dntid1, ctrl$verbose) 
   mfm1 <- mfm_tmp1$mf
   ntid1 <- mfm_tmp1$id
   ntid2 <- ntid1
   
   if(bipartite){
     #Monadic data 2: mfm2
-    mfm_tmp2 <- .monadData(formula.monad[[2]], data.monad[[2]], timeID, nodeID[[2]], dntid2) 
+    mfm_tmp2 <- .monadData(formula.monad[[2]], data.monad[[2]], timeID, nodeID[[2]], dntid2, ctrl$verbose) 
     mfm2 <- mfm_tmp2$mf
     ntid2 <- mfm_tmp2$id
   }
@@ -652,7 +640,7 @@ mmsbm <- function(formula.dyad,
                        ctrl$mm_init_t[[1]], #K1 x N1
                        ctrl$mm_init_t[[2]], #K2 x N2
                        ctrl$kappa_init_t, #time x state
-                       ctrl$b_init_t,#K1 x K2
+                       ctrl$block_init_t,#K1 x K2
                        ctrl$beta1_init,# predictors1+1 x K1 x time
                        ctrl$beta2_init,# predictors2+1 x K2 x time
                        ctrl$gamma_init,

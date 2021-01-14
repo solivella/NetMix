@@ -79,7 +79,7 @@
 }
 
 #' @rdname auxfuns
-.monadData <- function(form, d, timeID, nodeID, dntid){
+.monadData <- function(form, d, timeID, nodeID, dntid, verbose){
   mfm <- do.call(model.frame, list(formula = as.formula(form),
                                    data = d,
                                    drop.unused.levels = TRUE,
@@ -96,7 +96,7 @@
           Are node and time identifiers identical in data.dyad and the monadic datasets?")
   match_ids <- ntid %in% dntid
   if(any(!match_ids)){
-    if(ctrl$verbose){
+    if(verbose){
       cat("\tSome nodes in one of the monadic datsets are not present in data.dyad; dropping them.\n")
     }
     mfm <- mfm[match_ids, ]

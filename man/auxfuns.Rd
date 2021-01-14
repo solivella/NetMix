@@ -34,7 +34,7 @@ vertboot_matrix_rcpp2(m1, blist1, blist2)
 
 .cbind.fill(...)
 
-.monadData(form, d, timeID, nodeID, dntid)
+.monadData(form, d, timeID, nodeID, dntid, verbose)
 
 .missHandle(form, dat, method)
 
