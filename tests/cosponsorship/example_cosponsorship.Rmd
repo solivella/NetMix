@@ -97,9 +97,9 @@ library(xtable)
 
 ```{r,echo=FALSE,eval=FALSE,warning=FALSE,message=FALSE}
 ## Call in the data ##
-dyad.data<-readRDS("cosponsor_data/dyad-data-107.rds")
-senate<-readRDS("cosponsor_data/senate-107.rds")
-bills<-readRDS("cosponsor_data/bills-107.rds")
+dyad.data<-readRDS("tests/cosponsorship/cosponsor_data/dyad-data-107.rds")
+senate<-readRDS("tests/cosponsorship/cosponsor_data/senate-107.rds")
+bills<-readRDS("tests/cosponsorship/cosponsor_data/bills-107.rds")
 bills<-subset(bills, select = -c(Minor,Major) )
 node1=nrow(senate)
 node2=nrow(bills)
@@ -223,8 +223,8 @@ k1=3/k2=3 and k1=3/k2=4 are the combinations with the highest out of sample AUCs
 
 **K1=3,K2=4**
 ```{r,eval=FALSE,echo=FALSE,warning=FALSE,message=FALSE}
-formula.monad1 = ~ seniority + ideol1 + ideol2 + as.factor(party) + sex
-formula.monad2 = ~ as.factor(Major2) + billsponsor_seniority + billsponsor_ideol1 + 
+formula.monad1 = ~ seniority + ideol1 + ideol2 + party + sex
+formula.monad2 = ~ Major2 + billsponsor_seniority + billsponsor_ideol1 + 
                 billsponsor_ideol2 + billsponsor_party + billsponsor_sex
 data.monad1 = senate
 data.monad2 = bills
@@ -242,16 +242,14 @@ co.model2 <- mmsbm(formula.dyad = Y ~ reciprocity_prop0 + lreciprocity_prop,
                     timeID = "time",
                     data.dyad = dyad.data,
                     data.monad = list(senate,bills),
-                    n.blocks = list(n.blocks1,n.blocks2),
+                    n.blocks = c(n.blocks1,n.blocks2),
                     n.hmmstates = 1,
-                    directed = TRUE,
-                    mmsbm.control = list(seed=12345, spectral = TRUE,
+                    mmsbm.control = list(seed=12345,
                                          hessian = TRUE,
                                          verbose=TRUE,
                                          vi_iter = 1,
-                                         conv_tol = 1e-6,
-                                         bipartite = TRUE
-                                   #,batch_size1 = .80, batch_size2 = .80
+                                         conv_tol = 1e-6
+                                         #,batch_size1 = .80, batch_size2 = .80
                                    ))
 #t<-Sys.time()-t
 #save(co.model2,file="congress107results/comodel-k34_B.RData") #verB with 0.5 as variance for monadic/beta intercepts, no _B is 1.0 variance

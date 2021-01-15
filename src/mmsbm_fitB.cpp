@@ -93,35 +93,30 @@ Rprintf("Create model instance... \n"); //Bug in ModelB-- crashing
   arma::vec gamma_new, gamma_old;
   std::vector<double> ll_vec;
   
+  beta1_old = ModelB.getBeta1();
+  beta2_old = ModelB.getBeta2();
+  b_old = ModelB.getB();
+  gamma_old = ModelB.getGamma();
   while(iter < VI_ITER && conv == false){
     Rcpp::checkUserInterrupt();
     // E-STEP
-    Rprintf("Pre ModelB.updatePhi ... \n");
     ModelB.updatePhi();
-    Rprintf("Post ModelB.updatePhi ... \n");
-    
+
     if(N_STATE > 1){
           ModelB.updateKappa();
        }
     //
     //M-STEP
     // Sample batch of dyads for stochastic optim
-    Rprintf("Pre ModelB.sampleDyads ... \n");
     if(svi){
       ModelB.sampleDyads(iter);
     }
-    Rprintf("Post ModelB.sampleDyads ... \n");
-    
-    Rprintf("Pre ModelB.optim_ours(true) ... \n");
+
     ModelB.optim_ours(true);//optimize alphaLB 1,2
-    Rprintf("Post ModelB.optim_ours(true) ... \n");
     ModelB.optim_ours(false);//optimize thetaLB
-    Rprintf("Post ModelB.optim_ours(false) ... \n");
     //
     //Check convergence
-    Rprintf("Pre ModelB.LB ... \n");
     newLL = ModelB.LB();
-    Rprintf("Post ModelB.LB ... \n");
     beta1_new = ModelB.getBeta1();
     beta2_new = ModelB.getBeta2();
     b_new = ModelB.getB();
@@ -144,7 +139,6 @@ Rprintf("Create model instance... \n"); //Bug in ModelB-- crashing
     b_old = b_new;
     gamma_old = gamma_new;
     oldLL = newLL;
-    
     if(verbose){
       if((iter+1) % 1 == 0) {
         Rprintf("Iter: %i, LB: %f\r", iter + 1, newLL);

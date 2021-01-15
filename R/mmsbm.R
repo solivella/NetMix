@@ -424,7 +424,7 @@ mmsbm <- function(formula.dyad,
   }
   
   ## Create full blockmodel mean and variance priors
-  mu_block <- var_block <- array(NA, c(n.blocks[1], n.blocks[2]))
+  mu_block <- var_block <- array(NA, c(n.blocks[2], n.blocks[1]))
   diag(mu_block) <- ctrl[["mu_block"]][1]
   mu_block[upper.tri(mu_block)|lower.tri(mu_block)] <- ctrl[["mu_block"]][2]
   diag(var_block) <- ctrl[["var_block"]][1]
@@ -717,7 +717,7 @@ mmsbm <- function(formula.dyad,
                                    c(nt_id[,2]))
       fit$vcov_monad2 <- .vcovBeta(all_phi2, fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
                                    n.hmmstates, fit[["TotNodes2"]], periods,
-                                   ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2_t) 
+                                   ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2_t, fit) 
     } else {
       all_phi1 <- split.data.frame(rbind(t(fit[["SenderPhi"]]),
                                          t(fit[["ReceiverPhi"]])),
@@ -725,7 +725,7 @@ mmsbm <- function(formula.dyad,
     }
     fit$vcov_monad1 <- .vcovBeta(all_phi1, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1],
                                  n.hmmstates, fit[["TotNodes1"]], periods,
-                                 ctrl$mu_beta1, ctrl$var_beta1, fit[["Kappa"]], t_id_n1, X1_t) 
+                                 ctrl$mu_beta1, ctrl$var_beta1, fit[["Kappa"]], t_id_n1, X1_t, fit) 
     
     
     ## and for dyadic coefficients

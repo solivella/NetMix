@@ -1136,7 +1136,7 @@ void MMModelB::convCheck(bool& conv,
     beta1_old_end = beta1_old.end(),
     beta2_old_end = beta2_old.end(),
     beta1_new_end = beta1_new.end(),
-    beta2_new_end = beta2_new.end();;
+    beta2_new_end = beta2_new.end();
   
   arma::mat::const_iterator b_old_it = b_old.begin(),
     b_new_it = b_new.begin(),
@@ -1150,6 +1150,9 @@ void MMModelB::convCheck(bool& conv,
   
   
   conv = true;
+
+  Rcpp::Rcout << beta1_new << std::endl;
+  Rcpp::Rcout << beta1_old << std::endl;
   
   for( ; beta1_new_it != beta1_new_end; ++beta1_new_it,++beta1_old_it){
     if(fabs(*beta1_new_it - *beta1_old_it) > tol){
@@ -1157,26 +1160,29 @@ void MMModelB::convCheck(bool& conv,
       return;
     }  
   }
-  
   for( ; beta2_new_it != beta2_new_end; ++beta2_new_it,++beta2_old_it){
     if(fabs(*beta2_new_it - *beta2_old_it) > tol){
       conv = false;
       return;
     }  
   }
-  
+
   for( ; b_new_it != b_new_end; ++b_new_it,++b_old_it){
     if(fabs(*b_new_it - *b_old_it) > tol){
       conv = false;
       return;
     }  
   }
+  Rcpp::Rcout << "1.4" << std::endl;
+  
   for( ; gamma_new_it != gamma_new_end; ++gamma_new_it,++gamma_old_it){
     if(fabs(*gamma_new_it - *gamma_old_it) > tol){
       conv = false;
       return;
     }  
   }
+  Rcpp::Rcout << "1.5" << std::endl;
+  
   
   //Rprintf("Cor is %f\n", cor_val);
   //Rcpp::Rcout << ll << std::endl;

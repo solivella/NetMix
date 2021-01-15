@@ -64,7 +64,8 @@ vertboot_matrix_rcpp2(m1, blist1, blist2)
   var.beta,
   est_kappa,
   t_id_n,
-  X
+  X,
+  fit
 )
 
 .e.pi(alpha_list, kappa, C_mat = NULL)
