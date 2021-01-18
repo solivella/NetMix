@@ -746,20 +746,25 @@ void MMModel::updatePhi()
     // #ifdef _OPENMP
     //     thread = omp_get_thread_num();
     // #endif
-    updatePhiInternal(d,
-                      0,
-                      &(send_phi(0, d)),
-                      &(rec_phi(0, d)),
-                      &(e_c_t(0, node_id_dyad(d, 0))),
-                      &err
-    );
-    updatePhiInternal(d,
-                      1,
-                      &(rec_phi(0, d)),
-                      &(send_phi(0, d)),
-                      &(e_c_t(0, node_id_dyad(d, 1))),
-                      &err
-    );
+          if(node_est[node_id_dyad(d, 0)]) {
+            updatePhiInternal(d,
+                              0,
+                              &(send_phi(0, d)),
+                              &(rec_phi(0, d)),
+                              &(e_c_t(0, node_id_dyad(d, 0))),
+                              &err
+            );
+          }
+   
+   if(node_est[node_id_dyad(d, 1)]) {
+             updatePhiInternal(d,
+                               1,
+                               &(rec_phi(0, d)),
+                               &(send_phi(0, d)),
+                               &(e_c_t(0, node_id_dyad(d, 1))),
+                               &err
+             );
+           }
   }
 
   if(err){

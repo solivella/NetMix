@@ -254,166 +254,110 @@
 
 #' @rdname auxfuns
 .initPi <- function(soc_mats,
-                    data.monad,
-                     Y,
-                    id_var,
-                     dyads,
-                     edges,
-                     t_id_d,
-                     nodes_pp,
-                     dyads_pp,
-                     nt_id,
-                     node_id_period,
-                     mu_b,
-                     var_b, n_nodes,
-                     n_dyads, n.blocks, periods, directed, ctrl){
-  max_ll <- -Inf
-  best_mm <- matrix(as.double(0.0), ncol=n_nodes, nrow=n.blocks)
-  rownames(best_mm) <- 1:n.blocks
-  for(n in 1:ctrl$nstarts){
-    temp_res <- vector("list", periods)
-    for(i in 1:periods){
-      if(!ctrl$init_gibbs) {
-        mn <- ncol(soc_mats[[i]]) 
-        if(directed){
-          D_o <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
-          D_i <- 1/sqrt(.colSums(soc_mats[[i]], mn, mn) + 1)
-          C_o <- t(D_o * (soc_mats[[i]] + sqrt(mean(.rowMeans(soc_mats[[i]], mn, mn)))))
-          C_i <- t(D_i * (t(soc_mats[[i]]) + sqrt(mean(.colMeans(soc_mats[[i]], mn, mn)))))
-          U <- t(C_o * D_i) %*% C_o +
-            t(C_i * D_o) %*% C_i
-        } else {
-          D <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
-          U <- t(D * (soc_mats[[i]] + mean(.rowMeans(soc_mats[[i]], mn, mn)/2))) * D
+                    dyads,
+                    edges,
+                    nodes_pp,
+                    dyads_pp,
+                    n.blocks, periods, directed, ctrl){
+  res <- vector("list", 2L)
+  temp_res <- vector("list", periods)
+  for(i in 1:periods){
+    if(!ctrl$init_gibbs) {
+      mn <- ncol(soc_mats[[i]])
+      if(directed){
+        D_o <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
+        D_i <- 1/sqrt(.colSums(soc_mats[[i]], mn, mn) + 1)
+        C_o <- t(D_o * soc_mats[[i]])
+        C_i <- t(D_i * t(soc_mats[[i]]))
+        U <- t(C_o * D_i) %*% C_o +
+          t(C_i * D_o) %*% C_i
+      } else {
+        D <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
+        U <- t(D * soc_mats[[i]]) * D
+      }
+      if(ctrl$spectral) {
+        n_elem <- n.blocks[1] + 1
+        #res <- RSpectra::eigs_sym(U, n_elem)
+        res <- eigen(U)
+        sel_val <- order(abs(res$values), decreasing = TRUE)[1:n_elem] 
+        eta <- res$vectors[,sel_val] %*% diag(res$values[sel_val])
+        target <- eta[,2:n_elem] / (eta[,1] + 1e-8)
+        sig <- 1 - (res$values[n_elem] / (res$values[n.blocks[1]]))
+        sig <- ifelse(is.finite(sig), sig, 0)
+        if(abs(sig) > 0.1){
+          target <- target[,1:(n_elem - 2), drop = FALSE]
         }
-        # if(!ctrl$assortative){
-        #   U <- -1 * U
-        # }
-        if(ctrl$spectral) {
-          n_elem <- n.blocks + 1
-          res <- RSpectra::eigs_sym(U, n_elem)
-          eta <- res$vectors[,1:n_elem] %*% diag(res$values[1:n_elem])
-          target <- eta[,2:n_elem] / (eta[,1] + 1e-8)
-          sig <- 1 - res$values[n_elem] / (res$values[n.blocks])
-          sig <- ifelse(is.finite(sig), sig, 0)
-          if(sig > 0.1){
-            target <- target[,1:(n_elem - 2), drop = FALSE]
-          }
-        } else {
-          target <- U
-        }
-        if(nrow(unique(target)) > n.blocks){
-          clust_internal <- fitted(kmeans(x = target,
-                                          centers = n.blocks,
-                                          iter.max = 15,
-                                          nstart = 10), "classes")
-          
-        } else {
-          init_c <- sample(1:nrow(target), n.blocks, replace = FALSE)
-          cents <- jitter(target[init_c, ])
-          clust_internal <- fitted(suppressWarnings(kmeans(x = target,
-                                                           centers = cents,
-                                                           iter.max = 15,
-                                                           algorithm = "Lloyd",
-                                                           nstart = 1)), "classes")
-        }
-        
-        pi_internal <- model.matrix(~ factor(clust_internal, 1:n.blocks) - 1)
-        pi_internal <- .transf(pi_internal)
-        rownames(pi_internal) <- rownames(soc_mats[[i]])
-        colnames(pi_internal) <- paste0("bloc",1:n.blocks)
-        MixedMembership <- t(pi_internal)
-        int_dyad_id <- apply(dyads[[i]], 2, function(x)match(gsub("(.+)@.+","\\1",x), colnames(MixedMembership)) - 1)
-        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership, directed)
-        temp_res[[i]] <- list(BlockModel = BlockModel,
-                              MixedMembership = MixedMembership)                         
+      } else {
+        target <- U
+      }
+      if(nrow(unique(target)) > n.blocks[1]){
+        clust_internal <- fitted(kmeans(x = target,
+                                        centers = n.blocks[1],
+                                        iter.max = 15,
+                                        nstart = 10), "classes")
         
       } else {
-        n_prior <- (dyads_pp[i] - ncol(soc_mats[[i]])) * .05
-        a <- plogis(ctrl$mu_b) * n_prior
-        b <- n_prior - a
-        lda_beta_prior <- lapply(list(b,a),
-                                 function(prior){
-                                   mat <- matrix(prior[2], n.blocks, n.blocks)
-                                   diag(mat) <- prior[1]
-                                   return(mat)
-                                 })
-        tmp_sm <- (soc_mats[[i]] > mean(soc_mats[[i]]))*1
-        ret <- lda::mmsb.collapsed.gibbs.sampler(network = tmp_sm,
-                                                 K = n.blocks,
-                                                 num.iterations = 100L,
-                                                 burnin = 50L,
-                                                 alpha = ctrl$alpha,
-                                                 beta.prior = lda_beta_prior)
-        MixedMembership <- prop.table(ret$document_expects, 2)
-        colnames(MixedMembership) <- rownames(soc_mats[[i]])
-        int_dyad_id <- apply(dyads[[i]], 2, function(x)match(gsub("(.+)@.+","\\1",x), colnames(MixedMembership)) - 1)#apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
-        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership, directed)
-        if(any(is.nan(BlockModel))){
-          BlockModel[is.nan(BlockModel)] <- 0.0
-        }
-        temp_res[[i]] <- list(BlockModel = BlockModel,
-                              MixedMembership = MixedMembership)
-        
+        init_c <- sample(1:nrow(target), n.blocks[1], replace = FALSE)
+        cents <- jitter(target[init_c, ])
+        clust_internal <- fitted(suppressWarnings(kmeans(x = target,
+                                                         centers = cents,
+                                                         iter.max = 15,
+                                                         algorithm = "Lloyd",
+                                                         nstart = 1)), "classes")
       }
+      
+      phi_internal <- model.matrix(~ factor(clust_internal, 1:n.blocks[1]) - 1)
+      phi_internal <- .transf(phi_internal)
+      rownames(phi_internal) <- rownames(soc_mats[[i]])
+      colnames(phi_internal) <- 1:n.blocks[1]
+      MixedMembership <- t(phi_internal)
+      int_dyad_id <- apply(dyads[[i]][,c("(sid)","(rid)")],
+                           2,
+                           function(x)match(x, colnames(MixedMembership)) - 1)
+      BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
+      temp_res[[i]] <- list(BlockModel = BlockModel,
+                            MixedMembership = MixedMembership)
+      
+    } else {
+      n_prior <- (dyads_pp[i] - nodes_pp[i]) * .05
+      a <- plogis(ctrl$mu_block) * n_prior
+      b <- n_prior - a
+      lda_beta_prior <- lapply(list(b,a),
+                               function(prior){
+                                 mat <- matrix(prior[2], n.blocks[1], n.blocks[1])
+                                 diag(mat) <- prior[1]
+                                 return(mat)
+                               })
+      ret <- lda::mmsb.collapsed.gibbs.sampler(network = soc_mats[[i]],
+                                               K = n.blocks[1],
+                                               num.iterations = 75L,
+                                               burnin = 25L,
+                                               alpha = ctrl$alpha,
+                                               beta.prior = lda_beta_prior)
+      MixedMembership <- prop.table(ret$document_expects, 2)
+      colnames(MixedMembership) <- colnames(soc_mats[[i]])
+      int_dyad_id <- apply(dyads[[i]][,c("(sid)","(rid)")], 2,
+                           function(x)match(x, colnames(MixedMembership)) - 1)
+      BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
+      if(any(is.nan(BlockModel))){
+        BlockModel[is.nan(BlockModel)] <- 0.0
+      }
+      temp_res[[i]] <- list(BlockModel = BlockModel,
+                            MixedMembership = MixedMembership)
+      
+      
     }
-    block_models <- lapply(temp_res, function(x)x$BlockModel)
-    mm_tmp <- lapply(temp_res, function(x)x$MixedMembership) 
-    target_ind <- which.max(sapply(soc_mats, ncol))
-    perms_temp <- .findPerm(block_models, target_mat = block_models[[target_ind]], use_perms = ctrl$permute)
-    mm_init_t <- do.call(cbind,mapply(
-      function(mm, perm, df){
-        mm_perm <- perm %*% mm
-        rownames(mm_perm) <- paste0("bloc",1:n.blocks)
-        mm_df <- cbind(data.frame(nid = colnames(mm_perm), t(mm_perm)))
-        names(mm_df)[1] <- "(nid)"
-        mfm_mm <- merge(df, mm_df)
-        mm_t <- t(as.matrix(mfm_mm[,rownames(mm_perm)]))
-        #colnames(mm_t) <- paste(df
-        return(mm_t)
-      },mm_tmp, perms_temp, data.monad, SIMPLIFY = FALSE))
-    
-    mm_init_t <- as.matrix(t(mfm_mm[,rownames(mm_init_t)]))
-    rownames(mm_init_t) <- 1:n.blocks
-    colnames(mm_init_t) <- id_var
-    
-    
-    
-    Z_tmp <- matrix(0, ncol = n_dyads, nrow = 1)
-    X_tmp <- matrix(1, ncol = ncol(mm_init_t), nrow = 1)
-    ctrl$vi_iter <- 2
-    ctrl$verbose <- FALSE
-    ##sparsity <- mean(Y >= 0.5)
-    fit_tmp <- mmsbm_fit(Z_tmp,
-                         ##Z_tmp,
-                         X_tmp,
-                         Y,
-                         ##Y,
-                         t_id_d,
-                         t_id_n,
-                         nodes_pp,
-                         ##nt_id,
-                         nt_id,
-                         node_id_period,
-                         mu_b,
-                         var_b,
-                         array(0.0, c(1, n.blocks, ctrl$states)),
-                         array(1.0, c(1, n.blocks, ctrl$states)),
-                         0.0,
-                         1.0,
-                         mm_init_t,
-                         ctrl$kappa_init_t,
-                         qlogis(block_models[[target_ind]]),
-                         array(ctrl$alpha, c(1,n.blocks,ctrl$states)),
-                         0.0,
-                         ##sparsity,
-                         ctrl)
-    if(fit_tmp$LowerBound >= max_ll){
-      best_mm <- mm_init_t
-      max_ll <- fit_tmp$LowerBound 
-    } 
-    }
-  return(best_mm)
+  }
+  block_models <- lapply(temp_res, function(x)x$BlockModel)
+  target_ind <- which.max(sapply(soc_mats, ncol))
+  perms_temp <- .findPerm(block_models, target_mat = block_models[[target_ind]], use_perms = ctrl$permute)
+  phis_temp <- lapply(temp_res, function(x)x$MixedMembership)
+  phi.ord <- as.numeric(lapply(phis_temp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get correct temporal order
+  mm_init_t <- do.call(cbind,mapply(function(phi,perm){perm %*% phi},
+                                    phis_temp[order(phi.ord)], perms_temp, SIMPLIFY = FALSE))
+  rownames(mm_init_t) <- 1:n.blocks[1]
+  res[[1]] <- mm_init_t 
+return(res)
 }
 
 

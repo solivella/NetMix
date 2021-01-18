@@ -1,5 +1,6 @@
 useDynLib(NetMix, .registration = TRUE)
 exportPattern("^[[:alpha:]]+")
+importFrom("clue", "solve_LSAP")
 importFrom("graphics", "axis", "box", "hist", "image", "layout", "legend", "lines", "par", "plot", "points",
              "rasterImage", "title", "mtext", "text")
 importFrom("grDevices", "as.raster", "colorRamp", "rgb")

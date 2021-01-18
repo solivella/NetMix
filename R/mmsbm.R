@@ -321,6 +321,7 @@ mmsbm <- function(formula.dyad,
   }
   dntid <- cbind(do.call(paste, c(mfd[c("(sid)","(tid)")], sep = "@")),
                  do.call(paste, c(mfd[c("(rid)","(tid)")], sep = "@")))
+  colnames(dntid) <- c("(sid)","(rid)")
   udnid <- unique(unlist(mfd[c("(sid)","(rid)")]))
   if(is.null(data.monad)){
     data.monad <- data.frame(nid = rep(udnid, periods))
@@ -435,46 +436,6 @@ mmsbm <- function(formula.dyad,
   ##Initial mm 
   dyads <- split.data.frame(dntid, mfd[, "(tid)"])
   edges <- split(Y, mfd[, "(tid)"])
-  # mfm_sub <- split(mfm[,c("(nid)","(tid)")], state_init[match(mfm[, "(tid)"], names(state_init))])
-  # mfd_sub <- split(mfd[,c("(sid)","(rid)","Y")], state_init[match(mfd[, "(tid)"], names(state_init))])
-  # soc_mats <- lapply(mfd_sub,
-  #   function(x, sym = !directed){
-  #     socmat <- tapply(x[,"Y"],list(x[,"(sid)"],x[,"(rid)"]), FUN=sum, default=0)
-  #     diag(socmat) <- 0
-  #     if(sym){
-  #       socmat <- forceSymmetric(socmat + t(socmat))
-  #     }
-  #     return(socmat)
-  #   })
-  
-  # wsocmat_df <- tidyr::pivot_wider(mfd[,c("(sid)","(rid)","Y")],
-  #                            names_from=c("(rid)"),
-  #                            values_from="Y",
-  #                            values_fn=sum,
-  #                            values_fill=0)
-  # my departure here
-  #rnames <- unique(c(mfd[,"(sid)"], mfd[,"(rid)"]))
-  #wsocmat_df <- sapply(rnames, function(x){
-  #  mfd.sub <- mfd[(mfd$`(sid)`==x | mfd$`(rid)`==x) & mfd$Y==1,]
-  #  return(sapply(rnames, function(y){sum(mfd.sub$Y[mfd.sub$`(sid)`==y | mfd.sub$`(rid)`==y])}))
-  #})
-  #diag(wsocmat_df) <- 0
-  #if(directed){
-  #rnames <- wsocmat_df[,1, drop=TRUE]
-  #} else {
-  #  n.node <- length(unique(c(mfd$`(sid)`, mfd$`(rid)`)))
-  #  rnames <- c(wsocmat_df[,1, drop=TRUE],colnames(wsocmat_df)[n.node]) # why append only the last receiver node name?
-  #}
-  #wsocmat <- as.matrix(wsocmat_df[,-1])
-  # what is happening below?  looks like it does more than guarantee symmetry
-  #if(!directed){
-  #  wsocmat <- cbind(wsocmat[1,],wsocmat)
-  #  wsocmat <- rbind(c(wsocmat[,1],0),wsocmat)
-  #  wsocmat[lower.tri(wsocmat)] <- wsocmat[upper.tri(wsocmat)]
-  #}
-  #rownames(wsocmat) <- colnames(wsocmat) <- rnames
-  #diag(wsocmat) <- 0
-  #soc_mats <- list(wsocmat)
   soc_mats <- Map(function(dyad_mat, edge_vec){
     nodes <- unique(c(dyad_mat))
     nnode <- length(nodes)
@@ -502,128 +463,22 @@ mmsbm <- function(formula.dyad,
     return(adj_mat)
   }, dyads, edges)
   
-  # if(is.null(ctrl$mm_init_t)){
-  #   ctrl$mm_init_t <- .initPi(soc_mats,
-  #                             mfm_sub,
-  #                               Y,
-  #                             ntid,
-  #                               dyads,
-  #                               edges,
-  #                               t_id_d,
-  #                               nodes_pp,
-  #                               dyads_pp,
-  #                               nt_id,
-  #                               node_id_period,
-  #                               mu_b,
-  #                               var_block, nrow(X),
-  #                               nrow(Z), n.blocks, length(soc_mats), directed, ctrl)
-  # } else{
-  #   if(isFALSE(all.equal(colSums(ctrl$mm_init_t), rep(1.0, ncol(ctrl$mm_init_t)), check.names = FALSE)) || any(ctrl$mm_init_t < 0.0)){
-  #     stop("Elements in mm_init_t must be positive, and its columns must sum to one.")
-  #   }
-  #   ctrl$mm_init_t <- t(.transf(t(ctrl$mm_init_t)))
-  # }
-  
-  if(is.null(ctrl$mm_init_t)){
-    temp_res <- vector("list", periods)
-    for(i in 1:periods){
-      if(!ctrl$init_gibbs) {
-        mn <- ncol(soc_mats[[i]])
-        if(directed){
-          D_o <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
-          D_i <- 1/sqrt(.colSums(soc_mats[[i]], mn, mn) + 1)
-          C_o <- t(D_o * soc_mats[[i]])
-          C_i <- t(D_i * t(soc_mats[[i]]))
-          U <- t(C_o * D_i) %*% C_o +
-            t(C_i * D_o) %*% C_i
-        } else {
-          D <- 1/sqrt(.rowSums(soc_mats[[i]], mn, mn) + 1)
-          U <- t(D * soc_mats[[i]]) * D
-        }
-        if(ctrl$spectral) {
-          n_elem <- n.blocks + 1
-          #res <- RSpectra::eigs_sym(U, n_elem)
-          res <- eigen(U)
-          sel_val <- order(abs(res$values), decreasing = TRUE)[1:n_elem] 
-          eta <- res$vectors[,sel_val] %*% diag(res$values[sel_val])
-          target <- eta[,2:n_elem] / (eta[,1] + 1e-8)
-          sig <- 1 - (res$values[n_elem] / (res$values[n.blocks]))
-          sig <- ifelse(is.finite(sig), sig, 0)
-          if(abs(sig) > 0.1){
-            target <- target[,1:(n_elem - 2), drop = FALSE]
-          }
-        } else {
-          target <- U
-        }
-        if(nrow(unique(target)) > n.blocks){
-          clust_internal <- fitted(kmeans(x = target,
-                                          centers = n.blocks,
-                                          iter.max = 15,
-                                          nstart = 10), "classes")
-
-        } else {
-          init_c <- sample(1:nrow(target), n.blocks, replace = FALSE)
-          cents <- jitter(target[init_c, ])
-          clust_internal <- fitted(suppressWarnings(kmeans(x = target,
-                                                           centers = cents,
-                                                           iter.max = 15,
-                                                           algorithm = "Lloyd",
-                                                           nstart = 1)), "classes")
-        }
-
-        phi_internal <- model.matrix(~ factor(clust_internal, 1:n.blocks) - 1)
-        phi_internal <- .transf(phi_internal)
-        rownames(phi_internal) <- rownames(soc_mats[[i]])
-        colnames(phi_internal) <- 1:n.blocks
-        MixedMembership <- t(phi_internal)
-        int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
-        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
-        temp_res[[i]] <- list(BlockModel = BlockModel,
-                              MixedMembership = MixedMembership)
-
-      } else {
-        n_prior <- (dyads_pp[i] - nodes_pp[i]) * .05
-        a <- plogis(ctrl$mu_block) * n_prior
-        b <- n_prior - a
-        lda_beta_prior <- lapply(list(b,a),
-                                 function(prior){
-                                   mat <- matrix(prior[2], n.blocks, n.blocks)
-                                   diag(mat) <- prior[1]
-                                   return(mat)
-                                 })
-        ret <- lda::mmsb.collapsed.gibbs.sampler(network = soc_mats[[i]],
-                                                 K = n.blocks,
-                                                 num.iterations = 75L,
-                                                 burnin = 25L,
-                                                 alpha = ctrl$alpha,
-                                                 beta.prior = lda_beta_prior)
-        MixedMembership <- prop.table(ret$document_expects, 2)
-        colnames(MixedMembership) <- colnames(soc_mats[[i]])
-        int_dyad_id <- apply(dyads[[i]], 2, function(x)match(x, colnames(MixedMembership)) - 1)
-        BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
-        if(any(is.nan(BlockModel))){
-          BlockModel[is.nan(BlockModel)] <- 0.0
-        }
-        temp_res[[i]] <- list(BlockModel = BlockModel,
-                              MixedMembership = MixedMembership)
-
-
-      }
-    }
-    block_models <- lapply(temp_res, function(x)x$BlockModel)
-    target_ind <- which.max(sapply(soc_mats, ncol))
-    perms_temp <- .findPerm(block_models, target_mat = block_models[[target_ind]], use_perms = ctrl$permute)
-    phis_temp <- lapply(temp_res, function(x)x$MixedMembership)
-    phi.ord <- as.numeric(lapply(phis_temp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get correct temporal order
-    ctrl$mm_init_t <- do.call(cbind,mapply(function(phi,perm){perm %*% phi},
-                                            phis_temp[order(phi.ord)], perms_temp, SIMPLIFY = FALSE))
-    rownames(ctrl$mm_init_t) <- 1:n.blocks
-  } else{
-    if(isFALSE(all.equal(colSums(ctrl$mm_init_t), rep(1.0, ncol(ctrl$mm_init_t)), check.names = FALSE)) || any(ctrl$mm_init_t < 0.0)){
-      stop("Elements in mm_init_t must be positive, and its columns must sum to one.")
-    }
-    ctrl$mm_init_t <- t(.transf(t(ctrl$mm_init_t)))
-
+  ## Initialize mm
+  if(is.null(ctrl$mm_init_t) | !(all(dntid %in% colnames(ctrl$mm_init_t)))){
+    mm_init_t <- .initPi(soc_mats,
+                        dyads,
+                        edges,
+                        nodes_pp,
+                        dyads_pp,
+                        n.blocks, periods, directed, ctrl)[[1]]
+    if(!(is.null(ctrl$mm_init_t)) & !(all(dntid %in% colnames(ctrl$mm_init_t)))) {
+      sum_mm <- mm_init_t[,colnames(ctrl$mm_init_t)]
+      loss.mat <- sum_mm %*% t(ctrl$mm_init_t)
+      right.perm <- clue::solve_LSAP(t(loss.mat), TRUE)
+      mm_init_t <- mm_init_t[right.perm,]
+      mm_init_t[,colnames(ctrl$mm_init_t)] <- ctrl$mm_init_t
+    } 
+    ctrl$mm_init_t <- mm_init_t
   }
   
   
