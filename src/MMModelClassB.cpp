@@ -1324,9 +1324,9 @@ arma::mat MMModelB::getC(bool mode2
                             )
 {
   if(mode2){
-    return e_c_t1.t();
-  }else{
     return e_c_t2.t();
+  }else{
+    return e_c_t1.t();
   }
   //arma::mat& tmpE_C_T = mode2 ? e_c_t2 : e_c_t1; 
   // arma::mat res(tmpBLK, tmpNODE);
