@@ -133,7 +133,7 @@ See individual return section for each function:
       \item{.findPerm}{List of permuted blockmodel matrices}
       \item{.transf}{Matrix with transformed mixed-membership vectors along its rows, s.t. no element is equal to 0.0 or 1.0.}
       \item{.compute.alpha}{List of predicted alpha matrices, one element per HMM state.}
-      \item{.e.pi}{Matrix of expected mixed-membership vectors along its rows, with expectation computed over marginal 
+      \item{.e.pi}{Matrix of expected mixed-membership vectors along its columns, with expectation computed over marginal 
                     distribution over HMM states for each time period.}
     }
 }

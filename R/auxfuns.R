@@ -54,7 +54,7 @@
 #'       \item{.findPerm}{List of permuted blockmodel matrices}
 #'       \item{.transf}{Matrix with transformed mixed-membership vectors along its rows, s.t. no element is equal to 0.0 or 1.0.}
 #'       \item{.compute.alpha}{List of predicted alpha matrices, one element per HMM state.}
-#'       \item{.e.pi}{Matrix of expected mixed-membership vectors along its rows, with expectation computed over marginal 
+#'       \item{.e.pi}{Matrix of expected mixed-membership vectors along its columns, with expectation computed over marginal 
 #'                     distribution over HMM states for each time period.}
 #'     }
 #' 
@@ -241,14 +241,14 @@
     pi_l <- lapply(alpha_list, function(x) x + t(C_mat))
   }
   if(is.null(dim(kappa))){
-    return(pi_l[[1]])
+    return(proportions(pi_l[[1]], 2))
   } else {
     n_states <- nrow(kappa)
     pi.states <- lapply(1:n_states,
                         function(m){
                           pi_l[[m]] * rep(kappa[m,], each=nrow(pi_l[[m]])) 
                         })
-    return(Reduce("+", pi.states))
+    return(proportions(Reduce("+", pi.states), 2))
   }
 }
 
