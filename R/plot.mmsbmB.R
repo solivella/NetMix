@@ -30,7 +30,7 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
     
     e.weight <- (1/diff(range(igraph::E(block.G)$weight))) * (igraph::E(block.G)$weight - max(igraph::E(block.G)$weight)) + 1
     e.cols <- rgb(colRamp(e.weight), maxColorValue = 255)
-    v.size <- c(rowMeans(x$`MixedMembership 1`)*100 + 25, rowMeans(x$`MixedMembership 2`)*100 + 25)
+    v.size <- c(rowMeans(x$`MixedMembership1`)*100 + 25, rowMeans(x$`MixedMembership2`)*100 + 25)
     igraph::plot.igraph(block.G, main = "",
                         edge.width=4, edge.color=e.cols,  edge.curved = F, 
                         edge.arrow.size = 0.65,
