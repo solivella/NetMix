@@ -311,18 +311,16 @@
 #' @rdname auxfuns
 .vcovBeta <- function(all_phi, beta_coef, n.sim, n.blk, n.hmm, n.nodes, n.periods,
                       mu.beta, var.beta, est_kappa, t_id_n, X, fit){
-  all_phi <- split.data.frame(rbind(t(fit[["SenderPhi"]]),
-                                    t(fit[["ReceiverPhi"]])),
-                              c(nt_id))
+  #all_phi <- split.data.frame(rbind(t(fit[["SenderPhi"]]), t(fit[["ReceiverPhi"]])), c(nt_id))
   sampleC_perm <- lapply(all_phi,
                          function(mat){
                            apply(mat, 2, function(vec)poisbinom::rpoisbinom(n.sim, vec))
-                         })
+                         }) 
   sampleC_perm <- cbind(do.call(rbind, sampleC_perm), # samples
                         rep(1:length(all_phi), each = n.sim), #node id
                         rep(1:n.sim, times = length(all_phi))) #sample id
-  sampleC_perm <- sampleC_perm[order(sampleC_perm[,n.blocks + 2], sampleC_perm[,n.blocks + 1]),]
-  C_samples <- split.data.frame(sampleC_perm[,1:n.blocks], sampleC_perm[,n.blocks + 2])
+  sampleC_perm <- sampleC_perm[order(sampleC_perm[,n.blk + 2], sampleC_perm[,n.blk + 1]),]
+  C_samples <- split.data.frame(sampleC_perm[,1:n.blk], sampleC_perm[,n.blk + 2])
   S_samples <- replicate(n.sim, apply(est_kappa, 2, function(x)sample(1:n.hmm, 1, prob = x)), simplify = FALSE)
   hessBeta_list <- mapply(
     function(C_samp, S_samp, tidn, X_i, Nvec, beta_vec, vbeta, mbeta, periods)
@@ -363,8 +361,8 @@
     SIMPLIFY=FALSE)
   vcov_monad <- Reduce("+", hessBeta_list)/n.sim
   
-  colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:n.hmm), each = prod(dim(fbeta_coef)[1:2])),
-                                                                rep(colnames(beta_coef), each = nrow(fbeta_coef), times = n.hmm),
+  colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:n.hmm), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
+                                                                rep(colnames(beta_coef), each = nrow(beta_coef), times = n.hmm),#beta_coef used to be fbeta_coef??
                                                                 rep(rownames(beta_coef), times = n.blk*n.hmm),
                                                                 sep=":")
   return(vcov_monad)

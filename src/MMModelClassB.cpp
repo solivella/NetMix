@@ -206,7 +206,6 @@ MMModelB::MMModelB(const arma::mat& z_t,
   if(N_DYAD_PRED > 0)
     std::copy(gamma.begin(), gamma.end(), theta_par.begin() + N_B_PAR);
   
-  Rprintf("Flag 1 ... \n");
   //Assign initial values to alpha and theta
   computeAlpha(N_NODE1,
 	       N_BLK1,
@@ -234,7 +233,6 @@ MMModelB::MMModelB(const arma::mat& z_t,
      node_in_batch2,
      N_NODE_BATCH2);
   
-  Rprintf("Flag 2 ... \n");
   computeTheta();
   //Define iterator at the end of param. objects
   beta1_end = beta1.end();
@@ -1151,8 +1149,8 @@ void MMModelB::convCheck(bool& conv,
   
   conv = true;
 
-  Rcpp::Rcout << beta1_new << std::endl;
-  Rcpp::Rcout << beta1_old << std::endl;
+  //Rcpp::Rcout << beta1_new << std::endl;
+  //Rcpp::Rcout << beta1_old << std::endl;
   
   for( ; beta1_new_it != beta1_new_end; ++beta1_new_it,++beta1_old_it){
     if(fabs(*beta1_new_it - *beta1_old_it) > tol){
@@ -1173,7 +1171,7 @@ void MMModelB::convCheck(bool& conv,
       return;
     }  
   }
-  Rcpp::Rcout << "1.4" << std::endl;
+  //Rcpp::Rcout << "1.4" << std::endl;
   
   for( ; gamma_new_it != gamma_new_end; ++gamma_new_it,++gamma_old_it){
     if(fabs(*gamma_new_it - *gamma_old_it) > tol){
@@ -1181,7 +1179,7 @@ void MMModelB::convCheck(bool& conv,
       return;
     }  
   }
-  Rcpp::Rcout << "1.5" << std::endl;
+  //Rcpp::Rcout << "1.5" << std::endl;
   
   
   //Rprintf("Cor is %f\n", cor_val);

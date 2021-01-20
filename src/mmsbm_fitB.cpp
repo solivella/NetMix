@@ -64,7 +64,6 @@ Rprintf("Create model instance... \n"); //Bug in ModelB-- crashing
                 gamma_init,
                 control
 		);
-  Rprintf("Post model instance... \n");
   // VARIATIONAL EM
   arma::uword iter = 0, nworse = 0,
     win_size = control["conv_window"],//**
@@ -83,9 +82,9 @@ Rprintf("Create model instance... \n"); //Bug in ModelB-- crashing
   double tol = Rcpp::as<double>(control["conv_tol"]),
     newLL, oldLL;
   
-  Rprintf("Pre ModelB.LB ... \n");
+
   oldLL = ModelB.LB();
-  Rprintf("Post ModelB.LB ... \n");
+
   newLL = 0.0;
   //arma::vec running_ll(win_size, arma::fill::zeros);
   arma::cube beta1_new, beta1_old, beta2_new, beta2_old; 

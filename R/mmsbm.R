@@ -230,7 +230,7 @@ mmsbm <- function(formula.dyad,
                verbose = FALSE)
   ctrl[names(mmsbm.control)] <- mmsbm.control
   ctrl$bipartite <- bipartite
-  ctrl$directed <- directed
+  ctrl$directed <- ifelse(!bipartite,directed,TRUE) #patch currently, since not doing directed bipartite
   ctrl$conv_window <- floor(4 + 1/(ctrl$batch_size[1])) #currently just for batch size of 1
   set.seed(ctrl$seed)
   if(((ctrl$assortative == FALSE) & (diff(ctrl$mu_block) < 0.0)) | ((ctrl$assortative == TRUE) & (diff(ctrl$mu_block) > 0.0))){
@@ -260,7 +260,7 @@ mmsbm <- function(formula.dyad,
     cat("Pre-processing data...\n")
   }
   
-  
+
   ## Add time variable if null or single period
   if(is.null(timeID) || (length(unique(data.dyad[[timeID]])) == 1)){
     timeID <- "tid"
@@ -276,6 +276,7 @@ mmsbm <- function(formula.dyad,
   }
   
   ## Address missing data 
+  if(any(is.na(data.monad1))|any(is.na(data.monad2))|any(is.na(data.dyad))){
   new_dat_dyad <- .missHandle(formula.dyad, data.dyad, ctrl$missing)
   data.dyad <- new_dat_dyad$dat
   formula.dyad <- new_dat_dyad$form
@@ -290,6 +291,7 @@ mmsbm <- function(formula.dyad,
   } 
   
   ## Drop dyads with nodes not in monadic dataset
+  
   if(!is.null(data.monad1)){
     if(bipartite){
       d.keep <- lapply(unique(data.dyad[,timeID]), function(x){
@@ -317,7 +319,7 @@ mmsbm <- function(formula.dyad,
     }
     data.dyad <- do.call("rbind", d.keep)
   }
-  
+  }
   ##Create model frames
   mfd <- do.call(model.frame, list(formula = formula.dyad,
                                    data = data.dyad,
@@ -616,36 +618,39 @@ mmsbm <- function(formula.dyad,
   ## Estimate model
   if(bipartite){
     X2_t <- t(X2)
-    fit <- mmsbm_fitBi(Z_t, # 1x100
-                       X1_t, #K1 x N1
-                       X2_t, #K2 x N2
+    node_id_period1<-unlist(node_id_period1)
+    node_id_period2<-unlist(node_id_period2)
+    fit <- mmsbm_fitBi(Z_t, # matrix/array 1x100
+                       X1_t,# matrix/array K1 x N1
+                       X2_t,# matrix/array K2 x N2
                        Y, #length N_DYAD
-                       t_id_d,#length N_DYAD
-                       t_id_n1,#length N1
-                       t_id_n2,#length N2
-                       nodes_pp,#length time*2
-                       nodes_pp1,#length time
-                       nodes_pp2,#length time
-                       nt_id,#2 x N_DYAD
-                       node_id_period1,# time x N1
-                       node_id_period2,# time x N2
-                       mu_block, #K1 x K2
-                       var_block,#K1 x K2
-                       ctrl$mu_beta1,
-                       ctrl$var_beta1,#predictors1+1 x K1
-                       ctrl$mu_beta2,#predictors2+1 x K2
-                       ctrl$var_beta2,#predictors2+1 x K2
-                       as.vector(ctrl$mu_gamma),#ctrl$mu_gamma,#array
-                       as.vector(ctrl$var_gamma),#ctrl$var_gamma,#array
-                       ctrl$mm_init_t[[1]], #K1 x N1
-                       ctrl$mm_init_t[[2]], #K2 x N2
-                       ctrl$kappa_init_t, #time x state
-                       ctrl$block_init_t,#K1 x K2
-                       ctrl$beta1_init,# predictors1+1 x K1 x time
-                       ctrl$beta2_init,# predictors2+1 x K2 x time
-                       ctrl$gamma_init,
+                       t_id_d,#numeric: length N_DYAD
+                       t_id_n1,#numeric: length N1
+                       t_id_n2,#numeric: length N2
+                       nodes_pp,#integer: length time*2
+                       nodes_pp1,#integer: length time
+                       nodes_pp2,#integer: length time
+                       nt_id,# matrix/array 2 x N_DYAD
+                       node_id_period1,#integer: time x N1
+                       node_id_period2,#integer: time x N2
+                       mu_block, # matrix/array K2 x K1
+                       var_block,# matrix/array K2 x K1
+                       ctrl$mu_beta1,#array predictors1+1 x K1 x time
+                       ctrl$var_beta1,#array predictors1+1 x K1 x time
+                       ctrl$mu_beta2,#array predictors2+1 x K2 x time
+                       ctrl$var_beta2,#array predictors2+1 x K2 x time
+                       as.vector(ctrl$mu_gamma),#vector ctrl$mu_gamma
+                       as.vector(ctrl$var_gamma),#vector ctrl$var_gamma
+                       ctrl$mm_init_t[[1]], # matrix/array K1 x N1
+                       ctrl$mm_init_t[[2]], # matrix/array K2 x N2
+                       ctrl$kappa_init_t, # matrix/array time x state
+                       ctrl$block_init_t,#matrix/array K2 x K1
+                       ctrl$beta1_init,#array predictors1+1 x K1 x time
+                       ctrl$beta2_init,#array predictors2+1 x K2 x time
+                       ctrl$gamma_init,#numeric vector 
                        ctrl
     )
+    
   } else {
     fit <- mmsbm_fit(Z_t,
                      X1_t,
@@ -678,10 +683,13 @@ mmsbm <- function(formula.dyad,
   fit[["BlockModel"]] <- t(fit[["BlockModel"]])
   
   ## Rescale and name coefficients
+  if(any(which(Z_sd==0))){
   fit[["DyadCoef"]] <- fit[["DyadCoef"]] / Z_sd[-which(Z_sd==0)]
+  }else{fit[["DyadCoef"]] <- fit[["DyadCoef"]] / Z_sd}
   if(length(fit[["DyadCoef"]])>0){
     Z <- t(t(Z) * Z_sd[-1] + Z_mean[-1])
-    fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]])
+    #fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]])
+    fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean %*% fit[["DyadCoef"]])
     names(fit[["DyadCoef"]]) <- colnames(Z) 
   }
   fit[["MonadCoef1"]] <- .transfBeta(fit[["MonadCoef1"]], n.hmmstates,
@@ -738,10 +746,10 @@ mmsbm <- function(formula.dyad,
       all_theta_par<-c(fit[["BlockModel"]][lower.tri(fit[["BlockModel"]], diag = TRUE)], fit[["DyadCoef"]])
     }
     group_mat <- matrix(1:(n.blocks1*n.blocks2), n.blocks1, n.blocks2)
-    lambda_vec <- c(c(var_b), ctrl$var_gamma)
+    lambda_vec <- c(c(var_block), ctrl$var_gamma) #var_b changed to var_block
     if(!directed){
       group_mat[upper.tri(group_mat)] <- group_mat[lower.tri(group_mat)]
-      lambda_vec <- c(c(var_b[lower.tri(var_b, TRUE)]), ctrl$var_gamma)
+      lambda_vec <- c(c(var_block[lower.tri(var_block, TRUE)]), ctrl$var_gamma)
     } 
     #hessTheta
     hessTheta_list <- mapply(
@@ -785,8 +793,8 @@ mmsbm <- function(formula.dyad,
       MoreArgs = list(par_theta = all_theta_par, 
                       y_vec = Y,
                       Z_d = t(Z),
-                      mu_b_mat = mu_b,
-                      var_b_mat = var_b,
+                      mu_b_mat = mu_block,
+                      var_b_mat = var_block,
                       var_g = ctrl$var_gamma, 
                       mu_g = ctrl$mu_gamma,
                       dir_net = ctrl$directed,
