@@ -21,16 +21,12 @@ predict.mmsbmB <- function(object,
                            new.data.dyad = NULL,
                            new.data.monad1  = NULL, 
                            new.data.monad2  = NULL, 
-                           parametric_mm = FALSE,
                            forecast = FALSE,
                            type = c("link", "response"),
                            ...)
 {
   require(stringr)
   type <- match.arg(type)
-  if(((!is.null(new.data.monad1) | !is.null(new.data.monad2)) | forecast) & !parametric_mm){
-    stop("Must use parametric mixed-memberships when forecasting or when using new monadic data.")
-  }  
   #Set up new dyadic data
   if(!is.null(new.data.dyad)){
     sid <- object$forms$senderID
@@ -55,18 +51,15 @@ predict.mmsbmB <- function(object,
                                                                names(object$DyadCoef))]), collapse=" + "))
   }
   X_d <- model.matrix(eval(dform), dyad)
-  
-  
   if(length(object$DyadCoef)==0|length(labels(terms(object$forms$formula.dyad)))==0){
     object$DyadCoef <- as.vector(0)
   } else {
     object$DyadCoef <- c(0, object$DyadCoef)
   }
-  
   #Monadic
   #Family 1
   if(!is.null(new.data.monad1)){
-    nid1 <- ifelse(object$forms$nodeID1 %in% colnames(new.data.monad1), object$forms$nodeID1, "(nid1)")
+    nid1 <- ifelse(object$forms$nodeID[[1]] %in% colnames(new.data.monad1), object$forms$nodeID[[1]], "(nid1)")
     monad1 <- new.data.monad1
     if(is.null(object$forms$timeID)){
       tid1 <- "(tid)"
@@ -74,10 +67,12 @@ predict.mmsbmB <- function(object,
     } else {
       tid1 <- object$forms$timeID
     }
+    C_mat1 <- matrix(0, ncol = object$forms$n.blocks[1], nrow = nrow(monad1))
   } else {
-    nid1 <- "(nid1)"
+    nid1 <- "(nid)"
     tid1 <- "(tid)"
-    monad1 <- object$monadic1.data
+    monad1 <- object$monadic.data[[1]]
+    C_mat1 <- object$CountMatrix1
   }
   if(any(str_detect(names(monad1),pattern="as.factor"))){
     #add vars names that are as.factor, without as.factor heading
@@ -90,7 +85,7 @@ predict.mmsbmB <- function(object,
   }
   #Family 2
   if(!is.null(new.data.monad2)){
-    nid2 <- ifelse(object$forms$nodeID2 %in% colnames(new.data.monad2), object$forms$nodeID2, "(nid2)")
+    nid2 <- ifelse(object$forms$nodeID[[2]] %in% colnames(new.data.monad2), object$forms$nodeID[[2]], "(nid2)")
     monad2 <- new.data.monad2
     if(is.null(object$forms$timeID)){
       tid2 <- "(tid)"
@@ -98,10 +93,12 @@ predict.mmsbmB <- function(object,
     } else {
       tid2 <- object$forms$timeID
     }
+    C_mat2 <- matrix(0, ncol = object$forms$n.blocks[2], nrow = nrow(monad2))
   } else {
-    nid2 <- "(nid2)"
+    nid2 <- "(nid)"
     tid2 <- "(tid)"
-    monad2 <- object$monadic2.data
+    monad2 <- object$monadic.data[[2]]
+    C_mat2 <- object$CountMatrix2
   }
   if(any(str_detect(names(monad2),pattern="as.factor"))){
     #add vars names that are as.factor, without as.factor heading
@@ -116,8 +113,8 @@ predict.mmsbmB <- function(object,
   #Blks, Formulas
   n_blk1 <- object$n_blocks1
   n_blk2 <- object$n_blocks2
-  mform1 <- object$forms$formula.monad1
-  mform2 <- object$forms$formula.monad2
+  mform1 <- object$forms$formula.monad[[1]]
+  mform2 <- object$forms$formula.monad[[2]]
   if(any(grepl("missing", rownames(object$MonadCoef1)))){
     mform1 <- update(as.formula(mform1), 
                      paste(c("~ .", rownames(object$MonadCoef1)[grep("missing", rownames(object$MonadCoef1))]), collapse=" + "))
@@ -126,43 +123,42 @@ predict.mmsbmB <- function(object,
     mform2 <- update(as.formula(mform2), 
                      paste(c("~ .", rownames(object$MonadCoef2)[grep("missing", rownames(object$MonadCoef2))]), collapse=" + "))
   }
-  
+  if(is.null(mform1)){
+    X1_m <- model.matrix(~ 1, data = monad1)
+  } else {
+    X1_m <- model.matrix(eval(mform1), monad1)
+  }
+  if(is.null(mform2)){
+    X2_m <- model.matrix(~ 1, data = monad2)
+  } else {
+    X2_m <- model.matrix(eval(mform2), monad2)
+  }
+  alpha1 <- .compute.alpha(X1_m, object$MonadCoef1)
+  alpha2 <- .compute.alpha(X2_m, object$MonadCoef2)
   
   #Produce p1, p2
-  if(!parametric_mm){
-    p1 <- object$`MixedMembership 1` #push exp value pi return
-    p2 <- object$`MixedMembership 2`
-  } else {
-    if(is.null(mform1)){ X1_m <- model.matrix(~ 1, data = monad1) } else { X1_m <- model.matrix(eval(mform1),monad1)}
-    if(is.null(mform2)){ X2_m <- model.matrix(~ 1, data = monad2) } else { X2_m <- model.matrix(eval(mform2), monad2)}
-    alpha1 <- .pi.hat(X1_m, object$MonadCoef1)
-    alpha2 <- .pi.hat(X2_m, object$MonadCoef2)
-    if(forecast){
-      ts <- unique(monad1[,tid1])
-      new_kappa <- as.matrix(object$Kappa[,ncol(object$Kappa)] %*% .mpower(object$TransitionKernel, forecast))
-      new_kappa1 <- matrix(new_kappa, nrow=ncol(new_kappa), ncol=nrow(monad1[monad1[,tid1]==ts[1],]),byrow=FALSE)
-      new_kappa2 <- matrix(new_kappa, nrow=ncol(new_kappa), ncol=nrow(monad2[monad2[,tid2]==ts[1],]),byrow=FALSE)
-      if(length(ts) > 1){
-        for(t in 2:length(ts)){
-          new_kappa <- rbind(new_kappa, new_kappa[t-1,] %*% .mpower(object$TransitionKernel, forecast))
-          new_kappa1 <- cbind(new_kappa1, matrix(new_kappa[t,], nrow=ncol(new_kappa), ncol=nrow(monad1[monad1[,tid1]==ts[t],]),byrow=FALSE))
-          new_kappa2 <- cbind(new_kappa1, matrix(new_kappa[t,], nrow=ncol(new_kappa), ncol=nrow(monad2[monad2[,tid2]==ts[t],]),byrow=FALSE))
-        }
+  
+  if(forecast){
+    ts1 <- unique(monad1[,tid])
+    ts2 <- unique(monad2[,tid])
+    new_kappa <- as.matrix(object$Kappa[,ncol(object$Kappa)] %*% .mpower(object$TransitionKernel, forecast))
+    new_kappa1 <- matrix(new_kappa, nrow=ncol(new_kappa), ncol=nrow(monad1[monad1[,tid]==ts1[1],]),byrow=FALSE)
+    new_kappa2 <- matrix(new_kappa, nrow=ncol(new_kappa), ncol=nrow(monad2[monad2[,tid]==ts2[1],]),byrow=FALSE)
+    if(length(ts) > 1){
+      for(t in 2:length(ts)){
+        new_kappa <- rbind(new_kappa, new_kappa[t-1,] %*% .mpower(object$TransitionKernel, forecast))
+        new_kappa1 <- cbind(new_kappa1, matrix(new_kappa[t,], nrow=ncol(new_kappa), ncol=nrow(monad1[monad1[,tid]==ts1[t],]),byrow=FALSE))
+        new_kappa2 <- cbind(new_kappa2, matrix(new_kappa[t,], nrow=ncol(new_kappa), ncol=nrow(monad2[monad2[,tid]==ts2[t],]),byrow=FALSE))
       }
-      p1 <- .e.pi(lapply(alpha1, function(x)prop.table(x, 2)),
-                  new_kappa1)
-      p2 <- .e.pi(lapply(alpha2, function(x)prop.table(x, 2)),
-                  new_kappa2)
-    } else {
-      #if(!(tid %in% colnames(monad1))){tid <- "(tid)"}
-      p1 <- .e.pi(lapply(alpha1, function(x)prop.table(x, 2)), #computes expected mm based on covariates
-                  object$Kappa)
-      # object$Kappa[,as.character(monad1[,tid])]) #needs changing to allow for multiple Kappa
-      p2 <- .e.pi(lapply(alpha2, function(x)prop.table(x, 2)), 
-                  object$Kappa)
-      #[,as.character(monad2[,tid])])
     }
+    p1 <- .e.pi(alpha1, new_kappa1, C_mat1)
+    p2 <- .e.pi(alpha2, new_kappa2, C_mat2)
+  } else {
+    #if(!(tid %in% colnames(monad1))){tid <- "(tid)"}
+    p1 <- .e.pi(alpha1, object$Kappa[,as.character(monad1[,tid])], C_mat1)
+    p2 <- .e.pi(alpha2, object$Kappa[,as.character(monad2[,tid])], C_mat2)
   }
+  
   
   #Produce pi
   if(!sid%in%colnames(dyad)){tmp_sid <- object$forms$senderID}else{tmp_sid<-sid}
