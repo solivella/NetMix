@@ -698,9 +698,9 @@ void MMModel::updatePhiInternal(arma::uword dyad,
   arma::uword node = node_id_dyad(dyad, rec);
   double *theta_temp = &theta(0, 0, dyad);
   double *te;
-
-  double total = 0.0, res;
+  double total = 0.0, old_val =0.0, res;
   for(arma::uword g = 0; g < N_BLK; ++g, theta_temp+=incr1){
+    old_val =  phi[g];
     new_c[g] -= phi[g];
     res = 0.0;
     for(arma::uword m = 0; m < N_STATE; ++m){
@@ -716,7 +716,8 @@ void MMModel::updatePhiInternal(arma::uword dyad,
       // #ifdef _OPENMP
       // #pragma omp atomic
       // #endif
-      (*err)++;
+      phi[g] = old_val + R::runif(0,1);
+      //(*err)++;
     }
     total += phi[g];
   }
