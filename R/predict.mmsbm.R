@@ -8,7 +8,7 @@
 #' @param new.data.monad An optional \code{data.frame} object. 
 #' @param forecast Boolean. Should prediction forcast one step into the future? Defaults to FALSE.
 #' @param type Character string. The default is to use the linear predictor of edges. The alternative
-#'     "response" returns predicted probabilities.  
+#'     "response" returns predicted probabilities. The alternative "mm" returns predicted mixed-membership vectors.  
 #' @param ... Currently ignored  
 #'     
 #' @return If \code{new.data.dyad = NULL}, vector of length \code{nrow(object$dyadic.data)}. Else, vector of length \code{nrow(new.data.dyad)}.
@@ -44,7 +44,7 @@ predict.mmsbm <- function(object,
                           new.data.dyad = NULL,
                           new.data.monad  = NULL, 
                           forecast = FALSE,
-                          type = c("link", "response"),
+                          type = c("link", "response","mm"),
                           ...)
 {
   type <- match.arg(type)
@@ -121,7 +121,9 @@ predict.mmsbm <- function(object,
       if(!(tid %in% colnames(monad))){tid <- "(tid)"}
       p <- .e.pi(alpha, object$Kappa[,as.character(monad[,tid])], C_mat)
     }
-  
+  if(type == "mm"){
+    return(p)
+  }
   
   s_ind <- match(paste(dyad[,sid],dyad[,tid],sep="@"), 
                  paste(monad[,nid],monad[,tid],sep="@"))
@@ -135,9 +137,9 @@ predict.mmsbm <- function(object,
       eta_dyad[i] <- pi_s[,i] %*% object$BlockModel %*% pi_r[,i]
   }
   eta_dyad <- eta_dyad + c(X_d %*% (object$DyadCoef))
-  if(type=="link"){
+  if(type == "link"){
     return(c(eta_dyad))
-  } else {
+  } else if (type == "response") {
     return(plogis(c(eta_dyad)))
   }
 }
