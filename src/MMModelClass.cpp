@@ -832,17 +832,17 @@ void MMModel::convCheck(bool& conv,
   
   arma::cube::const_iterator beta_old_it = beta_old.begin(),
     beta_new_it = beta_new.begin(),
-    beta_old_end = beta_old.end(),
+    //beta_old_end = beta_old.end(),
     beta_new_end = beta_new.end();
   
   arma::mat::const_iterator b_old_it = b_old.begin(),
     b_new_it = b_new.begin(),
-    b_old_end = b_old.end(),
+    //b_old_end = b_old.end(),
     b_new_end = b_new.end();
   
   arma::vec::const_iterator gamma_old_it = gamma_old.begin(),
     gamma_new_it = gamma_new.begin(),
-    gamma_old_end = gamma_old.end(),
+    //gamma_old_end = gamma_old.end(),
     gamma_new_end = gamma_new.end();
   
    

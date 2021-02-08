@@ -83,8 +83,9 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
   );
 
   // VARIATIONAL EM
-  arma::uword iter = 0, nworse = 0,
-    win_size = control["conv_window"],
+  arma::uword iter = 0,
+    //nworse = 0,
+    //win_size = control["conv_window"],
     VI_ITER = control["vi_iter"],
     N_BLK = control["blocks"],
     N_STATE = control["states"];
