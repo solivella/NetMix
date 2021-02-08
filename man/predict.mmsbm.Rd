@@ -9,7 +9,7 @@
   new.data.dyad = NULL,
   new.data.monad = NULL,
   forecast = FALSE,
-  type = c("link", "response"),
+  type = c("link", "response", "mm"),
   ...
 )
 }
@@ -23,7 +23,7 @@
 \item{forecast}{Boolean. Should prediction forcast one step into the future? Defaults to FALSE.}
 
 \item{type}{Character string. The default is to use the linear predictor of edges. The alternative
-"response" returns predicted probabilities.}
+"response" returns predicted probabilities. The alternative "mm" returns predicted mixed-membership vectors.}
 
 \item{...}{Currently ignored}
 }
