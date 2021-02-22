@@ -276,34 +276,34 @@ mmsbm <- function(formula.dyad,
   }
   
   ## Address missing data 
-  if(any(is.na(data.monad1))|any(is.na(data.monad2))|any(is.na(data.dyad))){
+  if(any(is.na(data.monad[[1]]))|any(is.na(data.monad[[2]]))|any(is.na(data.dyad))){
   new_dat_dyad <- .missHandle(formula.dyad, data.dyad, ctrl$missing)
   data.dyad <- new_dat_dyad$dat
   formula.dyad <- new_dat_dyad$form
   
   new_dat_monad1 <- .missHandle(formula.monad[[1]], data.monad[[1]], ctrl$missing)
-  data.monad1 <- new_dat_monad1$dat
+  data.monad[[1]] <- new_dat_monad1$dat
   formula.monad1 <- new_dat_monad1$form
   if(bipartite){
     new_dat_monad2 <- .missHandle(formula.monad[[2]], data.monad[[2]], ctrl$missing)
-    data.monad2 <- new_dat_monad2$dat
+    data.monad[[2]] <- new_dat_monad2$dat
     formula.monad2 <- new_dat_monad2$form
   } 
   
   ## Drop dyads with nodes not in monadic dataset
   
-  if(!is.null(data.monad1)){
+  if(!is.null(data.monad[[1]])){
     if(bipartite){
       d.keep <- lapply(unique(data.dyad[,timeID]), function(x){
-        nts1 <- data.monad1[data.monad1[,timeID]==x,nodeID[[1]]]
+        nts1 <- data.monad[[1]][data.monad[[1]][,timeID]==x,nodeID[[1]]]
         dd <- data.dyad[data.dyad[,timeID]==x,]
         dd <- dd[(dd[,senderID] %in% nts1),]
         return(dd)
       })
-      if(!is.null(data.monad2)){
+      if(!is.null(data.monad[[2]])){
         d.keep <- lapply(unique(data.dyad[,timeID]), function(x){
-          nts1 <- data.monad1[data.monad1[,timeID]==x,nodeID[[1]]]
-          nts2 <- data.monad2[data.monad2[,timeID]==x,nodeID[[2]]]
+          nts1 <- data.monad[[1]][data.monad[[1]][,timeID]==x,nodeID[[1]]]
+          nts2 <- data.monad[[2]][data.monad[[2]][,timeID]==x,nodeID[[2]]]
           dd <- data.dyad[data.dyad[,timeID]==x,]
           dd <- dd[(dd[,senderID] %in% nts1) & (dd[,receiverID] %in% nts2),]
           return(dd)
@@ -311,7 +311,7 @@ mmsbm <- function(formula.dyad,
       }
     } else {
       d.keep <- lapply(unique(data.dyad[,timeID]), function(x){
-        nts <- data.monad1[data.monad1[,timeID]==x,nodeID[[1]]]
+        nts <- data.monad[[1]][data.monad[[1]][,timeID]==x,nodeID[[1]]]
         dd <- data.dyad[data.dyad[,timeID]==x,]
         dd <- dd[(dd[,senderID] %in% nts) & (dd[,receiverID] %in% nts),]
         return(dd)
@@ -360,7 +360,7 @@ mmsbm <- function(formula.dyad,
   if(bipartite){
     #if no monadic 2 data entered
     if(is.null(data.monad[[2]])){
-      data.monad2 <- data.frame(nid = rep(udnid2, periods))
+      data.monad[[2]] <- data.frame(nid = rep(udnid2, periods))
       nodeID[[2]] <- "nid"
       data.monad[[2]][timeID] <- rep(ut, each = length(udnid2))
     }
@@ -687,8 +687,7 @@ mmsbm <- function(formula.dyad,
   fit[["DyadCoef"]] <- fit[["DyadCoef"]] / Z_sd[-which(Z_sd==0)]
   }else{fit[["DyadCoef"]] <- fit[["DyadCoef"]] / Z_sd}
   if(length(fit[["DyadCoef"]])>0){
-    Z <- t(t(Z) * Z_sd[-1] + Z_mean[-1])
-    #fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean[-constz] %*% fit[["DyadCoef"]])
+    Z <- t(t(Z) * Z_sd + Z_mean)
     fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean %*% fit[["DyadCoef"]])
     names(fit[["DyadCoef"]]) <- colnames(Z) 
   }
@@ -758,7 +757,7 @@ mmsbm <- function(formula.dyad,
         n_samp <- min(ctrl$dyad_vcov_samp, floor(ncol(Z_d)*0.25))
         samp_ind <- sample(1:ncol(Z_d), n_samp)
         tries <- 0
-        if(any(Z_d!=0)){
+        if(any(Z_d!=0)){ #to eval grad without all obs
           while(any(apply(Z_d[,samp_ind,drop=FALSE], 1, stats::sd) == 0.0) & (tries < 100)){
             samp_ind <- sample(1:ncol(Z_d), n_samp)
             tries <- tries + 1
@@ -769,12 +768,12 @@ mmsbm <- function(formula.dyad,
           stop("Bad sample for dyadic vcov computation; too little variation in dyadic covariates.")
         }
         group_vec <- model.matrix(~factor(diag(t(send_samp[, samp_ind]) %*% group_mat %*% rec_samp[,samp_ind]), levels = unique(c(group_mat)))-1)
-        mod_Z <- group_vec
+        mod_Z <- group_vec #fixed effects of group memberships
         if(any(Z_d!=0)){
           mod_Z <- cbind(mod_Z, t(Z_d[,samp_ind, drop=FALSE]))
         }
         if(directed){
-          mod_gamma <- c(c(fit$BlockModel),fit$DyadCoef)
+          mod_gamma <- c(c(fit$BlockModel),fit$DyadCoef) 
         } else {
           mod_gamma <- c(c(fit$BlockModel[lower.tri(fit$BlockModel, TRUE)]),fit$DyadCoef)
         }
@@ -783,10 +782,10 @@ mmsbm <- function(formula.dyad,
         hess_tmp <- ((t(mod_Z) %*% D_mat %*% mod_Z) - diag(1/lambda_vec))*(ncol(Z_d)/n_samp)
         vc_tmp <- Matrix::forceSymmetric(solve(hess_tmp)) 
         ev <- eigen(vc_tmp)$value
-        if(any(ev<0)){
-          vc_tmp <- vc_tmp - diag(min(ev) - 1e-4, ncol(vc_tmp))
+        if(any(ev<0)){#check pos-def of varcov, if not, adding min eigenvalue amt noise to diag to make pos-def
+          vc_tmp <- vc_tmp - diag(min(ev) - 1e-4, ncol(vc_tmp)) 
         }
-        ch_vc <- chol(vc_tmp)
+        ch_vc <- chol(vc_tmp) #long vectors issue w/o?
         return(t(ch_vc) %*% ch_vc)
       },
       z_samples, w_samples,

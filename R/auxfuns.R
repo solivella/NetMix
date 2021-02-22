@@ -148,14 +148,12 @@
 
 #' @rdname auxfuns
 .scaleVars <- function(x, keep_const = TRUE){
-  A <- model.matrix(terms(x), x)
-  which_cont <- which(apply(A, 2, function(a)length(unique(a))>2))
-  A_sd <- rep(1, ncol(A))
-  A_sd[which_cont] <- apply(A[,which_cont, drop = FALSE], 2, sd)*2
-  A <- scale(A, TRUE, A_sd)
+  A <- model.matrix(terms(x), x) #assumes intercept comes first
+  A <- scale(A)
   constx <- which(colnames(A)=="(Intercept)")
   if(keep_const){
     A[,constx] <- 1
+    attr(A, "scaled:scale") <- c(1, attr(A, "scaled:scale")[-constx])
     attr(A, "scaled:center") <- c(0, attr(A, "scaled:center")[-constx])
   } else {
     attr_tmp <- list(attr(A, "scaled:center")[-constx],
@@ -391,7 +389,7 @@
   res <- vapply(1:n.hmmstates,
                 function(ind, coefs, sd_vec, mean_vec){
                   mat <- coefs[,,ind, drop=FALSE]
-                  constx <- which(sd_vec==0)
+                  constx <- 1
                   mat[-constx, , 1] <- mat[-constx, , 1] / sd_vec[-constx]
                   if(length(constx)!=0){
                     mat[constx, ,1] <- mat[constx, ,1] - mean_vec[-constx] %*% mat[-constx, , 1]
