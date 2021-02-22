@@ -3,7 +3,8 @@
 \name{approxB}
 \alias{approxB}
 \alias{getZ}
-\alias{alphaLB}
+\alias{alphaLBound}
+\alias{alphaGrad}
 \alias{auxfuns}
 \alias{.cbind.fill}
 \alias{.scaleVars}
@@ -13,6 +14,7 @@
 \alias{.findPerm}
 \alias{.transf}
 \alias{.compute.alpha}
+\alias{.vcovBeta}
 \alias{.e.pi}
 \alias{.initPi}
 \title{Internal functions and generics for \code{mmsbm} package}
@@ -21,7 +23,9 @@ approxB(y, d_id, pi_mat, directed = TRUE)
 
 getZ(pi_mat)
 
-alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
+alphaLBound(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
+
+alphaGrad(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 
 .cbind.fill(...)
 
@@ -38,6 +42,22 @@ alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 .transf(mat)
 
 .compute.alpha(X, beta)
+
+.vcovBeta(
+  all_phi,
+  beta_coef,
+  n.sim,
+  n.blk,
+  n.hmm,
+  n.nodes,
+  n.periods,
+  mu.beta,
+  var.beta,
+  est_kappa,
+  t_id_n,
+  X,
+  fit
+)
 
 .e.pi(alpha_list, kappa, C_mat = NULL)
 
@@ -59,8 +79,6 @@ alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 \item{d_id}{Integer matrix; two-column matrix with nr. dyads rows, containing zero-based
 sender (first column) and receiver (second column) node id's for each dyad.}
 
-\item{pi_mat}{Numeric matrix; row-stochastic matrix of mixed-memberships.}
-
 \item{par}{Vector of parameter values.}
 
 \item{tot_nodes}{Integer vector; total number of nodes each node interacts with.}
@@ -76,10 +94,6 @@ sender (first column) and receiver (second column) node id's for each dyad.}
 \item{mu_beta, var_beta}{Numeric arrays; prior mean and variances of monadic coefficients.}
 
 \item{...}{Numeric vectors; vectors of potentially different length to be cbind-ed.}
-
-\item{x}{A model data frame.}
-
-\item{keep_const}{Should the intercept be kept after standarization?}
 
 \item{orig}{Object to be transformed.}
 
@@ -97,7 +111,7 @@ sender (first column) and receiver (second column) node id's for each dyad.}
 
 \item{range}{The range of values to label the legend.}
 
-\item{mat}{Numeric matrix}
+\item{mat}{Numeric matrix.}
 
 \item{p}{Numeric scalar; power to raise matrix to.}
 
@@ -121,20 +135,36 @@ It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.}
 
 \item{C_mat}{Numeric matrix; matrix of posterior counts of block instantiations per node.}
 
-\item{soc_mats, Y, dyads, edges, t_id_d, t_id_n, nodes_pp, dyads_pp, nt_id, node_id_period, mu_b, var_b, n_dyads, n.blocks, periods, directed, ctrl}{Internal arguments for initialization.}
+\item{dyads, all.nodes1, all.nodes2}{Arguments to internal function creating adjacency/affiliation matrices from data.frames}
+
+\item{fomula, formula.dyad, formula.monad1, formula.monad2}{A formula object.}
+
+\item{data, data.dyad, data.monad1, data.monad2}{A data-frame object.}
+
+\item{method}{String, indicating type of missing data handling procesure.}
+
+\item{pi1_mat, pi2_mat_tmp}{Numeric matrices (or NULL for pi2_mat_tmp); row-stochastic matrices of mixed-memberships.}
 
 \item{devs}{Vector of standard deviations to use in transformation of variances. Defaults to \code{NULL}.}
+
+\item{.soc_mats, Y, dyads, edges, t_id_d, t_id_n, nodes_pp, dyads_pp, nt_id, node_id_period, mu_b, var_b, n_dyads, n.blocks, periods, ctrl}{Internal arguments for initialization.}
+
+\item{m1, bootrep, blist1, blist2}{Arguments to internal fiunctions for bootstrapping}
 }
 \value{
 See individual return section for each function:
 \describe{
       \item{.cbind.fill}{Matrix of \code{cbind}'ed elements in \code{...}, with missing values in each vector filled with \code{NA}.}
       \item{.mpower}{Matrix; the result of raising \code{mat} to the \code{p} power.}
-      \item{.findPerm}{List of permuted blockmodel matrices}
+      \item{.findPerm}{List of permuted blockmodel matrices.}
       \item{.transf}{Matrix with transformed mixed-membership vectors along its rows, s.t. no element is equal to 0.0 or 1.0.}
       \item{.compute.alpha}{List of predicted alpha matrices, one element per HMM state.}
-      \item{.e.pi}{Matrix of expected mixed-membership vectors along its columns, with expectation computed over marginal 
+      \item{.pi.hat}{Matrix of predicted mixed-membership vectors along its rows, with expectation computed over marginal 
                     distribution over HMM states for each time period.}
+      \item{.missing}{Transformed data.frame with missing values list-wise deleted, or expanded
+                      with missing indicator variables.}
+      \item{.createSocioB}{List of sociomatrices.}
+      \item{.vertboot2}{List of bootstrapped sociomatrices.}
     }
 }
 \description{

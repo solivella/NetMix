@@ -595,93 +595,44 @@ mmsbm <- function(formula.dyad,
     if(ctrl$verbose){
       cat("Computing approximate vcov. matrices...\n")
     }
-    
     ## Compute approximate standard errors
     ## for monadic coefficients
     all_phi <- split.data.frame(rbind(t(fit[["SenderPhi"]]),
-                                      t(fit[["ReceiverPhi"]])),
-                                c(nt_id))
-    sampleC_perm <- lapply(all_phi,
-                           function(mat){
-                             apply(mat, 2, function(vec)poisbinom::rpoisbinom(ctrl$se_sim, vec))
-                           })
-    sampleC_perm <- cbind(do.call(rbind, sampleC_perm), # samples
-                          rep(1:length(all_phi), each = ctrl$se_sim), #node id
-                          rep(1:ctrl$se_sim, times = length(all_phi))) #sample id
-    sampleC_perm <- sampleC_perm[order(sampleC_perm[,n.blocks + 2], sampleC_perm[,n.blocks + 1]),]
-    C_samples <- split.data.frame(sampleC_perm[,1:n.blocks], sampleC_perm[,n.blocks + 2])
-    S_samples <- replicate(ctrl$se_sim, apply(fit[["Kappa"]], 2, function(x)sample(1:n.hmmstates, 1, prob = x)), simplify = FALSE)
-    hessBeta_list <- mapply(
-      function(C_samp, S_samp, tidn, X_i, Nvec, beta_vec, vbeta, mbeta, periods)
-      {
-        if(n.hmmstates > 1) {
-          s_matrix <- t(model.matrix(~factor(S_samp, 1:n.hmmstates) - 1))
-        } else {
-          s_matrix <- matrix(1, ncol=periods)
-        }
-        tot_in_state <- rowSums(s_matrix)
-        if(any(tot_in_state == 0.0)){
-          warning("Some HMM states are empty; no standard errors will be returned for coefficients associated with them.")
-        }  
-        hess_tmp <- optimHess(c(beta_vec),alphaLB,
-                              tot_nodes = Nvec,
-                              c_t = t(C_samp),
-                              x_t = X_i,
-                              s_mat = s_matrix,
-                              t_id = tidn,
-                              var_beta = vbeta,
-                              mu_beta = mbeta)
-        vc_tmp <- Matrix::forceSymmetric(solve(hess_tmp))
-        ev <- eigen(vc_tmp)$value
-        if(any(ev<0)){
-          vc_tmp <- vc_tmp - diag(min(ev)-1e-4, ncol(vc_tmp))
-        }
-        ch_vc <- chol(vc_tmp)
-        return(t(ch_vc) %*% ch_vc)
-      },
-      C_samples, S_samples,
-      MoreArgs = list(tidn = t_id_n,
-                      X_i = t(X),
-                      Nvec = fit[["TotNodes"]],
-                      beta_vec = fit[["MonadCoef"]], 
-                      vbeta = ctrl$var_beta, 
-                      mbeta = ctrl$mu_beta,
-                      periods = periods),
-      SIMPLIFY=FALSE)
-    fit$vcov_monad <- Reduce("+", hessBeta_list)/ctrl$se_sim
+                                         t(fit[["ReceiverPhi"]])),
+                                   c(nt_id))
     
-    colnames(fit$vcov_monad) <- rownames(fit$vcov_monad) <- paste(rep(paste("State",1:n.hmmstates), each = prod(dim(fit[["MonadCoef"]])[1:2])),
-                                                                  rep(colnames(fit[["MonadCoef"]]), each = nrow(fit[["MonadCoef"]]), times = n.hmmstates),
-                                                                  rep(rownames(fit[["MonadCoef"]]), times = n.blocks*n.hmmstates),
-                                                                  sep=":") 
+    fit$vcov_monad <- .vcovBeta(all_phi, fit[["MonadCoef"]], ctrl$se_sim, n.blocks,
+                                 n.hmmstates, fit[["TotNodes"]], periods,
+                                 ctrl$mu_beta, ctrl$var_beta, fit[["Kappa"]], t_id_n, X_t, fit) 
+    
     
     ## and for dyadic coefficients
     z_samples <- replicate(ctrl$se_sim, getZ(fit[["SenderPhi"]]), simplify = FALSE)
     w_samples <- replicate(ctrl$se_sim, getZ(fit[["ReceiverPhi"]]), simplify = FALSE)
-    all_theta_par <- c(
-      if(directed){
-        c(fit[["BlockModel"]]) }
-      else{
-        fit[["BlockModel"]][lower.tri(fit[["BlockModel"]], diag = TRUE)]
-      }, 
-      fit[["DyadCoef"]])
-    group_mat <- matrix(1:(n.blocks^2), n.blocks, n.blocks)
-    lambda_vec <- c(c(var_block), ctrl$var_gamma)
+    
+    if(ctrl$directed){
+      all_theta_par<-c(fit[["BlockModel"]], fit[["DyadCoef"]])
+    }else{
+      all_theta_par<-c(fit[["BlockModel"]][lower.tri(fit[["BlockModel"]], diag = TRUE)], fit[["DyadCoef"]])
+    }
+    group_mat <- matrix(1:(n.blocks1*n.blocks2), n.blocks1, n.blocks2)
+    lambda_vec <- c(c(var_block), ctrl$var_gamma) #var_b changed to var_block
     if(!directed){
       group_mat[upper.tri(group_mat)] <- group_mat[lower.tri(group_mat)]
       lambda_vec <- c(c(var_block[lower.tri(var_block, TRUE)]), ctrl$var_gamma)
     } 
+    #hessTheta
     hessTheta_list <- mapply(
       function(send_samp, rec_samp, y_vec, Z_d, par_theta, mu_b_mat, var_b_mat, var_g, mu_g, dir_net, group_mat, lambda_vec)
       {
-        n_samp <- min(ctrl$dyad_vcov_samp, floor(ncol(Z_d)*0.10))
+        n_samp <- min(ctrl$dyad_vcov_samp, floor(ncol(Z_d)*0.25))
         samp_ind <- sample(1:ncol(Z_d), n_samp)
         tries <- 0
         if(any(Z_d!=0)){
-        while(any(apply(Z_d[,samp_ind,drop=FALSE], 1, stats::sd) == 0.0) & (tries < 100)){
-          samp_ind <- sample(1:ncol(Z_d), n_samp)
-          tries <- tries + 1
-        }
+          while(any(apply(Z_d[,samp_ind,drop=FALSE], 1, stats::sd) == 0.0) & (tries < 100)){
+            samp_ind <- sample(1:ncol(Z_d), n_samp)
+            tries <- tries + 1
+          }
           
         }
         if(tries >= 100){
@@ -716,19 +667,16 @@ mmsbm <- function(formula.dyad,
                       var_b_mat = var_block,
                       var_g = ctrl$var_gamma, 
                       mu_g = ctrl$mu_gamma,
-                      dir_net = directed,
+                      dir_net = ctrl$directed,
                       group_mat = group_mat,
                       lambda_vec = lambda_vec),
       SIMPLIFY = FALSE)
     
     vcovTheta <- Reduce("+", hessTheta_list)/ctrl$se_sim
-
-    
-    N_B_PAR <- ifelse(directed, n.blocks^2 , n.blocks * (1 + n.blocks) / 2)
+    N_B_PAR <- ifelse(directed, n.blocks1*n.blocks2 , n.blocks1 * (1 + n.blocks2) / 2)
     fit$vcov_blockmodel <- vcovTheta[1:N_B_PAR, 1:N_B_PAR, drop = FALSE]
     bm_names <- outer(rownames(fit[["BlockModel"]]), colnames(fit[["BlockModel"]]), paste, sep=":")
     colnames(fit$vcov_blockmodel) <- rownames(fit$vcov_blockmodel) <- if(directed){c(bm_names)}else{c(bm_names[lower.tri(bm_names, TRUE)])}
-    
     
     if(any(Z_sd > 0)){
       fit$vcov_dyad <- vcovTheta[(N_B_PAR + 1):nrow(vcovTheta),
@@ -737,12 +685,12 @@ mmsbm <- function(formula.dyad,
       colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
     }
     
-    
     if(ctrl$verbose){
       cat("done.\n")
     }
     
-  }
+  }#end Hessian portion
+  
   
   
   ## Include used data 

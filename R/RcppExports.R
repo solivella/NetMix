@@ -12,8 +12,13 @@ getZ <- function(pi_mat) {
 }
 
 #' @rdname auxfuns
-alphaLB <- function(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta) {
-    .Call(`_NetMix_alphaLB`, par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
+alphaLBound <- function(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta) {
+    .Call(`_NetMix_alphaLBound`, par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
+}
+
+#' @rdname auxfuns
+alphaGrad <- function(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta) {
+    .Call(`_NetMix_alphaGrad`, par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 }
 
 #' @name mmsbm_fit

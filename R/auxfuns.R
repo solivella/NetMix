@@ -6,7 +6,10 @@
 #' 
 #' @details These functions are meant for internal use only.
 #' 
-#' @param mat Numeric matrix
+#' @param fomula,formula.dyad,formula.monad1,formula.monad2 A formula object.
+#' @param data,data.dyad,data.monad1,data.monad2 A data-frame object.
+#' @param method String, indicating type of missing data handling procesure. 
+#' @param mat Numeric matrix.
 #' @param p Numeric scalar; power to raise matrix to.
 #' @param block_list List of matrices; each element is a square, numeric matrix 
 #'                   that defines a blockmodel,
@@ -15,8 +18,6 @@
 #' @param use_perms Boolean; should all row/column permutations be explored when
 #'                  realigning matrices? defaults to \code{TRUE}.
 #' @param X Numeric matrix; design matrix of monadic predictors.
-#' @param x A model data frame.
-#' @param keep_const Should the intercept be kept after standarization?
 #' @param beta Numeric array; array of coefficients associated with monadic predictors. 
 #'             It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.
 #' @param alpha_list List of mixed-membership parameter matrices. 
@@ -25,7 +26,7 @@
 #' @param y Numeric vector; vector of edge values.
 #' @param d_id Integer matrix; two-column matrix with nr. dyads rows, containing zero-based
 #'             sender (first column) and receiver (second column) node id's for each dyad. 
-#' @param pi_mat Numeric matrix; row-stochastic matrix of mixed-memberships. 
+#' @param pi1_mat,pi2_mat_tmp Numeric matrices (or NULL for pi2_mat_tmp); row-stochastic matrices of mixed-memberships. 
 #' @param colPalette A function produced by \code{colorRamp}.
 #' @param range The range of values to label the legend.
 #' @param par Vector of parameter values.
@@ -42,7 +43,9 @@
 #' @param nblock Number of groups in model, defaults to \code{NULL}.
 #' @param nstate Number of hidden Markov states in model, defaults to \code{NULL}.
 #' @param devs Vector of standard deviations to use in transformation of variances. Defaults to \code{NULL}.
-#' @param soc_mats,Y,dyads,edges,t_id_d,t_id_n,nodes_pp,dyads_pp,nt_id,node_id_period,mu_b,var_b,n_dyads,n.blocks,periods,directed,ctrl Internal arguments for initialization.
+#' @param dyads,all.nodes1,all.nodes2 Arguments to internal function creating adjacency/affiliation matrices from data.frames
+#' @param .soc_mats,Y,dyads,edges,t_id_d,t_id_n,nodes_pp,dyads_pp,nt_id,node_id_period,mu_b,var_b,n_dyads,n.blocks,periods,ctrl Internal arguments for initialization.
+#' @param m1,bootrep,blist1,blist2 Arguments to internal fiunctions for bootstrapping 
 #' @param ... Numeric vectors; vectors of potentially different length to be cbind-ed.
 #' 
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (aylo@@wisc.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
@@ -51,11 +54,15 @@
 #' \describe{
 #'       \item{.cbind.fill}{Matrix of \code{cbind}'ed elements in \code{...}, with missing values in each vector filled with \code{NA}.}
 #'       \item{.mpower}{Matrix; the result of raising \code{mat} to the \code{p} power.}
-#'       \item{.findPerm}{List of permuted blockmodel matrices}
+#'       \item{.findPerm}{List of permuted blockmodel matrices.}
 #'       \item{.transf}{Matrix with transformed mixed-membership vectors along its rows, s.t. no element is equal to 0.0 or 1.0.}
 #'       \item{.compute.alpha}{List of predicted alpha matrices, one element per HMM state.}
-#'       \item{.e.pi}{Matrix of expected mixed-membership vectors along its columns, with expectation computed over marginal 
+#'       \item{.pi.hat}{Matrix of predicted mixed-membership vectors along its rows, with expectation computed over marginal 
 #'                     distribution over HMM states for each time period.}
+#'       \item{.missing}{Transformed data.frame with missing values list-wise deleted, or expanded
+#'                       with missing indicator variables.}
+#'       \item{.createSocioB}{List of sociomatrices.}
+#'       \item{.vertboot2}{List of bootstrapped sociomatrices.}
 #'     }
 #' 
 #' @rdname auxfuns
@@ -81,6 +88,7 @@
   constx <- which(colnames(A)=="(Intercept)")
   if(keep_const){
     A[,constx] <- 1
+    attr(A, "scaled:center") <- c(0, attr(A, "scaled:center")[-constx])
   } else {
     attr_tmp <- list(attr(A, "scaled:center")[-constx],
                      attr(A, "scaled:scale")[-constx])
@@ -232,6 +240,66 @@
   }
   return(pi.states)
 }
+
+#' @rdname auxfuns
+.vcovBeta <- function(all_phi, beta_coef, n.sim, n.blk, n.hmm, n.nodes, n.periods,
+                      mu.beta, var.beta, est_kappa, t_id_n, X, fit){
+  sampleC_perm <- do.call(rbind,
+                          lapply(all_phi,
+                         function(mat){
+                           apply(mat, 2, function(vec)poisbinom::rpoisbinom(n.sim, vec))
+                         })) 
+  C_samples <- split.data.frame(sampleC_perm, rep(1:n.sim, times = length(all_phi)))
+  S_samples <- replicate(n.sim, apply(est_kappa, 2, function(x)sample(1:n.hmm, 1, prob = x)), simplify = FALSE)
+  hessBeta_list <- mapply(
+    function(C_samp, S_samp, tidn, X_i, Nvec, beta_vec, vbeta, mbeta, periods)
+    {
+      if(n.hmm > 1) {
+        s_matrix <- t(model.matrix(~factor(S_samp, 1:n.hmm) - 1))
+      } else {
+        s_matrix <- matrix(1, ncol=periods)
+      }
+      tot_in_state <- rowSums(s_matrix)
+      if(any(tot_in_state == 0.0)){
+        which_empty_s <- which(tot_in_state < 1.0)
+        
+        warning("Some HMM states are empty; no standard errors will be returned for coefficients associated with them.")
+      }  
+      hess_tmp <- optimHess(c(beta_vec),alphaLBound,alphaGrad,
+                            tot_nodes = Nvec,
+                            c_t = t(C_samp),
+                            x_t = X_i,
+                            s_mat = s_matrix,
+                            t_id = tidn,
+                            var_beta = vbeta,
+                            mu_beta = mbeta)
+      vc_tmp <- Matrix::forceSymmetric(solve(hess_tmp))
+      ev <- eigen(vc_tmp)$value
+      if(any(ev<0)){
+        vc_tmp <- vc_tmp - diag(min(ev)-1e-4, ncol(vc_tmp))
+      }
+      ch_vc <- chol(vc_tmp)
+      return(t(ch_vc) %*% ch_vc)
+    },
+    C_samples, S_samples,
+    MoreArgs = list(tidn = t_id_n,
+                    X_i = X,
+                    Nvec = n.nodes,
+                    beta_vec = beta_coef, 
+                    vbeta = var.beta, 
+                    mbeta = mu.beta,
+                    periods = n.periods),
+    SIMPLIFY=FALSE)
+  vcov_monad <- Reduce("+", hessBeta_list)/n.sim
+  
+  colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:n.hmm), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
+                                                        rep(colnames(beta_coef), each = nrow(beta_coef), times = n.hmm),#beta_coef used to be fbeta_coef??
+                                                        rep(rownames(beta_coef), times = n.blk*n.hmm),
+                                                        sep=":")
+  return(vcov_monad)
+}
+
+
 
 #' @rdname auxfuns
 .e.pi <- function(alpha_list, kappa, C_mat = NULL){
