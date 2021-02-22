@@ -156,6 +156,7 @@
   constx <- which(colnames(A)=="(Intercept)")
   if(keep_const){
     A[,constx] <- 1
+    attr(A, "scaled:center") <- c(0, attr(A, "scaled:center")[-constx])
   } else {
     attr_tmp <- list(attr(A, "scaled:center")[-constx],
                      attr(A, "scaled:scale")[-constx])
