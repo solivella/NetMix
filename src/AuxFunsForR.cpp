@@ -70,8 +70,8 @@ Rcpp::IntegerMatrix getZ(Rcpp::NumericMatrix pi_mat)
 }
 
 //' @rdname auxfuns
-// [[Rcpp::export(alphaLB)]]
-double alphaLB(arma::vec par,
+// [[Rcpp::export()]]
+double alphaLBound(arma::vec par,
                arma::uvec tot_nodes,
                arma::umat c_t, 
                arma::mat x_t,
@@ -113,6 +113,60 @@ double alphaLB(arma::vec par,
   
   return -res;
 }
+
+//' @rdname auxfuns
+// [[Rcpp::export()]]
+arma::vec alphaGrad(arma::vec par,
+               arma::uvec tot_nodes,
+               arma::umat c_t, 
+               arma::mat x_t,
+               arma::umat s_mat,
+               arma::uvec t_id,
+               arma::cube var_beta,
+               arma::cube mu_beta)
+{
+  arma::uword N_NODE = x_t.n_cols, N_BLK = c_t.n_rows,
+    N_MONAD_PRED = x_t.n_rows,  N_STATE = s_mat.n_rows;
+  double res=0.0, prior_gr=0.0, linpred = 0.0;
+  arma::uword U_NPAR = par.n_elem;
+  
+  arma::vec gr(U_NPAR, arma::fill::zeros);
+  
+  arma::cube alpha (N_BLK, N_NODE, N_STATE, arma::fill::zeros);
+  arma::mat alpha_row(N_NODE, N_STATE, arma::fill::zeros);
+  
+  for(arma::uword m = 0; m < N_STATE; ++m){
+    for(arma::uword p = 0; p < N_NODE; ++p){
+      for(arma::uword g = 0; g < N_BLK; ++g){
+        linpred = 0.0;
+        for(arma::uword x = 0; x < N_MONAD_PRED; ++x){
+          linpred += x_t(x, p) * par[x + N_MONAD_PRED * (g + N_BLK * m)];
+        }
+        alpha(g, p, m) = exp(linpred);
+        alpha_row(p, m) += alpha(g, p, m);
+      }
+    }
+  }
+  
+  
+  for(arma::uword m = 0; m < N_STATE; ++m){
+    for(arma::uword g = 0; g < N_BLK; ++g){
+      for(arma::uword x = 0; x < N_MONAD_PRED; ++x){
+        res = 0.0;
+#pragma omp parallel for reduction(+:res)
+        for(arma::uword p = 0; p < N_NODE; ++p){
+            res += (R::digamma(alpha_row(p, m)) - R::digamma(alpha_row(p,m) + tot_nodes[p])
+                      + R::digamma(alpha(g, p, m) + c_t(g, p)) - R::digamma(alpha(g, p, m)))
+              * s_mat(m, t_id[p]) * alpha(g, p, m) * x_t(x, p);
+          }
+        prior_gr = (par[x + N_MONAD_PRED * (g + N_BLK * m)] - mu_beta(x, g, m)) / var_beta(x, g, m);
+        gr[x + N_MONAD_PRED * (g + N_BLK * m)] = -(res - prior_gr);
+      }
+    }
+  }
+  return(gr);
+}
+
 
 //' @rdname auxfuns
 // [[Rcpp::export(vertboot_matrix_rcpp2)]]
