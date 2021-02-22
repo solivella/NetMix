@@ -312,16 +312,12 @@
 #' @rdname auxfuns
 .vcovBeta <- function(all_phi, beta_coef, n.sim, n.blk, n.hmm, n.nodes, n.periods,
                       mu.beta, var.beta, est_kappa, t_id_n, X, fit){
-  #all_phi <- split.data.frame(rbind(t(fit[["SenderPhi"]]), t(fit[["ReceiverPhi"]])), c(nt_id))
-  sampleC_perm <- lapply(all_phi,
+  sampleC_perm <- do.call(rbind,
+                          lapply(all_phi,
                          function(mat){
                            apply(mat, 2, function(vec)poisbinom::rpoisbinom(n.sim, vec))
-                         }) 
-  sampleC_perm <- cbind(do.call(rbind, sampleC_perm), # samples
-                        rep(1:length(all_phi), each = n.sim), #node id
-                        rep(1:n.sim, times = length(all_phi))) #sample id
-  sampleC_perm <- sampleC_perm[order(sampleC_perm[,n.blk + 2], sampleC_perm[,n.blk + 1]),]
-  C_samples <- split.data.frame(sampleC_perm[,1:n.blk], sampleC_perm[,n.blk + 2])
+                         })) 
+  C_samples <- split.data.frame(sampleC_perm, rep(1:n.sim, times = length(all_phi)))
   S_samples <- replicate(n.sim, apply(est_kappa, 2, function(x)sample(1:n.hmm, 1, prob = x)), simplify = FALSE)
   hessBeta_list <- mapply(
     function(C_samp, S_samp, tidn, X_i, Nvec, beta_vec, vbeta, mbeta, periods)
@@ -333,9 +329,11 @@
       }
       tot_in_state <- rowSums(s_matrix)
       if(any(tot_in_state == 0.0)){
+        which_empty_s <- which(tot_in_state < 1.0)
+        
         warning("Some HMM states are empty; no standard errors will be returned for coefficients associated with them.")
       }  
-      hess_tmp <- optimHess(c(beta_vec),alphaLB,
+      hess_tmp <- optimHess(c(beta_vec),alphaLBound,alphaGrad,
                             tot_nodes = Nvec,
                             c_t = t(C_samp),
                             x_t = X_i,
@@ -363,12 +361,12 @@
   vcov_monad <- Reduce("+", hessBeta_list)/n.sim
   
   colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:n.hmm), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
-                                                                rep(colnames(beta_coef), each = nrow(beta_coef), times = n.hmm),#beta_coef used to be fbeta_coef??
-                                                                rep(rownames(beta_coef), times = n.blk*n.hmm),
-                                                                sep=":")
+                                                        rep(colnames(beta_coef), each = nrow(beta_coef), times = n.hmm),#beta_coef used to be fbeta_coef??
+                                                        rep(rownames(beta_coef), times = n.blk*n.hmm),
+                                                        sep=":")
   return(vcov_monad)
 }
-
+                                      
 #' @rdname auxfuns
 .e.pi <- function(alpha_list, kappa, C_mat = NULL){
   if(is.null(C_mat)){
