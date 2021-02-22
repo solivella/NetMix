@@ -996,10 +996,10 @@ arma::mat MMModel::getWmn()
     for(arma::uword c = 0; c < N_STATE; ++c){
       row_total = 0.0;
       for(arma::uword r = 0; r < N_STATE; ++r){
-        row_total += e_wmn_t(r, c);
+        row_total += eta + e_wmn_t(r, c);
       }
       for(arma::uword r = 0; r < N_STATE; ++r){
-        res(r, c) = e_wmn_t(r, c) / row_total;
+        res(r, c) = (eta + e_wmn_t(r, c)) / row_total;
       }
     }
   }
