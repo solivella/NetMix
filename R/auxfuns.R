@@ -6,9 +6,6 @@
 #' 
 #' @details These functions are meant for internal use only.
 #' 
-#' @param fomula,formula.dyad,formula.monad1,formula.monad2 A formula object.
-#' @param data,data.dyad,data.monad1,data.monad2 A data-frame object.
-#' @param method String, indicating type of missing data handling procesure. 
 #' @param mat Numeric matrix.
 #' @param p Numeric scalar; power to raise matrix to.
 #' @param block_list List of matrices; each element is a square, numeric matrix 
@@ -24,9 +21,6 @@
 #' @param kappa Numeric matrix; matrix of marginal HMM state probabilities.
 #' @param C_mat Numeric matrix; matrix of posterior counts of block instantiations per node. 
 #' @param y Numeric vector; vector of edge values.
-#' @param d_id Integer matrix; two-column matrix with nr. dyads rows, containing zero-based
-#'             sender (first column) and receiver (second column) node id's for each dyad. 
-#' @param pi1_mat,pi2_mat_tmp Numeric matrices (or NULL for pi2_mat_tmp); row-stochastic matrices of mixed-memberships. 
 #' @param colPalette A function produced by \code{colorRamp}.
 #' @param range The range of values to label the legend.
 #' @param par Vector of parameter values.
@@ -57,7 +51,7 @@
 #'       \item{.findPerm}{List of permuted blockmodel matrices.}
 #'       \item{.transf}{Matrix with transformed mixed-membership vectors along its rows, s.t. no element is equal to 0.0 or 1.0.}
 #'       \item{.compute.alpha}{List of predicted alpha matrices, one element per HMM state.}
-#'       \item{.pi.hat}{Matrix of predicted mixed-membership vectors along its rows, with expectation computed over marginal 
+#'       \item{.e.pi}{Matrix of predicted mixed-membership vectors along its rows, with expectation computed over marginal 
 #'                     distribution over HMM states for each time period.}
 #'       \item{.missing}{Transformed data.frame with missing values list-wise deleted, or expanded
 #'                       with missing indicator variables.}

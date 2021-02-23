@@ -615,7 +615,7 @@ mmsbm <- function(formula.dyad,
     }else{
       all_theta_par<-c(fit[["BlockModel"]][lower.tri(fit[["BlockModel"]], diag = TRUE)], fit[["DyadCoef"]])
     }
-    group_mat <- matrix(1:(n.blocks1*n.blocks2), n.blocks1, n.blocks2)
+    group_mat <- matrix(1:(n.blocks*n.blocks), n.blocks, n.blocks)
     lambda_vec <- c(c(var_block), ctrl$var_gamma) #var_b changed to var_block
     if(!directed){
       group_mat[upper.tri(group_mat)] <- group_mat[lower.tri(group_mat)]
@@ -625,10 +625,10 @@ mmsbm <- function(formula.dyad,
     hessTheta_list <- mapply(
       function(send_samp, rec_samp, y_vec, Z_d, par_theta, mu_b_mat, var_b_mat, var_g, mu_g, dir_net, group_mat, lambda_vec)
       {
-        n_samp <- min(ctrl$dyad_vcov_samp, floor(ncol(Z_d)*0.25))
+        n_samp <- min(ctrl$dyad_vcov_samp, floor(ncol(Z_d)*0.10))
         samp_ind <- sample(1:ncol(Z_d), n_samp)
         tries <- 0
-        if(any(Z_d!=0)){
+        if(any(Z_d!=0)){  
           while(any(apply(Z_d[,samp_ind,drop=FALSE], 1, stats::sd) == 0.0) & (tries < 100)){
             samp_ind <- sample(1:ncol(Z_d), n_samp)
             tries <- tries + 1
@@ -673,7 +673,7 @@ mmsbm <- function(formula.dyad,
       SIMPLIFY = FALSE)
     
     vcovTheta <- Reduce("+", hessTheta_list)/ctrl$se_sim
-    N_B_PAR <- ifelse(directed, n.blocks1*n.blocks2 , n.blocks1 * (1 + n.blocks2) / 2)
+    N_B_PAR <- ifelse(directed, n.blocks*n.blocks , n.blocks * (1 + n.blocks) / 2)
     fit$vcov_blockmodel <- vcovTheta[1:N_B_PAR, 1:N_B_PAR, drop = FALSE]
     bm_names <- outer(rownames(fit[["BlockModel"]]), colnames(fit[["BlockModel"]]), paste, sep=":")
     colnames(fit$vcov_blockmodel) <- rownames(fit$vcov_blockmodel) <- if(directed){c(bm_names)}else{c(bm_names[lower.tri(bm_names, TRUE)])}

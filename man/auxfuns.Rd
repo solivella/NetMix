@@ -76,9 +76,6 @@ alphaGrad(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 \arguments{
 \item{y}{Numeric vector; vector of edge values.}
 
-\item{d_id}{Integer matrix; two-column matrix with nr. dyads rows, containing zero-based
-sender (first column) and receiver (second column) node id's for each dyad.}
-
 \item{par}{Vector of parameter values.}
 
 \item{tot_nodes}{Integer vector; total number of nodes each node interacts with.}
@@ -137,14 +134,6 @@ It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.}
 
 \item{dyads, all.nodes1, all.nodes2}{Arguments to internal function creating adjacency/affiliation matrices from data.frames}
 
-\item{fomula, formula.dyad, formula.monad1, formula.monad2}{A formula object.}
-
-\item{data, data.dyad, data.monad1, data.monad2}{A data-frame object.}
-
-\item{method}{String, indicating type of missing data handling procesure.}
-
-\item{pi1_mat, pi2_mat_tmp}{Numeric matrices (or NULL for pi2_mat_tmp); row-stochastic matrices of mixed-memberships.}
-
 \item{devs}{Vector of standard deviations to use in transformation of variances. Defaults to \code{NULL}.}
 
 \item{.soc_mats, Y, dyads, edges, t_id_d, t_id_n, nodes_pp, dyads_pp, nt_id, node_id_period, mu_b, var_b, n_dyads, n.blocks, periods, ctrl}{Internal arguments for initialization.}
@@ -159,7 +148,7 @@ See individual return section for each function:
       \item{.findPerm}{List of permuted blockmodel matrices.}
       \item{.transf}{Matrix with transformed mixed-membership vectors along its rows, s.t. no element is equal to 0.0 or 1.0.}
       \item{.compute.alpha}{List of predicted alpha matrices, one element per HMM state.}
-      \item{.pi.hat}{Matrix of predicted mixed-membership vectors along its rows, with expectation computed over marginal 
+      \item{.e.pi}{Matrix of predicted mixed-membership vectors along its rows, with expectation computed over marginal 
                     distribution over HMM states for each time period.}
       \item{.missing}{Transformed data.frame with missing values list-wise deleted, or expanded
                       with missing indicator variables.}
