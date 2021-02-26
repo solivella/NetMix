@@ -72,8 +72,8 @@
 #'        \item{eta}{Numeric positive value. Concentration hyper-parameter for HMM. Defaults to 1.0.}
 #'        \item{se_sim}{Number of samples from variational posterior of latent variables on which approximation to variance-covariance
 #'                      matrices are based. Defaults to 10.}
-#'        \item{dyad_vcov_samp}{Number of dyads to sample in computation of variance-covariance of dyadic and blockmodel parameters. 
-#'                              Defaults to 1000.}
+#'        \item{dyad_vcov_samp}{Maximum number of dyads to sample in computation of variance-covariance of dyadic and blockmodel parameters, when compared to 
+#'                              ten percent of the observed dyads. Defaults to 1000.}
 #'        \item{fixed_mm}{Optional character vector, with \code{"nodeID@timeID"} as elements, indicating which mixed-membership vectors
 #'                        should remain constant at their initial values throughout estimation. When only one year is observed, elements should be 
 #'                         \code{"nodeID@1"}. Typically used with \code{mm_init_t}.}                      
@@ -625,7 +625,7 @@ mmsbm <- function(formula.dyad,
     hessTheta_list <- mapply(
       function(send_samp, rec_samp, y_vec, Z_d, par_theta, mu_b_mat, var_b_mat, var_g, mu_g, dir_net, group_mat, lambda_vec)
       {
-        n_samp <- min(ctrl$dyad_vcov_samp, floor(ncol(Z_d)*0.10))
+        n_samp <- max(ctrl$dyad_vcov_samp, floor(ncol(Z_d)*0.10))
         samp_ind <- sample(1:ncol(Z_d), n_samp)
         tries <- 0
         if(any(Z_d!=0)){  
