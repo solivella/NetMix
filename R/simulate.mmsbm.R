@@ -113,11 +113,12 @@ simulate.mmsbm <- function(object,
                                    if(steps < 0){
                                      stop("Backcasting not supported.")
                                    }
-                                   new_kappa <- last_kappa %*% .mpower(object$TransitionKernel, steps)
+                                   new_kappa <- last_kappa %*% .mpower(round(object$TransitionKernel, 10), steps)
                                    return(rmultinom(1, 1, new_kappa))
                                  }}))
     colnames(states) <- unique_t
-    states_ind <- matrix(states[,match(monad[,tid], colnames(object$Kappa))], nrow = nrow(object$Kappa))
+    #states_ind <- matrix(states[,match(monad[,tid], colnames(object$Kappa))], nrow = nrow(object$Kappa))
+    states_ind <- matrix(states[,match(monad[,tid], unique_t)], nrow = nrow(object$Kappa))
     
     alpha_mats <- .compute.alpha(X_m, object$MonadCoef)
     
