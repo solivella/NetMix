@@ -10,6 +10,7 @@
 #' each latent group by time period. "\code{effect}" provides a series of plots showing the estimated effect 
 #' of a shfit in monadic covariate values.
 #' @param FX with \code{type == "effect"}; a list resulting from a call to \code{covFX}.
+#' @param node with \code{type == "membership"}; a character string specifying the node for which group membership should be plotted.
 #' @param ... Currently ignored
 #'
 #' @return The requested plot object. 
@@ -79,24 +80,6 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, node=NULL, ...){ # network gra
     .bar.legend(colRamp, range(igraph::E(block.G)$weight))
   }
   
-  if(type=="membership"){
-    ifelse(is.null(node), 
-           nr <- 1:nrow(x$monadic.data),
-           nr <- which(x$monadic.data$`(nid)`==node))
-    avgmems <- lapply(1:nrow(x$MixedMembership), function(y){
-      tapply(x$MixedMembership[y,nr], x$monadic.data[nr,"(tid)"], mean)})
-    avgmems <- as.data.frame(cbind(rep(unique(as.character(x$monadic.data[nr,"(tid)"])), nrow(x$MixedMembership)),unlist(avgmems),
-                                   rep(1:nrow(x$MixedMembership), each=length(unique(x$monadic.data[nr,"(tid)"])))))
-    colnames(avgmems) <- c("Time", "Avg.Membership", "Group")
-    avgmems$Group <- factor(avgmems$Group, levels=length(unique(avgmems$Group)):1)
-    avgmems$Avg.Membership <- as.numeric(as.character(avgmems$Avg.Membership))
-    avgmems$Time <- as.numeric(as.character(avgmems$Time))
-    return(ggplot2::ggplot() + 
-      ggplot2::geom_area(ggplot2::aes_string(y = "Avg.Membership", x = "Time", fill="Group"), data = avgmems,
-                stat="identity", position="stack") + 
-      ggplot2::guides(fill=ggplot2::guide_legend(title="Group")))
-  }
-  
   if(type=="blockmodel"){
     x$dyadic.data$Y <- x$Y
     nodes <- unique(x$monadic.data$`(nid)`)
@@ -143,41 +126,32 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, node=NULL, ...){ # network gra
                      Val = plogis(c(bm)))
     dm <- dm[complete.cases(dm),]
     dm$Sender  <- factor(dm$Sender, levels=rev(paste("Group", 1:nrow(bm))))
-    require(ggplot2)
-    p <- ggplot(aes(y = Sender, x = Receiver, fill=Val), data = dm) + ggtitle("Edge Formation Between Blocs") + theme(plot.title = element_text(hjust = 0.5)) +
-      geom_tile(color = "white") + theme_bw()+
-      scale_size(guide='none') +
-      scale_fill_gradient2(low = "#FEE0D2", mid = "#FB6A4A", high = "#99000D",
-                           midpoint = max(dm$Val)/2, limit = c(0,max(dm$Val)), name="Edge\nProbability")
+    p <- ggplot2::ggplot(aes(y = Sender, x = Receiver, fill=Val), data = dm) +
+      ggplot2::ggtitle("Edge Formation Between Blocs") + 
+      ggplot2::theme(plot.title = element_text(hjust = 0.5)) +
+      ggplot2::geom_tile(color = "white") + theme_bw()+
+      ggplot2::scale_size(guide='none') +
+      ggplot2::scale_fill_gradient2(low = "#FEE0D2", mid = "#FB6A4A", high = "#99000D",
+                                    midpoint = max(dm$Val)/2, limit = c(0,max(dm$Val)), name="Edge\nProbability")
     print(p)
-    
-    colRamp <- colorRamp(c("#DCDCDC","#808080","#000000"))
-    g.mode <- ifelse(x$forms$directed, "directed", "undirected")
-    adj_mat <- x$BlockModel
-    dimnames(adj_mat) <- list(paste("G",1:nrow(adj_mat), sep=""),
-                              paste("G", 1:ncol(adj_mat), sep=""))
-    block.G <- igraph::graph.adjacency(plogis(adj_mat), mode=g.mode, weighted=TRUE)
-    e.weight <- (1/diff(range(igraph::E(block.G)$weight))) * (igraph::E(block.G)$weight - max(igraph::E(block.G)$weight)) + 1
-    e.cols <- rgb(colRamp(e.weight), maxColorValue = 255)
-    times.arg <- if(g.mode == "directed") {
-      x$n_blocks
-    } else {
-      rev(seq_len(x$n_blocks))
-    }
-    v.size <- rowMeans(x$MixedMembership)*100 + 20
-    radian.rescale <- function(x, start=0, direction=1) {
-      c.rotate <- function(x) (x + start) %% (2 * pi) * direction
-      c.rotate(scales::rescale(x, c(0, 2 * pi), range(x)))
-    }
-    loop.rads <- radian.rescale(x=1:x$n_blocks, direction=-1, start=0)
-    loop.rads <- rep(loop.rads, times = times.arg)
-    igraph::plot.igraph(block.G, main = "",
-                        edge.width=4, edge.color=e.cols,  edge.curved = x$forms$directed, edge.arrow.size = 0.65,
-                        edge.loop.angle = loop.rads,
-                        vertex.size=v.size, vertex.color="white", vertex.frame.color="black",
-                        vertex.label.font=2, vertex.label.cex=1, vertex.label.color="black",
-                        layout = igraph::layout_in_circle)
-    .bar.legend(colRamp, range(igraph::E(block.G)$weight))
+  }
+  
+  if(type=="membership"){
+    ifelse(is.null(node), 
+           nr <- 1:nrow(x$monadic.data),
+           nr <- which(x$monadic.data$`(nid)`==node))
+    avgmems <- lapply(1:nrow(x$MixedMembership), function(y){
+      tapply(x$MixedMembership[y,nr], x$monadic.data[nr,"(tid)"], mean)})
+    avgmems <- as.data.frame(cbind(rep(unique(as.character(x$monadic.data[nr,"(tid)"])), nrow(x$MixedMembership)),unlist(avgmems),
+                                   rep(1:nrow(x$MixedMembership), each=length(unique(x$monadic.data[nr,"(tid)"])))))
+    colnames(avgmems) <- c("Time", "Avg.Membership", "Group")
+    avgmems$Group <- factor(avgmems$Group, levels=length(unique(avgmems$Group)):1)
+    if(class(avgmems$Avg.Membership) != "numeric"){avgmems$Avg.Membership <- as.numeric(as.character(avgmems$Avg.Membership))}
+    if(class(avgmems$Time) != "numeric"){avgmems$Time <- as.numeric(as.character(avgmems$Time))}
+    return(ggplot2::ggplot() + 
+             ggplot2::geom_area(ggplot2::aes_string(y = "Avg.Membership", x = "Time", fill="Group"), data = avgmems,
+                                stat="identity", position="stack") + 
+             ggplot2::guides(fill=ggplot2::guide_legend(title="Group")))
   }
   
   if(type=="effect"){
@@ -202,15 +176,15 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, node=NULL, ...){ # network gra
   }
   
   if(type=="hmm"){
-    hms <- as.data.frame(do.call(rbind, lapply(1:nrow(x$Kappa), function(y){
-      cbind(1:ncol(x$Kappa), x$Kappa[y,], y)
-      })))
+    hms <- as.data.frame(do.call(rbind, lapply(1:nrow(x$Kappa), function(x){
+      cbind(1:ncol(x$Kappa), x$Kappa[x,], x)
+    })))
     colnames(hms) <- c("Time", "Kappa", "State")
     hms$State <- as.factor(hms$State)
     return(ggplot2::ggplot() + 
-      ggplot2::geom_area(ggplot2::aes_string(y = "Kappa", x = "Time", fill="State"), data = hms,
-                stat="identity", position="stack") + 
-      ggplot2::guides(fill=ggplot2::guide_legend(title="HMM State")))
+             ggplot2::geom_area(ggplot2::aes_string(y = "Kappa", x = "Time", fill="State"), data = hms,
+                                stat="identity", position="stack") + 
+             ggplot2::guides(fill=ggplot2::guide_legend(title="HMM State")))
   }
 }
 
