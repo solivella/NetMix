@@ -79,7 +79,11 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
 ## Plot observed (red) and simulated (gray) distributions over 
 ## indegrees
 ## (typically a larger number of samples would be taken) 
+## (strictly requires ggplot2)
+
+\donttest{
 gof(lazega_mmsbm, gof_stat = "Indegree", samples = 2)
+}
 
 }
 \author{

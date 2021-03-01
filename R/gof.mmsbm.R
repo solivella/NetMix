@@ -53,6 +53,7 @@
 #' ## indegrees
 #' ## (typically a larger number of samples would be taken) 
 #' ## (strictly requires ggplot2)
+#' 
 #' \donttest{
 #' gof(lazega_mmsbm, gof_stat = "Indegree", samples = 2)
 #' }
