@@ -1,6 +1,8 @@
 useDynLib(NetMix, .registration = TRUE)
 exportPattern("^[[:alpha:]]+")
-importFrom("graphics", "axis", "box", "hist", "image", "layout", "legend", "lines", "par", "plot", "points",
+importFrom("clue", "solve_LSAP")
+importFrom("graphics", "abline", "axis", "box", "hist", "image", "layout", 
+           "legend", "lines", "par", "plot", "points", "polygon",
              "rasterImage", "title", "mtext", "text")
 importFrom("grDevices", "as.raster", "colorRamp", "rgb")
 importFrom("MASS", "ginv")
@@ -11,7 +13,7 @@ importFrom("stats", "as.formula", "coef", "complete.cases", "density",
              "fitted", "kmeans", "lm.fit", "median", "model.frame",
              "model.matrix", "model.response", "na.omit", "optimHess", "plogis",
              "predict", "dlogis", "qlogis", "quantile", "rbinom", "rgamma",
-             "rmultinom", "sd", "simulate", "terms", "update", "update.formula")
+             "rmultinom", "rnorm", "sd", "simulate", "terms", "update", "update.formula")
 importFrom("utils", "getS3method","head")
 importClassesFrom(Matrix)
 S3method(coef, mmsbm)

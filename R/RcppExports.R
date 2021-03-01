@@ -2,8 +2,8 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #' @rdname auxfuns
-approxB <- function(y, d_id, pi_mat) {
-    .Call(`_NetMix_approxB`, y, d_id, pi_mat)
+approxB <- function(y, d_id, pi_mat, directed = TRUE) {
+    .Call(`_NetMix_approxB`, y, d_id, pi_mat, directed)
 }
 
 #' @rdname auxfuns
@@ -12,8 +12,13 @@ getZ <- function(pi_mat) {
 }
 
 #' @rdname auxfuns
-alphaLB <- function(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta) {
-    .Call(`_NetMix_alphaLB`, par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
+alphaLBound <- function(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta) {
+    .Call(`_NetMix_alphaLBound`, par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
+}
+
+#' @rdname auxfuns
+alphaGrad <- function(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta) {
+    .Call(`_NetMix_alphaGrad`, par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 }
 
 #' @name mmsbm_fit
@@ -31,7 +36,7 @@ alphaLB <- function(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta) {
 #' @param node_id_dyad Integer matrix; zero-based sender and receiver identifier per dyad.
 #' @param mu_b Numeric matrix; matrix of prior means for elements in blockmodel matrix.
 #' @param var_b Numeric matrix; matrix of prior variances for elements in blockmodel matrix.
-#' @param phi_init Numeric matrix; matrix of initial mixed-memberships. Nodes along columns.
+#' @param pi_init Numeric matrix; matrix of initial mixed-memberships. Nodes along columns.
 #' @param kappa_init_t Numeric matrix; matrix of initial marginal HMM state probabilities. Time-periods along columns.
 #' @param b_init_t Numeric matrix; square matrix of initial values of blockmodel.
 #' @param beta_init Numeric vector; flat array (column-major order) of initial values of monadic coefficients.
@@ -46,7 +51,7 @@ alphaLB <- function(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta) {
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 NULL
 
-mmsbm_fit <- function(z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, phi_init, kappa_init_t, b_init_t, beta_init, gamma_init, control) {
-    .Call(`_NetMix_mmsbm_fit`, z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, phi_init, kappa_init_t, b_init_t, beta_init, gamma_init, control)
+mmsbm_fit <- function(z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, node_id_period, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, pi_init, kappa_init_t, b_init_t, beta_init_r, gamma_init_r, control) {
+    .Call(`_NetMix_mmsbm_fit`, z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, node_id_period, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, pi_init, kappa_init_t, b_init_t, beta_init_r, gamma_init_r, control)
 }
 

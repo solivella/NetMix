@@ -8,9 +8,8 @@
   object,
   new.data.dyad = NULL,
   new.data.monad = NULL,
-  parametric_mm = FALSE,
   forecast = FALSE,
-  type = c("link", "response"),
+  type = c("link", "response", "mm"),
   ...
 )
 }
@@ -21,14 +20,10 @@
 
 \item{new.data.monad}{An optional \code{data.frame} object.}
 
-\item{parametric_mm}{oolean. Should the variational posterior be used for sampling the mixed-memberships (\code{FALSE}), 
-or should the mixed-meberships be formed using the parameters in the monadic regression equation (\code{TRUE})?
-Defaults to \code{FALSE}. If \code{(new.data.monad | forcast) = TRUE}, setting this to \code{FALSE} will produce an error.}
-
 \item{forecast}{Boolean. Should prediction forcast one step into the future? Defaults to FALSE.}
 
 \item{type}{Character string. The default is to use the linear predictor of edges. The alternative
-"response" returns predicted probabilities.}
+"response" returns predicted probabilities. The alternative "mm" returns predicted mixed-membership vectors.}
 
 \item{...}{Currently ignored}
 }

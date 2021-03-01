@@ -3,35 +3,35 @@
 \name{approxB}
 \alias{approxB}
 \alias{getZ}
-\alias{alphaLB}
+\alias{alphaLBound}
+\alias{alphaGrad}
 \alias{auxfuns}
 \alias{.cbind.fill}
+\alias{.scaleVars}
 \alias{.transf_muvar}
 \alias{.bar.legend}
 \alias{.mpower}
 \alias{.findPerm}
 \alias{.transf}
-\alias{.pi.hat}
+\alias{.compute.alpha}
+\alias{.vcovBeta}
 \alias{.e.pi}
+\alias{.initPi}
 \title{Internal functions and generics for \code{mmsbm} package}
 \usage{
-approxB(y, d_id, pi_mat)
+approxB(y, d_id, pi_mat, directed = TRUE)
 
 getZ(pi_mat)
 
-alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
+alphaLBound(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
+
+alphaGrad(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 
 .cbind.fill(...)
 
-.transf_muvar(
-  orig,
-  is_var,
-  is_array,
-  des.mat,
-  nblock = NULL,
-  nstate = NULL,
-  devs = NULL
-)
+.scaleVars(x, keep_const = TRUE)
+
+.transf_muvar(orig, is_var, is_array, des.mat, nblock = NULL, nstate = NULL)
 
 .bar.legend(colPalette, range)
 
@@ -41,17 +41,39 @@ alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 
 .transf(mat)
 
-.pi.hat(X, beta)
+.compute.alpha(X, beta)
 
-.e.pi(pi_l, kappa)
+.vcovBeta(
+  all_phi,
+  beta_coef,
+  n.sim,
+  n.blk,
+  n.hmm,
+  n.nodes,
+  n.periods,
+  mu.beta,
+  var.beta,
+  est_kappa,
+  t_id_n,
+  X
+)
+
+.e.pi(alpha_list, kappa, C_mat = NULL)
+
+.initPi(
+  soc_mats,
+  dyads,
+  edges,
+  nodes_pp,
+  dyads_pp,
+  n.blocks,
+  periods,
+  directed,
+  ctrl
+)
 }
 \arguments{
-\item{y}{Numeric vector; vector of edge values.}
-
-\item{d_id}{Integer matrix; two-column matrix with nr. dyads rows, containing zero-based
-sender (first column) and receiver (second column) node id's for each dyad.}
-
-\item{pi_mat}{Numeric matrix; row-stochastic matrix of mixed-memberships.}
+\item{y, d_id, pi_mat, directed}{Internal arguments for blockmodel approximation.}
 
 \item{par}{Vector of parameter values.}
 
@@ -69,6 +91,8 @@ sender (first column) and receiver (second column) node id's for each dyad.}
 
 \item{...}{Numeric vectors; vectors of potentially different length to be cbind-ed.}
 
+\item{x, keep_const}{Internal arguments for matrix scaling.}
+
 \item{orig}{Object to be transformed.}
 
 \item{is_var}{Boolean. Is the object to be transformed a variance term?}
@@ -81,13 +105,11 @@ sender (first column) and receiver (second column) node id's for each dyad.}
 
 \item{nstate}{Number of hidden Markov states in model, defaults to \code{NULL}.}
 
-\item{devs}{Vector of standard deviations to use in transformation of variances. Defaults to \code{NULL}.}
-
 \item{colPalette}{A function produced by \code{colorRamp}.}
 
 \item{range}{The range of values to label the legend.}
 
-\item{mat}{Numeric matrix}
+\item{mat}{Numeric matrix.}
 
 \item{p}{Numeric scalar; power to raise matrix to.}
 
@@ -105,20 +127,30 @@ realigning matrices? defaults to \code{TRUE}.}
 \item{beta}{Numeric array; array of coefficients associated with monadic predictors. 
 It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.}
 
-\item{pi_l}{List of mixed-membership matrices.}
+\item{all_phi, beta_coef, n.sim, n.blk, n.hmm, n.nodes, n.periods, mu.beta, var.beta, est_kappa, t_id_n, }{Additional internal arguments for covariance estimation.}
+
+\item{alpha_list}{List of mixed-membership parameter matrices.}
 
 \item{kappa}{Numeric matrix; matrix of marginal HMM state probabilities.}
+
+\item{C_mat}{Numeric matrix; matrix of posterior counts of block instantiations per node.}
+
+\item{soc_mats, dyads, edges, nodes_pp, dyads_pp, n.blocks, periods, ctrl}{Internal arguments for MM computation.}
 }
 \value{
 See individual return section for each function:
 \describe{
       \item{.cbind.fill}{Matrix of \code{cbind}'ed elements in \code{...}, with missing values in each vector filled with \code{NA}.}
       \item{.mpower}{Matrix; the result of raising \code{mat} to the \code{p} power.}
-      \item{.findPerm}{List of permuted blockmodel matrices}
+      \item{.findPerm}{List of permuted blockmodel matrices.}
       \item{.transf}{Matrix with transformed mixed-membership vectors along its rows, s.t. no element is equal to 0.0 or 1.0.}
-      \item{.pi.hat}{List of predicted mixed-membership matrices, one element per HMM state.}
-      \item{.e.pi }{Matrix of expected mixed-membership vectors along its rows, with expectation computed over marginal 
+      \item{.compute.alpha}{List of predicted alpha matrices, one element per HMM state.}
+      \item{.e.pi}{Matrix of predicted mixed-membership vectors along its rows, with expectation computed over marginal 
                     distribution over HMM states for each time period.}
+      \item{.missing}{Transformed data.frame with missing values list-wise deleted, or expanded
+                      with missing indicator variables.}
+      \item{.createSocioB}{List of sociomatrices.}
+      \item{.vertboot2}{List of bootstrapped sociomatrices.}
     }
 }
 \description{

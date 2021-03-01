@@ -6,12 +6,9 @@
 #' @param object Object of class \code{mmsbm}.
 #' @param new.data.dyad An optional \code{data.frame} object. 
 #' @param new.data.monad An optional \code{data.frame} object. 
-#' @param parametric_mm oolean. Should the variational posterior be used for sampling the mixed-memberships (\code{FALSE}), 
-#'                      or should the mixed-meberships be formed using the parameters in the monadic regression equation (\code{TRUE})?
-#'                      Defaults to \code{FALSE}. If \code{(new.data.monad | forcast) = TRUE}, setting this to \code{FALSE} will produce an error.       
 #' @param forecast Boolean. Should prediction forcast one step into the future? Defaults to FALSE.
 #' @param type Character string. The default is to use the linear predictor of edges. The alternative
-#'     "response" returns predicted probabilities.  
+#'     "response" returns predicted probabilities. The alternative "mm" returns predicted mixed-membership vectors.  
 #' @param ... Currently ignored  
 #'     
 #' @return If \code{new.data.dyad = NULL}, vector of length \code{nrow(object$dyadic.data)}. Else, vector of length \code{nrow(new.data.dyad)}.
@@ -46,15 +43,11 @@
 predict.mmsbm <- function(object, 
                           new.data.dyad = NULL,
                           new.data.monad  = NULL, 
-                          parametric_mm = FALSE,
                           forecast = FALSE,
-                          type = c("link", "response"),
+                          type = c("link", "response","mm"),
                           ...)
 {
   type <- match.arg(type)
-  if(((!is.null(new.data.monad)) | forecast) & !parametric_mm){
-    stop("Must use parametric mixed-memberships when forecasting or when using new monadic data.")
-  }
   if(!is.null(new.data.dyad)){
     sid <- object$forms$senderID
     rid <- object$forms$receiverID
@@ -92,10 +85,12 @@ predict.mmsbm <- function(object,
     } else {
       tid <- object$forms$timeID
     }
+    C_mat <- matrix(0, ncol = object$forms$n.blocks, nrow = nrow(monad))
   } else {
     nid <- "(nid)"
     tid <- "(tid)"
     monad <- object$monadic.data
+    C_mat <- object$CountMatrix
   }
   n_blk <- object$n_blocks
   mform <- object$forms$formula.monad
@@ -104,15 +99,13 @@ predict.mmsbm <- function(object,
                     paste(c("~ .", rownames(object$MonadCoef)[grep("missing", 
                                       rownames(object$MonadCoef))]), collapse=" + "))
   }
-  if(!parametric_mm){
-    p <- object$MixedMembership
-  } else {
+
     if(is.null(mform)){
       X_m <- model.matrix(~ 1, data = monad)
     } else {
       X_m <- model.matrix(eval(mform), monad)
     }
-    alpha <- .pi.hat(X_m, object$MonadCoef)
+    alpha <- .compute.alpha(X_m, object$MonadCoef)
     if(forecast){
       ts <- unique(monad[,tid])
       new_kappa <- as.matrix(object$Kappa[,ncol(object$Kappa)] %*% .mpower(object$TransitionKernel, forecast))
@@ -123,13 +116,13 @@ predict.mmsbm <- function(object,
           new_kappa1 <- cbind(new_kappa1, matrix(new_kappa[t,], nrow=ncol(new_kappa), ncol=nrow(monad[monad[,tid]==ts[t],]),byrow=FALSE))
         }
       }
-      p <- .e.pi(lapply(alpha, function(x)prop.table(x, 2)),
-                 new_kappa1)
+      p <- .e.pi(alpha, new_kappa1, C_mat)
     } else {
       if(!(tid %in% colnames(monad))){tid <- "(tid)"}
-      p <- .e.pi(lapply(alpha, function(x)prop.table(x, 2)),
-                 object$Kappa[,as.character(monad[,tid])])
+      p <- .e.pi(alpha, object$Kappa[,as.character(monad[,tid])], C_mat)
     }
+  if(type == "mm"){
+    return(p)
   }
   
   s_ind <- match(paste(dyad[,sid],dyad[,tid],sep="@"), 
@@ -144,9 +137,9 @@ predict.mmsbm <- function(object,
       eta_dyad[i] <- pi_s[,i] %*% object$BlockModel %*% pi_r[,i]
   }
   eta_dyad <- eta_dyad + c(X_d %*% (object$DyadCoef))
-  if(type=="link"){
+  if(type == "link"){
     return(c(eta_dyad))
-  } else {
+  } else if (type == "response") {
     return(plogis(c(eta_dyad)))
   }
 }

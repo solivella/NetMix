@@ -25,7 +25,6 @@
 #' @param samples Integer. Number of sampled networks from model's posterior predictive using \code{\link{simulate.mmsbm}}.
 #' @param new.data.dyad See \code{\link{simulate.mmsbm}}. Enables out-of-sample checking.
 #' @param new.data.monad See \code{\link{simulate.mmsbm}}. Enables out-of-sample checking.
-#' @param parametric_mm See \code{\link{simulate.mmsbm}}.
 #' @param seed See \code{\link{simulate.mmsbm}}.
 #' @param ... Currently ignored.
 #'
@@ -67,7 +66,6 @@ gof.mmsbm <- function(x,
                       samples = 50,
                       new.data.dyad = NULL,
                       new.data.monad  = NULL, 
-                      parametric_mm = FALSE,
                       seed = NULL,
                       ...
                       ){
@@ -144,8 +142,7 @@ gof.mmsbm <- function(x,
 
   el <- simulate(x, samples, seed=seed,
                  new.data.dyad,
-                 new.data.monad,
-                 parametric_mm)
+                 new.data.monad)
   if(!is.null(new.data.dyad)){
     if(is.null(x$forms$timeID)){
       tid <- "(tid)"

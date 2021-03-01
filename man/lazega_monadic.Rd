@@ -4,7 +4,8 @@
 \name{lazega_monadic}
 \alias{lazega_monadic}
 \title{Monadic predictors in the Lazega friendship network (Lazega 2001).}
-\format{A data frame with 71 rows and 7 variables:
+\format{
+A data frame with 71 rows and 7 variables:
 \describe{
   \item{Lawyer}{lawyer ID,corresponding to identifiers common
          to those in \code{lazega_dyadic}; numeric}
@@ -14,7 +15,8 @@
   \item{Practice}{1=litigation; 2=corporate; factor}
   \item{Seniority}{time in the firm, in years; numeric}
   \item{Status}{1=partner; 2=associate; factor}
-}}
+}
+}
 \source{
 Emmanuel Lazega, \emph{The Collegial Phenomenon: The Social Mechanisms of Cooperation Among Peers in a Corporate Law Partnership}, Oxford University Press (2001).
 

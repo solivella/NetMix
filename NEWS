@@ -1,4 +1,13 @@
-NetMix 0.5
+NetMix 0.2.0
+--------------------------------------
+- Add online estimation algorithm for
+  large networks
+  
+- Add new plot styles
+
+- Fix minor bugs
+
+NetMix 0.1.5
 --------------------------------------
 - Add standard error computation
   for regression coefficients and 
@@ -6,6 +15,6 @@ NetMix 0.5
   
 - Fix minor bugs  
 
-NetMix 0.4
+NetMix 0.1.4
 --------------------------------------
 - First version on CRAN
