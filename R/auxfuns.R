@@ -339,7 +339,6 @@
       }
       if(ctrl$spectral) {
         n_elem <- n.blocks[1] + 1
-        #res <- RSpectra::eigs_sym(U, n_elem)
         res <- eigen(U)
         sel_val <- order(abs(res$values), decreasing = TRUE)[1:n_elem] 
         eta <- res$vectors[,sel_val] %*% diag(res$values[sel_val])
