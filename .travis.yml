@@ -1,5 +1,10 @@
 language: R
 warnings_are_errors: true
+jobs:
+  include:
+    - stage: prepare cache
+      script: true
+    - stage: test
 env:
   global:
     - R_BUILD_ARGS="--no-build-vignettes --no-manual"
