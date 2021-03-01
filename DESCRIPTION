@@ -16,8 +16,8 @@ Description: Stochastic collapsed variational inference on mixed-membership stoc
              historical periods. In addition, the package offers a variety of utilities for 
              exploring results of estimation, including tools for conducting posterior 
              predictive checks of goodness-of-fit and several plotting functions. The package 
-             implements methods described in Olivella, Pratt and Imai (2019) ``Dynamic Stochastic
-             Blockmodel Regression for Social Networks: Application to International Conflicts'',
+             implements methods described in Olivella, Pratt and Imai (2019) 'Dynamic Stochastic
+             Blockmodel Regression for Social Networks: Application to International Conflicts',
              available at <https://www.santiagoolivella.info/pdfs/socnet.pdf>.
 BugReports: https://github.com/solivella/NetMix/issues 
 NeedsCompilation: yes
