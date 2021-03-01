@@ -51,11 +51,9 @@ plotwebB <-
       low.order <- 1:dim(web)[1]
       high.order <- 1:dim(web)[2]
       
-      # moved by CFD because otherwise the order is not the same as in the original matrix:
       if (length(colnames(web)) == 0) colnames(web) <- colnames(web, do.NULL = FALSE)
       if (length(rownames(web)) == 0) rownames(web) <- rownames(web, do.NULL = FALSE)
       
-      # CFD: 
       if (NROW(web) == 1 | NCOL(web) ==1) {
         #stop("Doesn't work with only one species in one of the levels.")
         xlim <- low.order
@@ -176,21 +174,16 @@ plotwebB <-
       
       
       wleft = 0
-      # old code:
-      #wright = (max(n.high, n.low)) * min(low_spacing,high_spacing) +1+max(sum(diffh),sum(difff))
-      #if (!is.null(high.spacing))  high_spacing <- high.spacing
-      #if (!is.null(low.spacing))   low_spacing <- low.spacing
-      ## new code by Dirk Raetzel, introduced in version 1.18:
       if (!is.null(high.spacing)) high_spacing <- high.spacing
       if (!is.null(low.spacing)) low_spacing <- low.spacing
       wright = (max(n.high, n.low)) * min(low_spacing, high_spacing) + 1 + max(sum(diffh), sum(difff))
-      ## end new code
+      
       wup <- 1.6 + y.width.high +  0.05 #we need some space for labels
       wdown <- 0.4 - y.width.low -  0.05 #we need some space for labels
       if (is.null(y.lim)) y.lim <- range(wdown/ybig, wup * ybig)
       if (is.null(x.lim)) x.lim <- range(wleft, wright)
       
-      ### beginn of plotting
+      ### begin plotting
       if (add==FALSE)     plot(0, type = "n", xlim = x.lim, ylim = y.lim, axes = plot.axes, xlab = "", ylab = "")
       
       # plotting of highator boxes....
@@ -274,14 +267,6 @@ plotwebB <-
       py <- c(0, 0, 0, 0)
       high_x <- 0
       
-      #zwischenweb <- web
-      #XYcoords <- matrix(ncol = 2, nrow = length(zwischenweb))
-      #for (i in 1:length(zwischenweb)) {
-      #    XYcoords[i,1:2 ] <- which(zwischenweb == max(zwischenweb),
-      #        arr.ind = TRUE)[1, ]
-      #    zwischenweb[XYcoords[i, 1], XYcoords[i, 2]] <- -1
-      #}
-      ## new code by Dirk Raetzel, introduced in version 1.18:
       web.df <- data.frame(row=rep(1:n.low,n.high),col=rep(1:n.high,each=n.low),dat=c(web))
       web.df <- web.df[order(-web.df$dat),]
       XYcoords <- as.matrix(web.df[,1:2])
@@ -331,22 +316,20 @@ plotwebB <-
             x3=colSums(tweb)[i]/websum/2; x4=x3;
           }
         }
-        # calculate color of interaction based on web order
+        # calculate color of interaction/edge based on web order
         if(!is.null(party_color_info)){ #names(low_prop) has the senator names
           senator <- names(low_prop)[i]
           party <- party_color_info$party[which(party_color_info$name==as.character(senator))]
           #transparency of colors to allow overlap of interactions to create overlay/mixed colors
-          tmp_col<-ifelse(party=="Democrat","dodgerblue4","orangered1")
-          icol<-unlist(lapply(tmp_col,t_col,percent=20))
-          #icol<-ifelse(party=="Democrat","dodgerblue4","orangered1")
+          tmp_col<-ifelse(party=="Democrat","darkslateblue","firebrick4")
+          icol<-.t_col(tmp_col,percent=20)# make it %transparent
           #party_color_info should be two col dataframe, with senator name and party; senator name must match passed in web
           
         }else if (!is.null(bills_color_info)){ #bills info
           bill <- names(high_prop)[j]
           party <-bills_color_info$party[which(bills_color_info$name==as.character(bill))]
-          tmp_col<-ifelse(party=="Democrat","dodgerblue4",ifelse(party=="Republican","orangered1","gray"))
-          icol<-unlist(lapply(tmp_col,t_col,percent=20))
-          #icol<-ifelse(party=="Democrat","dodgerblue1",ifelse(party=="Republican","orangered1","gray"))
+          tmp_col<-ifelse(party=="Democrat","darkslateblue",ifelse(party=="Republican","firebrick4","gray"))
+          icol<- .t_col(tmp_col,percent=20)# make it %transparent
         }else{ #normal settings
           icol <- col.interaction[((low.order[XYcoords[p,1]]-1)* (length(high.order))+(high.order[XYcoords[p,2]]-1)) %% (length(col.interaction))+1]
         }
