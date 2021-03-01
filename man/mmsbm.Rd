@@ -50,6 +50,9 @@ least three variables: the sender identifier (or identifier of the first node in
 the receiver identifier (or identifier of the second node in an undirected network dyad), and the value
 of the edge between them. Currently, only edges between zero and one (inclusive) are supported.}
 
+\item{data.monad}{Data frame. Nodal atributes. Must contain a node identifier matching the names of nodes
+used in the \code{data.dyad} data frame.}
+
 \item{n.blocks}{Integer value. How many latent groups should be used to estimate the model?}
 
 \item{n.hmmstates}{Integer value. How many hidden Markov state should be used in the HMM? Defaults 

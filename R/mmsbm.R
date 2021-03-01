@@ -26,6 +26,8 @@
 #'    least three variables: the sender identifier (or identifier of the first node in an undirected networks dyad),
 #'    the receiver identifier (or identifier of the second node in an undirected network dyad), and the value
 #'    of the edge between them. Currently, only edges between zero and one (inclusive) are supported.
+#' @param data.monad Data frame. Nodal atributes. Must contain a node identifier matching the names of nodes
+#'    used in the \code{data.dyad} data frame.     
 #' @param n.blocks Integer value. How many latent groups should be used to estimate the model?
 #' @param n.hmmstates Integer value. How many hidden Markov state should be used in the HMM? Defaults 
 #'    to 1 (i.e. no HMM).  
@@ -603,7 +605,7 @@ mmsbm <- function(formula.dyad,
     
     fit$vcov_monad <- .vcovBeta(all_phi, fit[["MonadCoef"]], ctrl$se_sim, n.blocks,
                                  n.hmmstates, fit[["TotNodes"]], periods,
-                                 ctrl$mu_beta, ctrl$var_beta, fit[["Kappa"]], t_id_n, X_t, fit) 
+                                 ctrl$mu_beta, ctrl$var_beta, fit[["Kappa"]], t_id_n, X_t) 
     
     
     ## and for dyadic coefficients

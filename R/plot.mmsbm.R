@@ -126,10 +126,11 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, node=NULL, ...){ # network gra
                      Val = plogis(c(bm)))
     dm <- dm[complete.cases(dm),]
     dm$Sender  <- factor(dm$Sender, levels=rev(paste("Group", 1:nrow(bm))))
-    p <- ggplot2::ggplot(aes(y = Sender, x = Receiver, fill=Val), data = dm) +
+    p <- ggplot2::ggplot(ggplot2::aes_string(y = "Sender", x = "Receiver", fill="Val"), data = dm) +
       ggplot2::ggtitle("Edge Formation Between Blocs") + 
-      ggplot2::theme(plot.title = element_text(hjust = 0.5)) +
-      ggplot2::geom_tile(color = "white") + theme_bw()+
+      ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5)) +
+      ggplot2::geom_tile(color = "white") + 
+      ggplot2::theme_bw() +
       ggplot2::scale_size(guide='none') +
       ggplot2::scale_fill_gradient2(low = "#FEE0D2", mid = "#FB6A4A", high = "#99000D",
                                     midpoint = max(dm$Val)/2, limit = c(0,max(dm$Val)), name="Edge\nProbability")

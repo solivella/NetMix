@@ -55,8 +55,7 @@ alphaGrad(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
   var.beta,
   est_kappa,
   t_id_n,
-  X,
-  fit
+  X
 )
 
 .e.pi(alpha_list, kappa, C_mat = NULL)
@@ -74,7 +73,7 @@ alphaGrad(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 )
 }
 \arguments{
-\item{y}{Numeric vector; vector of edge values.}
+\item{y, d_id, pi_mat, directed}{Internal arguments for blockmodel approximation.}
 
 \item{par}{Vector of parameter values.}
 
@@ -91,6 +90,8 @@ alphaGrad(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 \item{mu_beta, var_beta}{Numeric arrays; prior mean and variances of monadic coefficients.}
 
 \item{...}{Numeric vectors; vectors of potentially different length to be cbind-ed.}
+
+\item{x, keep_const}{Internal arguments for matrix scaling.}
 
 \item{orig}{Object to be transformed.}
 
@@ -126,19 +127,15 @@ realigning matrices? defaults to \code{TRUE}.}
 \item{beta}{Numeric array; array of coefficients associated with monadic predictors. 
 It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.}
 
+\item{all_phi, beta_coef, n.sim, n.blk, n.hmm, n.nodes, n.periods, mu.beta, var.beta, est_kappa, t_id_n, }{Additional internal arguments for covariance estimation.}
+
 \item{alpha_list}{List of mixed-membership parameter matrices.}
 
 \item{kappa}{Numeric matrix; matrix of marginal HMM state probabilities.}
 
 \item{C_mat}{Numeric matrix; matrix of posterior counts of block instantiations per node.}
 
-\item{dyads, all.nodes1, all.nodes2}{Arguments to internal function creating adjacency/affiliation matrices from data.frames}
-
-\item{devs}{Vector of standard deviations to use in transformation of variances. Defaults to \code{NULL}.}
-
-\item{.soc_mats, Y, dyads, edges, t_id_d, t_id_n, nodes_pp, dyads_pp, nt_id, node_id_period, mu_b, var_b, n_dyads, n.blocks, periods, ctrl}{Internal arguments for initialization.}
-
-\item{m1, bootrep, blist1, blist2}{Arguments to internal fiunctions for bootstrapping}
+\item{soc_mats, dyads, edges, nodes_pp, dyads_pp, n.blocks, periods, ctrl}{Internal arguments for MM computation.}
 }
 \value{
 See individual return section for each function:

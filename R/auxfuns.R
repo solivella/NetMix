@@ -20,7 +20,6 @@
 #' @param alpha_list List of mixed-membership parameter matrices. 
 #' @param kappa Numeric matrix; matrix of marginal HMM state probabilities.
 #' @param C_mat Numeric matrix; matrix of posterior counts of block instantiations per node. 
-#' @param y Numeric vector; vector of edge values.
 #' @param colPalette A function produced by \code{colorRamp}.
 #' @param range The range of values to label the legend.
 #' @param par Vector of parameter values.
@@ -36,10 +35,10 @@
 #' @param des.mat Numeric matrix. Design matrix corresponding to transformed object.
 #' @param nblock Number of groups in model, defaults to \code{NULL}.
 #' @param nstate Number of hidden Markov states in model, defaults to \code{NULL}.
-#' @param devs Vector of standard deviations to use in transformation of variances. Defaults to \code{NULL}.
-#' @param dyads,all.nodes1,all.nodes2 Arguments to internal function creating adjacency/affiliation matrices from data.frames
-#' @param .soc_mats,Y,dyads,edges,t_id_d,t_id_n,nodes_pp,dyads_pp,nt_id,node_id_period,mu_b,var_b,n_dyads,n.blocks,periods,ctrl Internal arguments for initialization.
-#' @param m1,bootrep,blist1,blist2 Arguments to internal fiunctions for bootstrapping 
+#' @param x,keep_const Internal arguments for matrix scaling.
+#' @param y,d_id,pi_mat,directed Internal arguments for blockmodel approximation.
+#' @param soc_mats,dyads,edges,nodes_pp,dyads_pp,n.blocks,periods,ctrl Internal arguments for MM computation.
+#' @param all_phi,beta_coef,n.sim,n.blk,n.hmm,n.nodes,n.periods,mu.beta,var.beta,est_kappa,t_id_n, Additional internal arguments for covariance estimation.
 #' @param ... Numeric vectors; vectors of potentially different length to be cbind-ed.
 #' 
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (aylo@@wisc.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
@@ -238,7 +237,7 @@
 
 #' @rdname auxfuns
 .vcovBeta <- function(all_phi, beta_coef, n.sim, n.blk, n.hmm, n.nodes, n.periods,
-                      mu.beta, var.beta, est_kappa, t_id_n, X, fit){
+                      mu.beta, var.beta, est_kappa, t_id_n, X){
   sampleC_perm <- do.call(rbind,
                           lapply(all_phi,
                          function(mat){

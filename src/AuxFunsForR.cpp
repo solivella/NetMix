@@ -1,7 +1,7 @@
 #include <RcppArmadillo.h>
 
 //' @rdname auxfuns
-// [[Rcpp::export(approxB)]]
+// [[Rcpp::export()]]
 Rcpp::NumericMatrix approxB(Rcpp::NumericVector y,
                             Rcpp::IntegerMatrix d_id,
                             Rcpp::NumericMatrix pi_mat, 
@@ -36,7 +36,7 @@ Rcpp::NumericMatrix approxB(Rcpp::NumericVector y,
 }
 
 //' @rdname auxfuns
-//[[Rcpp::export(getZ)]]
+//[[Rcpp::export()]]
 Rcpp::IntegerMatrix getZ(Rcpp::NumericMatrix pi_mat)
 {
   int NROW = pi_mat.nrow();
