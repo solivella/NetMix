@@ -46,12 +46,16 @@
 #'                       data.monad = lazega_monadic,
 #'                       n.blocks = 2,
 #'                       mmsbm.control = list(seed = 123,
+#'                                            conv_tol = 1e-2,
 #'                                            hessian = FALSE))
 #' 
 #' ## Plot observed (red) and simulated (gray) distributions over 
 #' ## indegrees
 #' ## (typically a larger number of samples would be taken) 
+#' ## (strictly requires ggplot2)
+#' \donttest{
 #' gof(lazega_mmsbm, gof_stat = "Indegree", samples = 2)
+#' }
 #'
 
 gof <- function (x, ...) {
