@@ -24,22 +24,22 @@ covGroupB<-function(fm, cov=NULL, family=NULL, groupassign="expected"){
   if(is.null(cov)){cat("Error: no covariate selected.")}
   if(is.null(family)){cat("Error: no node family selected -- please choose 1 or 2.")}
   if(family==1){
-    covariate<-fm$monadic1.data[,cov]
+    covariate<-fm$monadic.data[[1]][,cov]
   }else{
-    covariate<-fm$monadic2.data[,cov]
+    covariate<-fm$monadic.data[[2]][,cov]
   }
   #if(class(covariate)!="numeric"|class(covariate)!="integer"|class(covariate)!="factor"){
     #scat("Error: covariate must be numeric/integer/factor class.")}
   
   if(family==1){tmp_blk<-fm$n_blocks1}else{tmp_blk<-fm$n_blocks2}
-  if(family==1){tmp_membership<-fm$`MixedMembership 1`}else{tmp_membership<-fm$`MixedMembership 2`}
+  if(family==1){tmp_membership<-fm$`MixedMembership1`}else{tmp_membership<-fm$`MixedMembership2`}
   ## Univariate Density Estimate Comparisons
   if(class(covariate)=="numeric"|class(covariate)=="integer"){
     tmp_col<-viridis(tmp_blk,option="E")
     groups<-apply(tmp_membership,2,which.max)
     groups.label <- factor(groups, levels= 1:tmp_blk,
                            labels = 1:tmp_blk) 
-    sm.density.compare(covariate, groups, col=tmp_col, xlab=paste(cov))
+    sm.density.compare(covariate, groups, col=tmp_col, xlab=paste(cov), lwd=3)
     legend("topright", levels(groups.label), fill=tmp_col)
   }
   if(class(covariate)=="factor"& groupassign=="max"){
