@@ -40,7 +40,7 @@ covGroupB<-function(fm, cov=NULL, family=NULL, groupassign="expected"){
     groups.label <- factor(groups, levels= 1:tmp_blk,
                            labels = 1:tmp_blk) 
     sm.density.compare(covariate, groups, col=tmp_col, xlab=paste(cov), lwd=3)
-    legend("topright", levels(groups.label), fill=tmp_col)
+    legend("topright", levels(as.factor(groups)), fill=tmp_col)
   }
   if(class(covariate)=="factor"& groupassign=="max"){
     groups<-apply(tmp_membership,2,which.max)

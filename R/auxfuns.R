@@ -147,9 +147,29 @@
 }
 
 #' @rdname auxfuns
+# .scaleVars <- function(x, keep_const = TRUE){
+#   A <- model.matrix(terms(x), x) #assumes intercept comes first
+#   A <- scale(A)
+#   constx <- which(colnames(A)=="(Intercept)")
+#   if(keep_const){
+#     A[,constx] <- 1
+#     attr(A, "scaled:scale") <- c(1, attr(A, "scaled:scale")[-constx])
+#     attr(A, "scaled:center") <- c(0, attr(A, "scaled:center")[-constx])
+#   } else {
+#     attr_tmp <- list(attr(A, "scaled:center")[-constx],
+#                      attr(A, "scaled:scale")[-constx])
+#     A <- A[,-constx, drop = FALSE]
+#     attr(A, "scaled:center") <- attr_tmp[[1]]
+#     attr(A, "scaled:scale") <- attr_tmp[[2]]
+#   }
+#   return(A)
+# }
 .scaleVars <- function(x, keep_const = TRUE){
   A <- model.matrix(terms(x), x) #assumes intercept comes first
-  A <- scale(A)
+  which_cont <- which(apply(A, 2, function(a)length(unique(a))>2))
+  A_sd <- rep(1, ncol(A))
+  A_sd[which_cont] <- apply(A[,which_cont, drop = FALSE], 2, sd)*2
+  A <- scale(A, TRUE, A_sd)
   constx <- which(colnames(A)=="(Intercept)")
   if(keep_const){
     A[,constx] <- 1
@@ -164,6 +184,7 @@
   }
   return(A)
 }
+
 
 #' @rdname auxfuns
 .transf_muvar <- function(orig, is_var, is_array, des.mat, nblock=NULL, nstate=NULL){
@@ -588,21 +609,3 @@
   res
 }
 
-#' @rdname auxfuns
-.t_col <- function(color, percent = 50, name = NULL) {
-  #      color = color name
-  #    percent = % transparency
-  #       name = an optional name for the color
-  
-  ## Get RGB values for named color
-  rgb.val <- col2rgb(color)
-  
-  ## Make new color using input color as base and alpha set by transparency
-  t.col <- rgb(rgb.val[1], rgb.val[2], rgb.val[3],
-               max = 255,
-               alpha = (100 - percent) * 255 / 100,
-               names = name)
-  
-  ## Save the color
-  invisible(t.col)
-}

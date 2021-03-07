@@ -207,7 +207,7 @@ mmsbm <- function(formula.dyad,
                vi_iter = 500,
                hessian = TRUE,
                se_sim = 10,
-               dyad_vcov_samp = 100,
+               dyad_vcov_samp = 1000,
                opt_iter = 10e3,
                mu_block = c(5.0, -5.0),
                var_block = c(5.0, 5.0),
@@ -411,11 +411,11 @@ mmsbm <- function(formula.dyad,
   Z_mean <- attr(Z, "scaled:center")
   Z_sd <- attr(Z, "scaled:scale")
   n_dyad_pred <- ncol(Z)
-  if(n_dyad_pred == 0){
-    Z <- matrix(0, nrow = nrow(Z), ncol = 1)
-  }
+  #if(n_dyad_pred == 0){
+    #Z <- matrix(0, nrow = nrow(Z), ncol = 1)
+  #}
   
-  ## Modify prior means and variances to match transformed model matrix
+  ## Modify prior means and variances to match transformed model matrix (note Z kept pretransformation to modify priors respect scale)
   ctrl$mu_gamma <- .transf_muvar(ctrl$mu_gamma, FALSE, FALSE, Z)
   ctrl$var_gamma <- .transf_muvar(ctrl$var_gamma, TRUE, FALSE, Z)
   ctrl$mu_beta1 <- .transf_muvar(ctrl$mu_beta[[1]], FALSE, TRUE, X1, n.blocks[1], n.hmmstates)
@@ -577,6 +577,11 @@ mmsbm <- function(formula.dyad,
     names(ctrl$gamma_init) <- names(ctrl$mu_gamma)
   }
   
+  ## 
+  if(n_dyad_pred == 0){
+    Z <- matrix(0, nrow = nrow(Z), ncol = 1)
+  }
+  
   ##Initial Blockmodel
   if(is.null(ctrl$block_init_t)){
     ctrl$block_init_t <- array(rnorm(mu_block, mu_block, sqrt(var_block)), c(n.blocks[2], n.blocks[1]))
@@ -683,12 +688,10 @@ mmsbm <- function(formula.dyad,
   fit[["BlockModel"]] <- t(fit[["BlockModel"]])
   
   ## Rescale and name coefficients
-  if(any(which(Z_sd==0))){
-  fit[["DyadCoef"]] <- fit[["DyadCoef"]] / Z_sd[-which(Z_sd==0)]
-  }else{fit[["DyadCoef"]] <- fit[["DyadCoef"]] / Z_sd}
+  fit[["DyadCoef"]] <- fit[["DyadCoef"]] / Z_sd
   if(length(fit[["DyadCoef"]])>0){
-    Z <- t(t(Z) * Z_sd + Z_mean)
-    fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean %*% fit[["DyadCoef"]])
+    Z <- t(t(Z) * Z_sd + Z_mean) #unscale
+    fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean %*% fit[["DyadCoef"]]) #recenter block model fixed effects
     names(fit[["DyadCoef"]]) <- colnames(Z) 
   }
   fit[["MonadCoef1"]] <- .transfBeta(fit[["MonadCoef1"]], n.hmmstates,
@@ -754,7 +757,7 @@ mmsbm <- function(formula.dyad,
     hessTheta_list <- mapply(
       function(send_samp, rec_samp, y_vec, Z_d, par_theta, mu_b_mat, var_b_mat, var_g, mu_g, dir_net, group_mat, lambda_vec)
       {
-        n_samp <- min(ctrl$dyad_vcov_samp, floor(ncol(Z_d)*0.25))
+        n_samp <- min(ctrl$dyad_vcov_samp, floor(ncol(Z_d)*0.1))
         samp_ind <- sample(1:ncol(Z_d), n_samp)
         tries <- 0
         if(any(Z_d!=0)){ #to eval grad without all obs
