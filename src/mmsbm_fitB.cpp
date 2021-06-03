@@ -33,7 +33,6 @@ Rcpp::List mmsbm_fitBi(const arma::mat& z_t,
 )
 {
   //Create model instance
-Rprintf("Create model instance... \n"); //Bug in ModelB-- crashing
   MMModelB ModelB(z_t,
                 x1_t,
                 x2_t,
