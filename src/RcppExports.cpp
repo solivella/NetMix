@@ -32,9 +32,37 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// alphaLB
-double alphaLB(arma::vec par, arma::uvec tot_nodes, arma::umat c_t, arma::mat x_t, arma::umat s_mat, arma::uvec t_id, arma::cube var_beta, arma::cube mu_beta);
-RcppExport SEXP _NetMix_alphaLB(SEXP parSEXP, SEXP tot_nodesSEXP, SEXP c_tSEXP, SEXP x_tSEXP, SEXP s_matSEXP, SEXP t_idSEXP, SEXP var_betaSEXP, SEXP mu_betaSEXP) {
+// vcovGamma
+arma::mat vcovGamma(const arma::mat& X, const arma::vec& probs, const arma::vec& pen);
+RcppExport SEXP _NetMix_vcovGamma(SEXP XSEXP, SEXP probsSEXP, SEXP penSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type probs(probsSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type pen(penSEXP);
+    rcpp_result_gen = Rcpp::wrap(vcovGamma(X, probs, pen));
+    return rcpp_result_gen;
+END_RCPP
+}
+// vcovBeta
+arma::mat vcovBeta(const arma::mat& X, const arma::mat& pi_mat, const arma::mat& alpha, const arma::vec& alpha_sum, const arma::vec& pen);
+RcppExport SEXP _NetMix_vcovBeta(SEXP XSEXP, SEXP pi_matSEXP, SEXP alphaSEXP, SEXP alpha_sumSEXP, SEXP penSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type pi_mat(pi_matSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type alpha_sum(alpha_sumSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type pen(penSEXP);
+    rcpp_result_gen = Rcpp::wrap(vcovBeta(X, pi_mat, alpha, alpha_sum, pen));
+    return rcpp_result_gen;
+END_RCPP
+}
+// alphaLBound
+double alphaLBound(arma::vec par, arma::uvec tot_nodes, arma::umat c_t, arma::mat x_t, arma::umat s_mat, arma::uvec t_id, arma::cube var_beta, arma::cube mu_beta);
+RcppExport SEXP _NetMix_alphaLBound(SEXP parSEXP, SEXP tot_nodesSEXP, SEXP c_tSEXP, SEXP x_tSEXP, SEXP s_matSEXP, SEXP t_idSEXP, SEXP var_betaSEXP, SEXP mu_betaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -46,7 +74,25 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::uvec >::type t_id(t_idSEXP);
     Rcpp::traits::input_parameter< arma::cube >::type var_beta(var_betaSEXP);
     Rcpp::traits::input_parameter< arma::cube >::type mu_beta(mu_betaSEXP);
-    rcpp_result_gen = Rcpp::wrap(alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta));
+    rcpp_result_gen = Rcpp::wrap(alphaLBound(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta));
+    return rcpp_result_gen;
+END_RCPP
+}
+// alphaGrad
+arma::vec alphaGrad(arma::vec par, arma::uvec tot_nodes, arma::umat c_t, arma::mat x_t, arma::umat s_mat, arma::uvec t_id, arma::cube var_beta, arma::cube mu_beta);
+RcppExport SEXP _NetMix_alphaGrad(SEXP parSEXP, SEXP tot_nodesSEXP, SEXP c_tSEXP, SEXP x_tSEXP, SEXP s_matSEXP, SEXP t_idSEXP, SEXP var_betaSEXP, SEXP mu_betaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type par(parSEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type tot_nodes(tot_nodesSEXP);
+    Rcpp::traits::input_parameter< arma::umat >::type c_t(c_tSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type x_t(x_tSEXP);
+    Rcpp::traits::input_parameter< arma::umat >::type s_mat(s_matSEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type t_id(t_idSEXP);
+    Rcpp::traits::input_parameter< arma::cube >::type var_beta(var_betaSEXP);
+    Rcpp::traits::input_parameter< arma::cube >::type mu_beta(mu_betaSEXP);
+    rcpp_result_gen = Rcpp::wrap(alphaGrad(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -136,7 +182,10 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_NetMix_approxB", (DL_FUNC) &_NetMix_approxB, 5},
     {"_NetMix_getZ", (DL_FUNC) &_NetMix_getZ, 1},
-    {"_NetMix_alphaLB", (DL_FUNC) &_NetMix_alphaLB, 8},
+    {"_NetMix_vcovGamma", (DL_FUNC) &_NetMix_vcovGamma, 3},
+    {"_NetMix_vcovBeta", (DL_FUNC) &_NetMix_vcovBeta, 5},
+    {"_NetMix_alphaLBound", (DL_FUNC) &_NetMix_alphaLBound, 8},
+    {"_NetMix_alphaGrad", (DL_FUNC) &_NetMix_alphaGrad, 8},
     {"_NetMix_vertboot_matrix_rcpp2", (DL_FUNC) &_NetMix_vertboot_matrix_rcpp2, 3},
     {"_NetMix_mmsbm_fit", (DL_FUNC) &_NetMix_mmsbm_fit, 20},
     {"_NetMix_mmsbm_fitBi", (DL_FUNC) &_NetMix_mmsbm_fitBi, 29},

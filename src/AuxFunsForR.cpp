@@ -70,6 +70,64 @@ Rcpp::IntegerMatrix getZ(Rcpp::NumericMatrix pi_mat)
 }
 
 //' @rdname auxfuns
+// [[Rcpp::export]]
+arma::mat vcovGamma(const arma::mat& X,
+                    const arma::vec& probs, //must be computed using offset given by blockmodel and estimated mm's
+                    const arma::vec& pen) {
+  arma::uword N_PRED = X.n_cols;
+  arma::mat hess(N_PRED, N_PRED, arma::fill::zeros);
+  arma::vec d_elem = probs % (1.0 - probs);
+  for(arma::uword dc = 0; dc < N_PRED; ++dc){
+    for(arma::uword dr = dc; dr < N_PRED; ++dr){
+      hess(dr, dc) = -arma::dot(X.col(dr),(d_elem % X.col(dc)));
+      hess(dc, dr) = hess(dr, dc);
+    }
+  }
+  hess.diag() -= (1.0) / pen;
+  return hess.i();
+}
+
+//' @rdname auxfuns
+// [[Rcpp::export]]
+arma::mat vcovBeta(const arma::mat& X,
+                   const arma::mat& pi_mat,
+                   const arma::mat& alpha,
+                   const arma::vec& alpha_sum,
+                   const arma::vec& pen) {
+  arma::uword N_PRED = X.n_cols;
+  arma::uword N_BLK = alpha.n_cols;
+  arma::mat hess(N_PRED*N_BLK, N_PRED*N_BLK, arma::fill::zeros);
+  arma::mat di_alpha = alpha, tri_alpha = alpha;
+  di_alpha.for_each([](arma::mat::elem_type& val){val=R::digamma(val);});
+  tri_alpha.for_each([](arma::mat::elem_type& val){val=R::trigamma(val);});
+  arma::vec di_alpha_sum = alpha_sum, tri_alpha_sum = alpha_sum;
+  di_alpha_sum.for_each([](arma::vec::elem_type& val){ val=R::digamma(val);});
+  tri_alpha_sum.for_each([](arma::vec::elem_type& val){ val=R::trigamma(val);});
+  arma::mat l_pi = log(pi_mat + 1e-6);
+  arma::uword ind = 0;
+  for(arma::uword blkc = 0; blkc < N_BLK; ++blkc){
+    for(arma::uword blkr = 0; blkr < N_BLK; ++blkr){
+      for(arma::uword dc = 0; dc < N_PRED; ++dc){
+        for(arma::uword dr = 0; dr < N_PRED; ++dr){
+          ind = (dr + N_PRED * blkr) + (dc + N_PRED * blkc) * (N_PRED * N_BLK);
+          if(blkr == blkc){
+            hess.at(ind) =  arma::accu((X.col(dr) % X.col(dc) % alpha.col(blkr)) %
+              (l_pi.col(blkr) + di_alpha_sum - di_alpha.col(blkr)
+                 + alpha.col(blkr) % (tri_alpha_sum - tri_alpha.col(blkr))));
+          } else {
+            hess.at(ind) = arma::dot((X.col(dr) % X.col(dc)), 
+                    alpha.col(blkr) % alpha.col(blkc) % tri_alpha_sum);
+          }
+        }
+      } 
+    }
+  }
+  //hess = arma::symmatl(hess);
+  hess.diag() -= (1.0) / pen;
+  return (-hess).i();
+}
+
+//' @rdname auxfuns
 // [[Rcpp::export()]]
 double alphaLBound(arma::vec par,
                arma::uvec tot_nodes,

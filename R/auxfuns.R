@@ -11,6 +11,9 @@
 #' @param method String, indicating type of missing data handling procesure. 
 #' @param mat Numeric matrix.
 #' @param p Numeric scalar; power to raise matrix to.
+#' @param prob Numeric vector; predicted probabilities of edges.
+#' @param pen Numeric vector; prior coefficient variaces.
+#' 
 #' @param block_list List of matrices; each element is a square, numeric matrix 
 #'                   that defines a blockmodel,
 #' @param target_mat Numeric matrix; reference blockmodel that those in block_list should 
@@ -21,12 +24,14 @@
 #' @param beta Numeric array; array of coefficients associated with monadic predictors. 
 #'             It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.
 #' @param alpha_list List of mixed-membership parameter matrices. 
+#' @param alpha Numeric matrix; Mixed-membership parameter matrix.
+#' @param alpha_sum Numeric vector; sums of rows of alpha (Nr. of nodes x 1). 
 #' @param kappa Numeric matrix; matrix of marginal HMM state probabilities.
 #' @param C_mat Numeric matrix; matrix of posterior counts of block instantiations per node. 
 #' @param y Numeric vector; vector of edge values.
 #' @param d_id Integer matrix; two-column matrix with nr. dyads rows, containing zero-based
 #'             sender (first column) and receiver (second column) node id's for each dyad. 
-#' @param pi1_mat,pi2_mat_tmp Numeric matrices (or NULL for pi2_mat_tmp); row-stochastic matrices of mixed-memberships. 
+#' @param pi_mat,pi1_mat,pi2_mat_tmp Numeric matrices (or NULL for pi2_mat_tmp); row-stochastic matrices of mixed-memberships. 
 #' @param colPalette A function produced by \code{colorRamp}.
 #' @param range The range of values to label the legend.
 #' @param par Vector of parameter values.
@@ -328,64 +333,64 @@
   return(pi.states)
 }
 
-#' @rdname auxfuns
-.vcovBeta <- function(all_phi, beta_coef, n.sim, n.blk, n.hmm, n.nodes, n.periods,
-                      mu.beta, var.beta, est_kappa, t_id_n, X, fit){
-  sampleC_perm <- do.call(rbind,
-                          lapply(all_phi,
-                         function(mat){
-                           apply(mat, 2, function(vec)poisbinom::rpoisbinom(n.sim, vec))
-                         })) 
-  C_samples <- split.data.frame(sampleC_perm, rep(1:n.sim, times = length(all_phi)))
-  S_samples <- replicate(n.sim, apply(est_kappa, 2, function(x)sample(1:n.hmm, 1, prob = x)), simplify = FALSE)
-  hessBeta_list <- mapply(
-    function(C_samp, S_samp, tidn, X_i, Nvec, beta_vec, vbeta, mbeta, periods)
-    {
-      if(n.hmm > 1) {
-        s_matrix <- t(model.matrix(~factor(S_samp, 1:n.hmm) - 1))
-      } else {
-        s_matrix <- matrix(1, ncol=periods)
-      }
-      tot_in_state <- rowSums(s_matrix)
-      if(any(tot_in_state == 0.0)){
-        which_empty_s <- which(tot_in_state < 1.0)
-        
-        warning("Some HMM states are empty; no standard errors will be returned for coefficients associated with them.")
-      }  
-      hess_tmp <- optimHess(c(beta_vec),alphaLBound,alphaGrad,
-                            tot_nodes = Nvec,
-                            c_t = t(C_samp),
-                            x_t = X_i,
-                            s_mat = s_matrix,
-                            t_id = tidn,
-                            var_beta = vbeta,
-                            mu_beta = mbeta)
-      vc_tmp <- Matrix::forceSymmetric(solve(hess_tmp))
-      ev <- eigen(vc_tmp)$value
-      if(any(ev<0)){
-        vc_tmp <- vc_tmp - diag(min(ev)-1e-4, ncol(vc_tmp))
-      }
-      ch_vc <- chol(vc_tmp)
-      return(t(ch_vc) %*% ch_vc)
-    },
-    C_samples, S_samples,
-    MoreArgs = list(tidn = t_id_n,
-                    X_i = X,
-                    Nvec = n.nodes,
-                    beta_vec = beta_coef, 
-                    vbeta = var.beta, 
-                    mbeta = mu.beta,
-                    periods = n.periods),
-    SIMPLIFY=FALSE)
-  vcov_monad <- Reduce("+", hessBeta_list)/n.sim
-  
-  colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:n.hmm), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
-                                                        rep(colnames(beta_coef), each = nrow(beta_coef), times = n.hmm),#beta_coef used to be fbeta_coef??
-                                                        rep(rownames(beta_coef), times = n.blk*n.hmm),
-                                                        sep=":")
-  return(vcov_monad)
-}
-                                      
+# .vcovBeta <- function(all_phi, beta_coef, n.sim, n.blk, n.hmm, n.nodes, n.periods,
+#                       mu.beta, var.beta, est_kappa, t_id_n, X, fit){
+#   sampleC_perm <- do.call(rbind,
+#                           lapply(all_phi,
+#                          function(mat){
+#                            apply(mat, 2, function(vec)poisbinom::rpoisbinom(n.sim, vec))
+#                          })) 
+#   C_samples <- split.data.frame(sampleC_perm, rep(1:n.sim, times = length(all_phi)))
+#   S_samples <- replicate(n.sim, apply(est_kappa, 2, function(x)sample(1:n.hmm, 1, prob = x)), simplify = FALSE)
+#   hessBeta_list <- mapply(
+#     function(C_samp, S_samp, tidn, X_i, Nvec, beta_vec, vbeta, mbeta, periods)
+#     {
+#       if(n.hmm > 1) {
+#         s_matrix <- t(model.matrix(~factor(S_samp, 1:n.hmm) - 1))
+#       } else {
+#         s_matrix <- matrix(1, ncol=periods)
+#       }
+#       tot_in_state <- rowSums(s_matrix)
+#       if(any(tot_in_state == 0.0)){
+#         which_empty_s <- which(tot_in_state < 1.0)
+#         
+#         warning("Some HMM states are empty; no standard errors will be returned for coefficients associated with them.")
+#       }  
+#       hess_tmp <- optimHess(c(beta_vec),alphaLBound,alphaGrad,
+#                             tot_nodes = Nvec,
+#                             c_t = t(C_samp),
+#                             x_t = X_i,
+#                             s_mat = s_matrix,
+#                             t_id = tidn,
+#                             var_beta = vbeta,
+#                             mu_beta = mbeta)
+#       vc_tmp <- Matrix::forceSymmetric(solve(hess_tmp))
+#       ev <- eigen(vc_tmp)$value
+#       if(any(ev<0)){
+#         vc_tmp <- vc_tmp - diag(min(ev)-1e-4, ncol(vc_tmp))
+#       }
+#       ch_vc <- chol(vc_tmp)
+#       return(t(ch_vc) %*% ch_vc)
+#     },
+#     C_samples, S_samples,
+#     MoreArgs = list(tidn = t_id_n,
+#                     X_i = X,
+#                     Nvec = n.nodes,
+#                     beta_vec = beta_coef, 
+#                     vbeta = var.beta, 
+#                     mbeta = mu.beta,
+#                     periods = n.periods),
+#     SIMPLIFY=FALSE)
+#   vcov_monad <- Reduce("+", hessBeta_list)/n.sim
+#   
+#   colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:n.hmm), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
+#                                                         rep(colnames(beta_coef), each = nrow(beta_coef), times = n.hmm),#beta_coef used to be fbeta_coef??
+#                                                         rep(rownames(beta_coef), times = n.blk*n.hmm),
+#                                                         sep=":")
+#   return(vcov_monad)
+# }
+#                     
+
 #' @rdname auxfuns
 .e.pi <- function(alpha_list, kappa, C_mat = NULL){
   if(is.null(C_mat)){
