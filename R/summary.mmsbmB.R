@@ -2,7 +2,7 @@
 #'
 #' The function summarizes the output of a mmsbmB model object
 #'
-#' @param fm An object of class \code{mmsbmB}, a result of a call to \code{mmsbmB}.
+#' @param object An object of class \code{mmsbmB}, a result of a call to \code{mmsbmB}.
 #' @return List with named components:
 #'     \describe{
 #'       \item{N}{Total number of dyad-time period observations.}
@@ -18,13 +18,17 @@
 #'                        and \code{n.hmmstates} slices.}
 #'       \item{Markov State Probabilities}{Average HMM state probabilities across all time periods. Not currently in usage.}
 #'     }
+#'     
+#' @method summary mmsbmB
+#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (aylo@@wisc.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
+
 
 summary.mmsbmB <- function(object,...){
   summ <- list("Number of Dyads" = nrow(object$dyadic.data),
                "Number of Family 1 Blocks" = nrow(object$BlockModel), 
                "Number of Family 2 Blocks" = ncol(object$BlockModel), 
-               "Percent of Observations in Each Family 1 Block" = rowMeans(object$`MixedMembership 1`),
-               "Percent of Observations in Each Family 2 Block" = rowMeans(object$`MixedMembership 2`),
+               "Percent of Observations in Each Family 1 Block" = rowMeans(object$MixedMembership1),
+               "Percent of Observations in Each Family 2 Block" = rowMeans(object$MixedMembership2),
                "Blockmodel Matrix" = exp(object$BlockModel) / (1 + exp(object$BlockModel)), 
                "Monadic Coefficients 1" = object$MonadCoef1,
                "Monadic Coefficients 2" = object$MonadCoef2)  
