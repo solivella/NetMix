@@ -65,8 +65,10 @@ public:
   
   arma::mat getPostMM1();
   arma::vec getPostMM1(arma::uword);
+  void getPostMM1(arma::mat& res);
   arma::mat getPostMM2();
   arma::vec getPostMM2(arma::uword);
+  void getPostMM2(arma::mat& res);
   arma::mat getC(bool);//, arma::uword, arma::uword);
   void getC(arma::mat& res);
   arma::mat getPhi(bool);
@@ -177,7 +179,8 @@ private:
   rec_phi,
   e_wmn_t,
   new_e_c_t1, new_e_c_t2,
-  e_c_t1, e_c_t2;
+  e_c_t1, e_c_t2,
+  tmp_pi1, tmp_pi2;
   
   arma::cube alpha1,alpha2, //3d array (column major)
   theta,
