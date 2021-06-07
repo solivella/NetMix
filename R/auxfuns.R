@@ -152,23 +152,6 @@
 }
 
 #' @rdname auxfuns
-# .scaleVars <- function(x, keep_const = TRUE){
-#   A <- model.matrix(terms(x), x) #assumes intercept comes first
-#   A <- scale(A)
-#   constx <- which(colnames(A)=="(Intercept)")
-#   if(keep_const){
-#     A[,constx] <- 1
-#     attr(A, "scaled:scale") <- c(1, attr(A, "scaled:scale")[-constx])
-#     attr(A, "scaled:center") <- c(0, attr(A, "scaled:center")[-constx])
-#   } else {
-#     attr_tmp <- list(attr(A, "scaled:center")[-constx],
-#                      attr(A, "scaled:scale")[-constx])
-#     A <- A[,-constx, drop = FALSE]
-#     attr(A, "scaled:center") <- attr_tmp[[1]]
-#     attr(A, "scaled:scale") <- attr_tmp[[2]]
-#   }
-#   return(A)
-# }
 .scaleVars <- function(x, keep_const = TRUE){
   A <- model.matrix(terms(x), x) #assumes intercept comes first
   which_cont <- which(apply(A, 2, function(a)length(unique(a))>2))
@@ -194,10 +177,11 @@
 #' @rdname auxfuns
 .transf_muvar <- function(orig, is_var, is_array, des.mat, nblock=NULL, nstate=NULL){
   if(is_array){
-    tmp <- array(ifelse(is_var, 1.0, 0.0), c(ncol(des.mat), nblock, nstate))
+    tmp <- array(ifelse(is_var, 2.5, 0.0), c(ncol(des.mat), nblock, nstate))
     rownames(tmp) <- colnames(des.mat)
+    tmp["(Intercept)",,] <- 1.0
   } else {
-    tmp <- array(ifelse(is_var, 1.0, 0.0), ncol(des.mat))
+    tmp <- array(ifelse(is_var, 2.5, 0.0), ncol(des.mat))
     names(tmp) <- colnames(des.mat)
   }
   if(length(orig) > 1){
@@ -333,63 +317,33 @@
   return(pi.states)
 }
 
-# .vcovBeta <- function(all_phi, beta_coef, n.sim, n.blk, n.hmm, n.nodes, n.periods,
-#                       mu.beta, var.beta, est_kappa, t_id_n, X, fit){
-#   sampleC_perm <- do.call(rbind,
-#                           lapply(all_phi,
-#                          function(mat){
-#                            apply(mat, 2, function(vec)poisbinom::rpoisbinom(n.sim, vec))
-#                          })) 
-#   C_samples <- split.data.frame(sampleC_perm, rep(1:n.sim, times = length(all_phi)))
-#   S_samples <- replicate(n.sim, apply(est_kappa, 2, function(x)sample(1:n.hmm, 1, prob = x)), simplify = FALSE)
-#   hessBeta_list <- mapply(
-#     function(C_samp, S_samp, tidn, X_i, Nvec, beta_vec, vbeta, mbeta, periods)
-#     {
-#       if(n.hmm > 1) {
-#         s_matrix <- t(model.matrix(~factor(S_samp, 1:n.hmm) - 1))
-#       } else {
-#         s_matrix <- matrix(1, ncol=periods)
-#       }
-#       tot_in_state <- rowSums(s_matrix)
-#       if(any(tot_in_state == 0.0)){
-#         which_empty_s <- which(tot_in_state < 1.0)
-#         
-#         warning("Some HMM states are empty; no standard errors will be returned for coefficients associated with them.")
-#       }  
-#       hess_tmp <- optimHess(c(beta_vec),alphaLBound,alphaGrad,
-#                             tot_nodes = Nvec,
-#                             c_t = t(C_samp),
-#                             x_t = X_i,
-#                             s_mat = s_matrix,
-#                             t_id = tidn,
-#                             var_beta = vbeta,
-#                             mu_beta = mbeta)
-#       vc_tmp <- Matrix::forceSymmetric(solve(hess_tmp))
-#       ev <- eigen(vc_tmp)$value
-#       if(any(ev<0)){
-#         vc_tmp <- vc_tmp - diag(min(ev)-1e-4, ncol(vc_tmp))
-#       }
-#       ch_vc <- chol(vc_tmp)
-#       return(t(ch_vc) %*% ch_vc)
-#     },
-#     C_samples, S_samples,
-#     MoreArgs = list(tidn = t_id_n,
-#                     X_i = X,
-#                     Nvec = n.nodes,
-#                     beta_vec = beta_coef, 
-#                     vbeta = var.beta, 
-#                     mbeta = mu.beta,
-#                     periods = n.periods),
-#     SIMPLIFY=FALSE)
-#   vcov_monad <- Reduce("+", hessBeta_list)/n.sim
-#   
-#   colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:n.hmm), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
-#                                                         rep(colnames(beta_coef), each = nrow(beta_coef), times = n.hmm),#beta_coef used to be fbeta_coef??
-#                                                         rep(rownames(beta_coef), times = n.blk*n.hmm),
-#                                                         sep=":")
-#   return(vcov_monad)
-# }
-#                     
+.vcovBeta <- function(all_phi, beta_coef, n.sim, n.blk,
+                      kappa_mat, var.beta, X, n.hmm,n.nodes){
+  sampleC_perm <- do.call(rbind,
+                          lapply(all_phi,
+                                 function(mat){
+                                   apply(mat, 2, function(vec)poisbinom::rpoisbinom(n.sim, vec))
+                                 }))
+  C_samples <- split.data.frame(sampleC_perm, rep(1:n.sim, times = length(all_phi)))
+  hess_all <- lapply(seq_len(1:n.hmm),
+                     function(m, C_samp){
+                       alpha <- exp(X %*% as.matrix(beta_coef[,,m]))
+                       alpha_sum <- rowSums(alpha)
+                       hess_tmp <- lapply(C_samp,
+                                          function(c_mat, X_mat, A, A_sum, k_m, vb, nn){
+                                            vcovBeta_ext(X_mat, c_mat, A, A_sum, k_m, vb, nn)
+                                          }, X_mat = X, A = alpha, A_sum = alpha_sum, 
+                                          k_m=kappa_mat[,m], vb=var.beta, nn=n.nodes)
+                       return(Reduce("+", hess_tmp)/n.sim)},
+                     C_samp = C_samples)
+  vcov_monad <- do.call(Matrix::bdiag, hess_all)
+  colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:n.hmm), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
+                                                        rep(colnames(beta_coef), each = nrow(beta_coef), times = n.hmm),#beta_coef used to be fbeta_coef??
+                                                        rep(rownames(beta_coef), times = n.blk*n.hmm),
+                                                        sep=":")
+  return(as.matrix(vcov_monad))
+}
+
 
 #' @rdname auxfuns
 .e.pi <- function(alpha_list, kappa, C_mat = NULL){

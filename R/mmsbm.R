@@ -71,7 +71,7 @@
 #'                       is the number of  monadic predictors in the corresponding family for which a prior mean is being set (prior means need not be set for all 
 #'                       predictors). The rows in the array should be named to identify which variables a prior mean is being set for.
 #'                       Defaults to a common prior mean of 0.0 for all monadic coefficients.}           
-#'        \item{var_beta}{See \code{mu_beta}. Defaults to a single common prior variance of 5.0 for all monadic coefficients.}
+#'        \item{var_beta}{See \code{mu_beta}. Defaults to a single common prior variance of 2.55 for all monadic coefficients, and 10 for all intercepts.}
 #'        \item{mu_gamma}{Either a single numeric value, in which case the same prior mean is applied to all dyadic coefficients, or
 #'                        a named vector of numeric values (with names corresponding to the name of the variable 
 #'                       for which a prior mean is being set). Defaults to a common prior mean of 0.0 for all dyadic coefficients.}
@@ -87,17 +87,17 @@
 #'        \item{fixed_mm2}{Optional character vector, with \code{"nodeID2@timeID"} as elements, indicating which mixed-membership vectors
 #'                        should remain constant at their initial values throughout estimation. When only one year is observed, elements should be 
 #'                         \code{"nodeID2@1"}. Typically used with \code{mm_init_t2}.}
-#'        \item{mm_init_t1}{Matrix, \code{n.blocks1} by nodes across years. Optional initial values for mixed-membership vectors.
+#'        \item{mm_init_t1}{Matrix, \code{n.blocks[1]} by nodes across years. Optional initial values for mixed-membership vectors.
 #'                           Although initial values need not be provided for all nodes, column names must have a \code{nodeID1@timeID} format to 
 #'                           avoid ambiguity. When only one year is observed, names should be \code{"nodeID1@1"}.}
-#'        \item{mm_init_t2}{Matrix, \code{n.blocks2} by nodes across years. Optional initial values for mixed-membership vectors.
+#'        \item{mm_init_t2}{Matrix, \code{n.blocks[2]} by nodes across years. Optional initial values for mixed-membership vectors.
 #'                           Although initial values need not be provided for all nodes, column names must have a \code{nodeID2@timeID} format to 
 #'                           avoid ambiguity. When only one year is observed, names should be \code{"nodeID2@1"}.}
 #'        \item{kappa_init_t}{Matrix, \code{n.hmmstates} by number of years. Optional initial values for variational 
 #'                       parameters for state probabilities.}
-#'        \item{block_init_t}{Matrix, \code{n.blocks1} by \code{n.blocks2}. Optional initial values for blockmodel.}
-#'        \item{beta1_init}{Array, predictors by \code{n.blocks1} by \code{n.hmmstates}. Optional initial values for family 1 monadic coefficients.}
-#'        \item{beta2_init}{Array, predictors by \code{n.blocks2} by \code{n.hmmstates}. Optional initial values for family 2 monadic coefficients.}
+#'        \item{block_init_t}{Matrix, \code{n.blocks[1]} by \code{n.blocks2}. Optional initial values for blockmodel.}
+#'        \item{beta1_init}{Array, predictors by \code{n.blocks[1]} by \code{n.hmmstates}. Optional initial values for family 1 monadic coefficients.}
+#'        \item{beta2_init}{Array, predictors by \code{n.blocks[2]} by \code{n.hmmstates}. Optional initial values for family 2 monadic coefficients.}
 #'        \item{gamma_init}{Vector. Optional initial values for dyadic coefficients.}
 #'        \item{permute}{Boolean. Should all permutations be tested to realign initial block models in dynamic case? If \code{FALSE}, realignment is 
 #'                      done via faster graph matching algorithm, but may not be exact. Defaults to \code{TRUE}.}
@@ -212,9 +212,9 @@ mmsbm <- function(formula.dyad,
                mu_block = c(5.0, -5.0),
                var_block = c(5.0, 5.0),
                mu_beta = list(0.0, 0.0),
-               var_beta = list(5.0, 5.0),
+               var_beta = list(2.50, 2.50),
                mu_gamma = 0.0,
-               var_gamma = 5.0,
+               var_gamma = 2.50,
                mm1_init_t = NULL,
                mm2_init_t = NULL,
                kappa_init_t = NULL,
@@ -397,13 +397,13 @@ mmsbm <- function(formula.dyad,
   Y <- stats::model.response(mfd)
   
   X1 <- .scaleVars(mfm1)
-  X1_mean <- attr(X1, "scaled:center")
+  X1_mean <-attr(X1, "scaled:center")
   X1_sd <- attr(X1, "scaled:scale")
   n_monad1_pred <- ncol(X1)
   if(bipartite){
     X2 <- .scaleVars(mfm2)
     X2_mean <- attr(X2, "scaled:center")
-    X2_sd <- attr(X2, "scaled:scale")
+    X2_sd <-  attr(X2, "scaled:scale")
     n_monad2_pred <- ncol(X2)
   }
   
@@ -415,7 +415,6 @@ mmsbm <- function(formula.dyad,
     #Z <- matrix(0, nrow = nrow(Z), ncol = 1)
   #}
   
-  ## Modify prior means and variances to match transformed model matrix (note Z kept pretransformation to modify priors respect scale)
   ctrl$mu_gamma <- .transf_muvar(ctrl$mu_gamma, FALSE, FALSE, Z)
   ctrl$var_gamma <- .transf_muvar(ctrl$var_gamma, TRUE, FALSE, Z)
   ctrl$mu_beta1 <- .transf_muvar(ctrl$mu_beta[[1]], FALSE, TRUE, X1, n.blocks[1], n.hmmstates)
@@ -720,34 +719,42 @@ mmsbm <- function(formula.dyad,
     }
     ## Compute approximate standard errors
     ## for monadic coefficients
+    kappa_mat1 <- t(fit[["Kappa"]][,t_id_n1+1, drop=FALSE])
+    kappa_mat2 <- t(fit[["Kappa"]][,t_id_n2+1, drop=FALSE])
     if(bipartite){
-      # all_phi1 <- split.data.frame((t(fit[["SenderPhi"]])),
-      #                              c(nt_id[,1]))
-      # all_phi2 <- split.data.frame((t(fit[["ReceiverPhi"]])),
-      #                              c(nt_id[,2]))
-      # fit$vcov_monad2 <- .vcovBeta(all_phi2, fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
-      #                              n.hmmstates, fit[["TotNodes2"]], periods,
-      #                              ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2_t, fit) 
-      alpha2 <- exp(X2 %*% as.matrix(fit[["MonadCoef2"]][,,1]))
-      alpha2_sum <- rowSums(alpha2)
-      fit$vcov_monad2 <- vcovBeta(X2, t(fit[["MixedMembership2"]]), alpha2, alpha2_sum, c(ctrl$var_beta1))
-    } 
-    # fit$vcov_monad1 <- .vcovBeta(all_phi1, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1],
-    #                              n.hmmstates, fit[["TotNodes1"]], periods,
-    #                              ctrl$mu_beta1, ctrl$var_beta1, fit[["Kappa"]], t_id_n1, X1_t, fit) 
-    alpha1 <- exp(X1 %*% as.matrix(fit[["MonadCoef1"]][,,1]))
-    alpha1_sum <- rowSums(alpha1)
-    fit$vcov_monad1 <- vcovBeta(X1, t(fit[["MixedMembership1"]]), alpha1, alpha1_sum, c(ctrl$var_beta1))
+      all_phi1 <- split.data.frame((t(fit[["SenderPhi"]])),
+                                   c(nt_id[,1]))
+      fit$vcov_monad1 <- .vcovBeta(all_phi1, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1], kappa_mat1,
+                                   c(ctrl$var_beta1), X1, n.hmmstates, nodes_pp2[1])
+      all_phi2 <- split.data.frame((t(fit[["ReceiverPhi"]])),
+                                   c(nt_id[,2]))
+      fit$vcov_monad2 <- .vcovBeta(all_phi2, fit[["MonadCoef2"]], ctrl$se_sim,n.blocks[2], kappa_mat2,
+                                   c(ctrl$var_beta2), X2, n.hmmstates, nodes_pp2[1])
+    } else {
+      all_phi <- split.data.frame(rbind(t(fit[["SenderPhi"]]),
+                                        t(fit[["ReceiverPhi"]])),
+                                  c(nt_id))
+      fit$vcov_monad1 <- .vcovBeta(all_phi, fit[["MonadCoef1"]], ctrl$se_sim,n.blocks[1], kappa_mat,
+                                   c(ctrl$var_beta1), X1, n.hmmstates, nodes_pp1[1])
+    }
     
     ## and for dyadic coefficients
-    # z_samples <- replicate(ctrl$se_sim, getZ(fit[["SenderPhi"]]), simplify = FALSE)
-    # w_samples <- replicate(ctrl$se_sim, getZ(fit[["ReceiverPhi"]]), simplify = FALSE)
-    # 
-    # if(ctrl$directed){
-    #   all_theta_par<-c(fit[["BlockModel"]], fit[["DyadCoef"]])
-    # }else{
-    #   all_theta_par<-c(fit[["BlockModel"]][lower.tri(fit[["BlockModel"]], diag = TRUE)], fit[["DyadCoef"]])
-    # }
+    if(any(Z_sd > 0)){
+      # fit$vcov_dyad <- vcovTheta[(N_B_PAR + 1):nrow(vcovTheta),
+      #                            (N_B_PAR + 1):ncol(vcovTheta),
+      #                            drop = FALSE]
+      edge_eta <- Z %*% fit[["DyadCoef"]]
+      z_samples <- replicate(ctrl$se_sim, getZ(fit[["SenderPhi"]]), simplify = FALSE)
+      w_samples <- replicate(ctrl$se_sim, getZ(fit[["ReceiverPhi"]]), simplify = FALSE)
+      hessTheta_list <- lapply(seq_len(ctrl$se_sim),
+                               function(i, eta, z, w, B, ind){
+                                 offset_bm <- B[cbind(apply(t(z[[i]]), 1, which.max)[ind[,1]], apply(t(w[[i]]), 1, which.max)[ind[,2]])]
+                                 pred_edges <- plogis(offset_bm + eta)
+                                 return(vcovGamma_ext(Z, pred_edges, c(ctrl$var_gamma)))
+                               }, eta = edge_eta, z=z_samples, w=w_samples, B=fit[["BlockModel"]], ind = as.matrix(mfd[,c("(sid)","(rid)")]))
+    fit$vcov_dyad <- Reduce("+", hessTheta_list)/ctrl$se_sim
+    colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
+    }
     # group_mat <- matrix(1:(n.blocks1*n.blocks2), n.blocks1, n.blocks2)
     # lambda_vec <- c(c(var_block), ctrl$var_gamma) #var_b changed to var_block
     # if(!directed){
@@ -811,15 +818,7 @@ mmsbm <- function(formula.dyad,
     # bm_names <- outer(rownames(fit[["BlockModel"]]), colnames(fit[["BlockModel"]]), paste, sep=":")
     # colnames(fit$vcov_blockmodel) <- rownames(fit$vcov_blockmodel) <- if(directed){c(bm_names)}else{c(bm_names[lower.tri(bm_names, TRUE)])}
     
-    if(any(Z_sd > 0)){
-      # fit$vcov_dyad <- vcovTheta[(N_B_PAR + 1):nrow(vcovTheta),
-      #                            (N_B_PAR + 1):ncol(vcovTheta),
-      #                            drop = FALSE]
-      edge_eta <- Z %*% fit[["DyadCoef"]]
-      pred_edges <- plogis(c(t(fit[["MixedMembership1"]]) %*% fit[["BlockModel"]] %*% fit[["MixedMembership2"]]) + edge_eta)
-      fit$vcov_dyad <- vcovGamma(Z, pred_edges, c(ctrl$var_gamma))
-      colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
-    }
+    
     
     if(ctrl$verbose){
       cat("done.\n")

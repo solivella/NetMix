@@ -12,13 +12,13 @@ getZ <- function(pi_mat) {
 }
 
 #' @rdname auxfuns
-vcovGamma <- function(X, probs, pen) {
-    .Call(`_NetMix_vcovGamma`, X, probs, pen)
+vcovGamma_ext <- function(X, probs, pen) {
+    .Call(`_NetMix_vcovGamma_ext`, X, probs, pen)
 }
 
 #' @rdname auxfuns
-vcovBeta <- function(X, pi_mat, alpha, alpha_sum, pen) {
-    .Call(`_NetMix_vcovBeta`, X, pi_mat, alpha, alpha_sum, pen)
+vcovBeta_ext <- function(X, c_mat, alpha, alpha_sum, kappa, pen, N) {
+    .Call(`_NetMix_vcovBeta_ext`, X, c_mat, alpha, alpha_sum, kappa, pen, N)
 }
 
 #' @rdname auxfuns
