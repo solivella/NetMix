@@ -658,7 +658,7 @@ void MMModelB::optim_ours(bool alpha)
     int npar1 = N_MONAD_PRED1 * N_BLK1 * N_STATE;
     beta1old = beta1;
     std::copy(beta1_init.begin(), beta1_init.end(), beta1.begin());
-    getPostMM1(tmp_pi1);
+    //getPostMM1(tmp_pi1);
     vmmin_ours(npar1, &beta1[0], &fminAlpha, alphaLBWMode1, alphaGrWMode1, OPT_ITER, 0,
                &maskalpha1[0], -1.0e+35, 1.0e-6, 1, this, &fncountAlpha, &grcountAlpha, &m_failAlpha);
     for(arma::uword i = 0; i < npar1; ++i){
@@ -669,7 +669,7 @@ void MMModelB::optim_ours(bool alpha)
       int npar2=N_MONAD_PRED2 * N_BLK2 * N_STATE;
       beta2old = beta2;
       std::copy(beta2_init.begin(), beta2_init.end(), beta2.begin());
-      getPostMM2(tmp_pi2);
+      //getPostMM2(tmp_pi2);
       vmmin_ours(npar2, &beta2[0], &fminAlpha, alphaLBWMode2, alphaGrWMode2, OPT_ITER, 0,
                  &maskalpha2[0], -1.0e+35, 1.0e-6, 1, this, &fncountAlpha, &grcountAlpha, &m_failAlpha);
       for(arma::uword i = 0; i < npar2; ++i){
