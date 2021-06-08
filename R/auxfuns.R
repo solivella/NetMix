@@ -177,11 +177,11 @@
 #' @rdname auxfuns
 .transf_muvar <- function(orig, is_var, is_array, des.mat, nblock=NULL, nstate=NULL){
   if(is_array){
-    tmp <- array(ifelse(is_var, 2.5, 0.0), c(ncol(des.mat), nblock, nstate))
+    tmp <- array(ifelse(is_var, 5, 0.0), c(ncol(des.mat), nblock, nstate))
     rownames(tmp) <- colnames(des.mat)
     tmp["(Intercept)",,] <- 1.0
   } else {
-    tmp <- array(ifelse(is_var, 2.5, 0.0), ncol(des.mat))
+    tmp <- array(ifelse(is_var, 5, 0.0), ncol(des.mat))
     names(tmp) <- colnames(des.mat)
   }
   if(length(orig) > 1){
