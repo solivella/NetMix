@@ -87,7 +87,7 @@ Rcpp::List mmsbm_fitBi(const arma::mat& z_t,
   newLL = 0.0;
   //arma::vec running_ll(win_size, arma::fill::zeros);
   arma::cube beta1_new, beta1_old, beta2_new, beta2_old; 
-  arma::mat b_old, b_new;
+  arma::mat b_old, b_new, ec_1_old, ec_2_old ;
   arma::vec gamma_new, gamma_old;
   std::vector<double> ll_vec;
   
@@ -95,10 +95,13 @@ Rcpp::List mmsbm_fitBi(const arma::mat& z_t,
   beta2_old = ModelB.getBeta2();
   b_old = ModelB.getB();
   gamma_old = ModelB.getGamma();
-  while(iter < VI_ITER && conv == false){
+  while((iter < VI_ITER) && (conv == false)){
     Rcpp::checkUserInterrupt();
     // E-STEP
+    ec_1_old = ModelB.getC(false);
+    ec_2_old = ModelB.getC(true);
     ModelB.updatePhi();
+    ModelB.convCheck(conv, ec_1_old, ec_2_old, tol);
 
     if(N_STATE > 1){
           ModelB.updateKappa();
@@ -112,15 +115,15 @@ Rcpp::List mmsbm_fitBi(const arma::mat& z_t,
 
     ModelB.optim_ours(true);//optimize alphaLB 1,2
     ModelB.optim_ours(false);//optimize thetaLB
-    //
-    //Check convergence
+    // //
+    // //Check convergence
     newLL = ModelB.LB();
-    beta1_new = ModelB.getBeta1();
-    beta2_new = ModelB.getBeta2();
-    b_new = ModelB.getB();
-    gamma_new = ModelB.getGamma();
-    ModelB.convCheck(conv, beta1_new, beta1_old, beta2_new, beta2_old,
-                     b_new, b_old, gamma_new, gamma_old, tol);
+    // beta1_new = ModelB.getBeta1();
+    // beta2_new = ModelB.getBeta2();
+    // b_new = ModelB.getB();
+    // gamma_new = ModelB.getGamma();
+    // ModelB.convCheck(conv, beta1_new, beta1_old, beta2_new, beta2_old,
+    //                  b_new, b_old, gamma_new, gamma_old, tol);
     //   std::rotate(running_ll.begin(), running_ll.begin() + 1, running_ll.end());
     //   running_ll[win_size - 1] = newLL;
     //   if(iter > win_size) {
@@ -132,10 +135,10 @@ Rcpp::List mmsbm_fitBi(const arma::mat& z_t,
     //   conv = (fabs((newLL-oldLL)/oldLL) < tol);
     // }
     ll_vec.push_back(newLL);
-    beta1_old = beta1_new;
-    beta2_old = beta2_new;
-    b_old = b_new;
-    gamma_old = gamma_new;
+    //beta1_old = beta1_new;
+    //beta2_old = beta2_new;
+    //b_old = b_new;
+    //gamma_old = gamma_new;
     oldLL = newLL;
     if(verbose){
       if((iter+1) % 1 == 0) {
@@ -148,8 +151,8 @@ Rcpp::List mmsbm_fitBi(const arma::mat& z_t,
     Rprintf("Final LB: %f.                     \n", iter+1, newLL);
   }
   //Form return objects: 
-  arma::mat C_res1 = ModelB.getC(false);//**
-  arma::mat C_res2 = ModelB.getC(true);//**
+  arma::mat C_res1 = ModelB.getC(false).t();//**
+  arma::mat C_res2 = ModelB.getC(true).t();//**
   arma::mat postmm_res1 = ModelB.getPostMM1();//**
   arma::mat postmm_res2 = ModelB.getPostMM2();//**
   arma::mat send_phi = ModelB.getPhi(true);

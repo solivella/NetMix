@@ -85,16 +85,20 @@ public:
   void getBeta2(arma::cube&);
   arma::cube getAlpha1();
   arma::cube getAlpha2();
-  void convCheck(bool& conv,
-                 const arma::cube& beta1_new,
-                 const arma::cube& beta1_old,
-                 const arma::cube& beta2_new,
-                 const arma::cube& beta2_old,
-                 const arma::mat& b_new,  
-                 const arma::mat& b_old, 
-                 const arma::vec& gamma_new, 
-                 const arma::vec& gamma_old, 
-                 const double& tol);
+  // void convCheck(bool& conv,
+  //                const arma::cube& beta1_new,
+  //                const arma::cube& beta1_old,
+  //                const arma::cube& beta2_new,
+  //                const arma::cube& beta2_old,
+  //                const arma::mat& b_new,  
+  //                const arma::mat& b_old, 
+  //                const arma::vec& gamma_new, 
+  //                const arma::vec& gamma_old, 
+  //                const double& tol);
+  void convCheck(bool& conv, 
+                           const arma::mat& old_ec1,
+                           const arma::mat& old_ec2,
+                           const double& tol);
   
   
 private:
