@@ -179,7 +179,7 @@
   if(is_array){
     tmp <- array(ifelse(is_var, 5, 0.0), c(ncol(des.mat), nblock, nstate))
     rownames(tmp) <- colnames(des.mat)
-    tmp["(Intercept)",,] <- 1.0
+    #tmp["(Intercept)",,] <- 5.0
   } else {
     tmp <- array(ifelse(is_var, 5, 0.0), ncol(des.mat))
     names(tmp) <- colnames(des.mat)
@@ -317,14 +317,15 @@
   return(pi.states)
 }
 
-.vcovBeta <- function(all_phi, beta_coef, n.sim, n.blk,
-                      kappa_mat, var.beta, X, n.hmm,n.nodes){
-  sampleC_perm <- do.call(rbind,
-                          lapply(all_phi,
-                                 function(mat){
-                                   apply(mat, 2, function(vec)poisbinom::rpoisbinom(n.sim, vec))
-                                 }))
-  C_samples <- split.data.frame(sampleC_perm, rep(1:n.sim, times = length(all_phi)))
+.vcovBeta <- function(all_phi, beta_coef, n.blk,
+                      kappa_mat, var.beta, X, n.hmm, n.nodes, n.nodesRec){
+  sampleC_perm <- t(apply(all_phi, 1,
+                        function(vec){
+                          ans <- rep(0, length(vec))
+                          ans[which.max(vec)] <- n.nodesRec
+                          return(ans)
+                        }))
+  C_samples <- list(sampleC_perm)
   hess_all <- lapply(seq_len(1:n.hmm),
                      function(m, C_samp){
                        alpha <- exp(X %*% as.matrix(beta_coef[,,m]))
@@ -334,7 +335,7 @@
                                             vcovBeta_ext(X_mat, c_mat, A, A_sum, k_m, vb, nn)
                                           }, X_mat = X, A = alpha, A_sum = alpha_sum, 
                                           k_m=kappa_mat[,m], vb=var.beta, nn=n.nodes)
-                       return(Reduce("+", hess_tmp)/n.sim)},
+                       return(as.matrix(hess_tmp[[1]]))},
                      C_samp = C_samples)
   vcov_monad <- do.call(Matrix::bdiag, hess_all)
   colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:n.hmm), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??

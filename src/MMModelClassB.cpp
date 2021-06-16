@@ -680,7 +680,7 @@ void MMModelB::optim_ours(bool alpha)
     int npar = N_B_PAR + N_DYAD_PRED;
     thetaold = theta_par;
     std::copy(gamma_init.begin(), gamma_init.end(), theta_par.begin() + N_B_PAR);//copy gamma init values over to theta_par after B params
-    vmmin_ours(npar, &theta_par[0], &fminTheta, thetaLBW, thetaGrW, 5, 0, 
+    vmmin_ours(npar, &theta_par[0], &fminTheta, thetaLBW, thetaGrW, OPT_ITER, 0, 
                &masktheta[0], -1.0e+35, 1.0e-6, 1, this, &fncountTheta, &grcountTheta, &m_failTheta);
     for(arma::uword i = 0; i < npar; ++i){
       theta_par[i] = (1.0 - step_size) * thetaold[i] + step_size * theta_par[i]; 

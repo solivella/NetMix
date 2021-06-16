@@ -212,9 +212,9 @@ mmsbm <- function(formula.dyad,
                mu_block = c(5.0, -5.0),
                var_block = c(5.0, 5.0),
                mu_beta = list(0.0, 0.0),
-               var_beta = list(2.50, 2.50),
+               var_beta = list(5.0, 5.0),
                mu_gamma = 0.0,
-               var_gamma = 2.50,
+               var_gamma = 5.0,
                mm1_init_t = NULL,
                mm2_init_t = NULL,
                kappa_init_t = NULL,
@@ -517,8 +517,8 @@ mmsbm <- function(formula.dyad,
   soc_mats <- Map(function(dyad_mat, edge_vec, bipartite){
     #nodes <- unique(c(dyad_mat))
     if(bipartite){
-      nodes1 <- unique(c(dyad_mat[,which(names(dyad_mat)=="(sid)")]))
-      nodes2 <- unique(c(dyad_mat[,which(names(dyad_mat)=="(rid)")]))
+      nodes1 <- unique(as.vector(dyad_mat[,which(names(dyad_mat)=="(sid)")]))
+      nodes2 <- unique(as.vector(dyad_mat[,which(names(dyad_mat)=="(rid)")]))
       nnode1 <- length(nodes1)
       nnode2 <- length(nodes2)
     } else {
@@ -720,39 +720,28 @@ mmsbm <- function(formula.dyad,
     ## Compute approximate standard errors
     ## for monadic coefficients
     kappa_mat1 <- t(fit[["Kappa"]][,t_id_n1+1, drop=FALSE])
-    kappa_mat2 <- t(fit[["Kappa"]][,t_id_n2+1, drop=FALSE])
+    all_phi1 <- t(fit[["MixedMembership1"]])
+    fit$vcov_monad1 <- .vcovBeta(all_phi1, fit[["MonadCoef1"]], n.blocks[1], kappa_mat1,
+                                 c(ctrl$var_beta1), X1, n.hmmstates, nodes_pp1[1], ifelse(bipartite,nodes_pp2[1],nodes_pp1[1]))
     if(bipartite){
-      all_phi1 <- split.data.frame((t(fit[["SenderPhi"]])),
-                                   c(nt_id[,1]))
-      fit$vcov_monad1 <- .vcovBeta(all_phi1, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1], kappa_mat1,
-                                   c(ctrl$var_beta1), X1, n.hmmstates, nodes_pp2[1])
-      all_phi2 <- split.data.frame((t(fit[["ReceiverPhi"]])),
-                                   c(nt_id[,2]))
-      fit$vcov_monad2 <- .vcovBeta(all_phi2, fit[["MonadCoef2"]], ctrl$se_sim,n.blocks[2], kappa_mat2,
-                                   c(ctrl$var_beta2), X2, n.hmmstates, nodes_pp2[1])
-    } else {
-      all_phi <- split.data.frame(rbind(t(fit[["SenderPhi"]]),
-                                        t(fit[["ReceiverPhi"]])),
-                                  c(nt_id))
-      fit$vcov_monad1 <- .vcovBeta(all_phi, fit[["MonadCoef1"]], ctrl$se_sim,n.blocks[1], kappa_mat,
-                                   c(ctrl$var_beta1), X1, n.hmmstates, nodes_pp1[1])
-    }
+      kappa_mat2 <- t(fit[["Kappa"]][,t_id_n2+1, drop=FALSE])
+      all_phi2 <- t(fit[["MixedMembership2"]])
+      fit$vcov_monad2 <- .vcovBeta(all_phi2, fit[["MonadCoef2"]],n.blocks[2], kappa_mat2,
+                                   c(ctrl$var_beta2), X2, n.hmmstates, nodes_pp2[1], nodes_pp1[1])
+    } 
     
     ## and for dyadic coefficients
     if(any(Z_sd > 0)){
-      # fit$vcov_dyad <- vcovTheta[(N_B_PAR + 1):nrow(vcovTheta),
-      #                            (N_B_PAR + 1):ncol(vcovTheta),
-      #                            drop = FALSE]
       edge_eta <- Z %*% fit[["DyadCoef"]]
-      z_samples <- replicate(ctrl$se_sim, getZ(fit[["SenderPhi"]]), simplify = FALSE)
-      w_samples <- replicate(ctrl$se_sim, getZ(fit[["ReceiverPhi"]]), simplify = FALSE)
-      hessTheta_list <- lapply(seq_len(ctrl$se_sim),
+      z_map <- apply(fit[["MixedMembership1"]], 2, which.max) 
+      w_map <- apply(fit[["MixedMembership2"]], 2, which.max) 
+      hessTheta_list <- lapply(1,
                                function(i, eta, z, w, B, ind){
-                                 offset_bm <- B[cbind(apply(t(z[[i]]), 1, which.max)[ind[,1]], apply(t(w[[i]]), 1, which.max)[ind[,2]])]
+                                 offset_bm <- B[cbind(z_map[ind[,1]], w_map[ind[,2]])]
                                  pred_edges <- plogis(offset_bm + eta)
                                  return(vcovGamma_ext(Z, pred_edges, c(ctrl$var_gamma)))
                                }, eta = edge_eta, z=z_samples, w=w_samples, B=fit[["BlockModel"]], ind = as.matrix(mfd[,c("(sid)","(rid)")]))
-    fit$vcov_dyad <- Reduce("+", hessTheta_list)/ctrl$se_sim
+    fit$vcov_dyad <- as.matrix(hessTheta_list[[1]])
     colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
     }
     # group_mat <- matrix(1:(n.blocks1*n.blocks2), n.blocks1, n.blocks2)
