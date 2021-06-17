@@ -722,12 +722,12 @@ mmsbm <- function(formula.dyad,
     kappa_mat1 <- t(fit[["Kappa"]][,t_id_n1+1, drop=FALSE])
     all_phi1 <- (fit[["CountMatrix1"]])
     fit$vcov_monad1 <- .vcovBeta(all_phi1, fit[["MonadCoef1"]], n.blocks[1], kappa_mat1,
-                                 c(ctrl$var_beta1), X1, n.hmmstates, nodes_pp1[1], ifelse(bipartite,nodes_pp2[1],nodes_pp1[1]))
+                                 c(ctrl$var_beta1), X1, n.hmmstates, fit[["TotNodes1"]])
     if(bipartite){
       kappa_mat2 <- t(fit[["Kappa"]][,t_id_n2+1, drop=FALSE])
       all_phi2 <- (fit[["CountMatrix2"]])
       fit$vcov_monad2 <- .vcovBeta(all_phi2, fit[["MonadCoef2"]],n.blocks[2], kappa_mat2,
-                                   c(ctrl$var_beta2), X2, n.hmmstates, nodes_pp2[1], nodes_pp1[1])
+                                   c(ctrl$var_beta2), X2, n.hmmstates, fit[["TotNodes2"]])
     } 
     
     ## and for dyadic coefficients

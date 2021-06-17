@@ -17,8 +17,8 @@ vcovGamma_ext <- function(X, probs, pen) {
 }
 
 #' @rdname auxfuns
-vcovBeta_ext <- function(X, c_mat, alpha, alpha_sum, kappa, pen, N) {
-    .Call(`_NetMix_vcovBeta_ext`, X, c_mat, alpha, alpha_sum, kappa, pen, N)
+vcovBeta_ext <- function(X, c_mat, alpha, alpha_sum, kappa, pen, N, vcov = TRUE) {
+    .Call(`_NetMix_vcovBeta_ext`, X, c_mat, alpha, alpha_sum, kappa, pen, N, vcov)
 }
 
 #' @rdname auxfuns

@@ -87,7 +87,7 @@ Rcpp::List mmsbm_fitBi(const arma::mat& z_t,
   newLL = 0.0;
   //arma::vec running_ll(win_size, arma::fill::zeros);
   arma::cube beta1_new, beta1_old, beta2_new, beta2_old; 
-  arma::mat b_old, b_new, ec_1_old, ec_2_old ;
+  arma::mat b_old, b_new;//, ec_1_old, ec_2_old ;
   arma::vec gamma_new, gamma_old;
   std::vector<double> ll_vec;
   
@@ -98,10 +98,10 @@ Rcpp::List mmsbm_fitBi(const arma::mat& z_t,
   while((iter < VI_ITER) && (conv == false)){
     Rcpp::checkUserInterrupt();
     // E-STEP
-    ec_1_old = ModelB.getC(false);
-    ec_2_old = ModelB.getC(true);
+    //ec_1_old = ModelB.getC(false);
+    //ec_2_old = ModelB.getC(true);
     ModelB.updatePhi();
-    ModelB.convCheck(conv, ec_1_old, ec_2_old, tol);
+    //ModelB.convCheck(conv, ec_1_old, ec_2_old, tol);
 
     if(N_STATE > 1){
           ModelB.updateKappa();
@@ -118,12 +118,12 @@ Rcpp::List mmsbm_fitBi(const arma::mat& z_t,
     // //
     // //Check convergence
     newLL = ModelB.LB();
-    // beta1_new = ModelB.getBeta1();
-    // beta2_new = ModelB.getBeta2();
-    // b_new = ModelB.getB();
-    // gamma_new = ModelB.getGamma();
-    // ModelB.convCheck(conv, beta1_new, beta1_old, beta2_new, beta2_old,
-    //                  b_new, b_old, gamma_new, gamma_old, tol);
+    beta1_new = ModelB.getBeta1();
+    beta2_new = ModelB.getBeta2();
+    b_new = ModelB.getB();
+    gamma_new = ModelB.getGamma();
+     ModelB.convCheck(conv, beta1_new, beta1_old, beta2_new, beta2_old,
+                      b_new, b_old, gamma_new, gamma_old, tol);
     //   std::rotate(running_ll.begin(), running_ll.begin() + 1, running_ll.end());
     //   running_ll[win_size - 1] = newLL;
     //   if(iter > win_size) {
@@ -135,10 +135,10 @@ Rcpp::List mmsbm_fitBi(const arma::mat& z_t,
     //   conv = (fabs((newLL-oldLL)/oldLL) < tol);
     // }
     ll_vec.push_back(newLL);
-    //beta1_old = beta1_new;
-    //beta2_old = beta2_new;
-    //b_old = b_new;
-    //gamma_old = gamma_new;
+    beta1_old = beta1_new;
+    beta2_old = beta2_new;
+    b_old = b_new;
+    gamma_old = gamma_new;
     oldLL = newLL;
     if(verbose){
       if((iter+1) % 1 == 0) {

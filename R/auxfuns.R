@@ -318,7 +318,7 @@
 }
 
 .vcovBeta <- function(all_phi, beta_coef, n.blk,
-                      kappa_mat, var.beta, X, n.hmm, n.nodes, n.nodesRec){
+                      kappa_mat, var.beta, X, n.hmm, n.nodesRec){
   sampleC_perm <- all_phi
   C_samples <- list(sampleC_perm)
   hess_all <- lapply(seq_len(1:n.hmm),

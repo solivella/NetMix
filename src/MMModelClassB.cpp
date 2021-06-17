@@ -1154,8 +1154,14 @@ void MMModelB::sampleDyads(arma::uword iter)
  * CONVERGENCE CHECKER
  */
 void MMModelB::convCheck(bool& conv,
-                         const arma::mat& old_ec1,
-                         const arma::mat& old_ec2,
+                         const arma::cube& beta1_new,
+                         const arma::cube& beta1_old,
+                         const arma::cube& beta2_new,
+                         const arma::cube& beta2_old,
+                         const arma::mat& b_new,
+                         const arma::mat& b_old,
+                         const arma::vec& gamma_new,
+                         const arma::vec& gamma_old,
                          const double& tol)
 {
   //double cor_val = arma::as_scalar(arma::cor(ll, arma::regspace(1, ll.n_elem)));
@@ -1170,78 +1176,78 @@ void MMModelB::convCheck(bool& conv,
   // cor_vec[nans] = 1.0;
   // conv = Rcpp::is_true(Rcpp::all(cor_vec > (1.0 - tol)));
   
-  conv = true;
-  double cor_val;
-  for(arma::uword k = 0; k < N_BLK1; ++k){
-    cor_val = arma::as_scalar(arma::cor(old_ec1.row(k), e_c_t1.row(k)));
-    //Rprintf("Correlation fam 1, grp %i is %f\n", k, cor_val);
-    if(fabs(cor_val) < (1.0 - tol)){
-          conv = false;
-          return;
-        }
-    }
+  // conv = true;
+  // double cor_val;
+  // for(arma::uword k = 0; k < N_BLK1; ++k){
+  //   cor_val = arma::as_scalar(arma::cor(old_ec1.row(k), e_c_t1.row(k)));
+  //   //Rprintf("Correlation fam 1, grp %i is %f\n", k, cor_val);
+  //   if(fabs(cor_val) < (1.0 - tol)){
+  //         conv = false;
+  //         return;
+  //       }
+  //   }
+  // 
+  // for(arma::uword k = 0; k < N_BLK2; ++k){
+  //   cor_val = arma::as_scalar(arma::cor(old_ec2.row(k), e_c_t2.row(k)));
+  //   //Rprintf("Correlation fam 2, grp %i is %f\n", k, cor_val);
+  //   if(fabs(cor_val) < (1.0 - tol)){
+  //     conv = false;
+  //     return;
+  //   }
+  // }
   
-  for(arma::uword k = 0; k < N_BLK2; ++k){
-    cor_val = arma::as_scalar(arma::cor(old_ec2.row(k), e_c_t2.row(k)));
-    //Rprintf("Correlation fam 2, grp %i is %f\n", k, cor_val);
-    if(fabs(cor_val) < (1.0 - tol)){
+  arma::cube::const_iterator beta1_old_it = beta1_old.begin(),
+    beta2_old_it = beta2_old.begin(),
+    beta1_new_it = beta1_new.begin(),
+    beta2_new_it = beta2_new.begin(),
+    beta1_old_end = beta1_old.end(),
+    beta2_old_end = beta2_old.end(),
+    beta1_new_end = beta1_new.end(),
+    beta2_new_end = beta2_new.end();
+
+  arma::mat::const_iterator b_old_it = b_old.begin(),
+    b_new_it = b_new.begin(),
+    b_old_end = b_old.end(),
+    b_new_end = b_new.end();
+
+  arma::vec::const_iterator gamma_old_it = gamma_old.begin(),
+    gamma_new_it = gamma_new.begin(),
+    gamma_old_end = gamma_old.end(),
+    gamma_new_end = gamma_new.end();
+
+
+  conv = true;
+
+  //Rcpp::Rcout << beta1_new << std::endl;
+  //Rcpp::Rcout << beta1_old << std::endl;
+
+  for( ; beta1_new_it != beta1_new_end; ++beta1_new_it,++beta1_old_it){
+    if(fabs(*beta1_new_it - *beta1_old_it) > tol){
       conv = false;
       return;
     }
   }
-  
-  // arma::cube::const_iterator beta1_old_it = beta1_old.begin(),
-  //   beta2_old_it = beta2_old.begin(),
-  //   beta1_new_it = beta1_new.begin(),
-  //   beta2_new_it = beta2_new.begin(),
-  //   beta1_old_end = beta1_old.end(),
-  //   beta2_old_end = beta2_old.end(),
-  //   beta1_new_end = beta1_new.end(),
-  //   beta2_new_end = beta2_new.end();
-  // 
-  // arma::mat::const_iterator b_old_it = b_old.begin(),
-  //   b_new_it = b_new.begin(),
-  //   b_old_end = b_old.end(),
-  //   b_new_end = b_new.end();
-  // 
-  // arma::vec::const_iterator gamma_old_it = gamma_old.begin(),
-  //   gamma_new_it = gamma_new.begin(),
-  //   gamma_old_end = gamma_old.end(),
-  //   gamma_new_end = gamma_new.end();
-  // 
-  // 
-  // conv = true;
-  // 
-  // //Rcpp::Rcout << beta1_new << std::endl;
-  // //Rcpp::Rcout << beta1_old << std::endl;
-  // 
-  // for( ; beta1_new_it != beta1_new_end; ++beta1_new_it,++beta1_old_it){
-  //   if(fabs(*beta1_new_it - *beta1_old_it) > tol){
-  //     conv = false;
-  //     return;
-  //   }  
-  // }
-  // for( ; beta2_new_it != beta2_new_end; ++beta2_new_it,++beta2_old_it){
-  //   if(fabs(*beta2_new_it - *beta2_old_it) > tol){
-  //     conv = false;
-  //     return;
-  //   }  
-  // }
-  // 
-  // for( ; b_new_it != b_new_end; ++b_new_it,++b_old_it){
-  //   if(fabs(*b_new_it - *b_old_it) > tol){
-  //     conv = false;
-  //     return;
-  //   }  
-  // }
-  // //Rcpp::Rcout << "1.4" << std::endl;
-  // 
-  // for( ; gamma_new_it != gamma_new_end; ++gamma_new_it,++gamma_old_it){
-  //   if(fabs(*gamma_new_it - *gamma_old_it) > tol){
-  //     conv = false;
-  //     return;
-  //   }  
-  // }
+  for( ; beta2_new_it != beta2_new_end; ++beta2_new_it,++beta2_old_it){
+    if(fabs(*beta2_new_it - *beta2_old_it) > tol){
+      conv = false;
+      return;
+    }
+  }
+
+  for( ; b_new_it != b_new_end; ++b_new_it,++b_old_it){
+    if(fabs(*b_new_it - *b_old_it) > tol){
+      conv = false;
+      return;
+    }
+  }
+  //Rcpp::Rcout << "1.4" << std::endl;
+
+  for( ; gamma_new_it != gamma_new_end; ++gamma_new_it,++gamma_old_it){
+    if(fabs(*gamma_new_it - *gamma_old_it) > tol){
+      conv = false;
+      return;
+    }
+  }
   //Rcpp::Rcout << "1.5" << std::endl;
   
   

@@ -46,8 +46,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // vcovBeta_ext
-arma::mat vcovBeta_ext(const arma::mat& X, const arma::mat& c_mat, const arma::mat& alpha, const arma::vec& alpha_sum, const arma::vec& kappa, const arma::vec& pen, const double& N);
-RcppExport SEXP _NetMix_vcovBeta_ext(SEXP XSEXP, SEXP c_matSEXP, SEXP alphaSEXP, SEXP alpha_sumSEXP, SEXP kappaSEXP, SEXP penSEXP, SEXP NSEXP) {
+arma::mat vcovBeta_ext(const arma::mat& X, const arma::mat& c_mat, const arma::mat& alpha, const arma::vec& alpha_sum, const arma::vec& kappa, const arma::vec& pen, const arma::vec& N, bool vcov);
+RcppExport SEXP _NetMix_vcovBeta_ext(SEXP XSEXP, SEXP c_matSEXP, SEXP alphaSEXP, SEXP alpha_sumSEXP, SEXP kappaSEXP, SEXP penSEXP, SEXP NSEXP, SEXP vcovSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -57,20 +57,21 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec& >::type alpha_sum(alpha_sumSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type kappa(kappaSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type pen(penSEXP);
-    Rcpp::traits::input_parameter< const double& >::type N(NSEXP);
-    rcpp_result_gen = Rcpp::wrap(vcovBeta_ext(X, c_mat, alpha, alpha_sum, kappa, pen, N));
+    Rcpp::traits::input_parameter< const arma::vec& >::type N(NSEXP);
+    Rcpp::traits::input_parameter< bool >::type vcov(vcovSEXP);
+    rcpp_result_gen = Rcpp::wrap(vcovBeta_ext(X, c_mat, alpha, alpha_sum, kappa, pen, N, vcov));
     return rcpp_result_gen;
 END_RCPP
 }
 // alphaLBound
-double alphaLBound(arma::vec par, arma::uvec tot_nodes, arma::umat c_t, arma::mat x_t, arma::umat s_mat, arma::uvec t_id, arma::cube var_beta, arma::cube mu_beta);
+Rcpp::NumericVector alphaLBound(arma::vec par, arma::vec tot_nodes, arma::mat c_t, arma::mat x_t, arma::umat s_mat, arma::uvec t_id, arma::cube var_beta, arma::cube mu_beta);
 RcppExport SEXP _NetMix_alphaLBound(SEXP parSEXP, SEXP tot_nodesSEXP, SEXP c_tSEXP, SEXP x_tSEXP, SEXP s_matSEXP, SEXP t_idSEXP, SEXP var_betaSEXP, SEXP mu_betaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::vec >::type par(parSEXP);
-    Rcpp::traits::input_parameter< arma::uvec >::type tot_nodes(tot_nodesSEXP);
-    Rcpp::traits::input_parameter< arma::umat >::type c_t(c_tSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type tot_nodes(tot_nodesSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type c_t(c_tSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type x_t(x_tSEXP);
     Rcpp::traits::input_parameter< arma::umat >::type s_mat(s_matSEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type t_id(t_idSEXP);
@@ -185,7 +186,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_NetMix_approxB", (DL_FUNC) &_NetMix_approxB, 5},
     {"_NetMix_getZ", (DL_FUNC) &_NetMix_getZ, 1},
     {"_NetMix_vcovGamma_ext", (DL_FUNC) &_NetMix_vcovGamma_ext, 3},
-    {"_NetMix_vcovBeta_ext", (DL_FUNC) &_NetMix_vcovBeta_ext, 7},
+    {"_NetMix_vcovBeta_ext", (DL_FUNC) &_NetMix_vcovBeta_ext, 8},
     {"_NetMix_alphaLBound", (DL_FUNC) &_NetMix_alphaLBound, 8},
     {"_NetMix_alphaGrad", (DL_FUNC) &_NetMix_alphaGrad, 8},
     {"_NetMix_vertboot_matrix_rcpp2", (DL_FUNC) &_NetMix_vertboot_matrix_rcpp2, 3},

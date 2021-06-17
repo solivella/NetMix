@@ -95,7 +95,8 @@ arma::mat vcovBeta_ext(const arma::mat& X,
                    const arma::vec& alpha_sum,
                    const arma::vec& kappa,
                    const arma::vec& pen,
-                   const double& N) {
+                   const arma::vec& N,
+                   bool vcov = true) {
   arma::uword N_PRED = X.n_cols;
   arma::uword N_BLK = alpha.n_cols;
   arma::mat hess(N_PRED*N_BLK, N_PRED*N_BLK, arma::fill::zeros);
@@ -133,14 +134,18 @@ arma::mat vcovBeta_ext(const arma::mat& X,
   }
   //hess = arma::symmatl(hess);
   hess.diag() -= (1.0) / pen;
-  return (-hess).i();
+  if(vcov){
+    return (-hess).i();
+  } else {
+    return(hess);
+  }
 }
 
 //' @rdname auxfuns
 // [[Rcpp::export()]]
-double alphaLBound(arma::vec par,
-               arma::uvec tot_nodes,
-               arma::umat c_t, 
+Rcpp::NumericVector alphaLBound(arma::vec par,
+               arma::vec tot_nodes,
+               arma::mat c_t, 
                arma::mat x_t,
                arma::umat s_mat,
                arma::uvec t_id,
@@ -149,36 +154,72 @@ double alphaLBound(arma::vec par,
 {
   arma::uword N_NODE = x_t.n_cols, N_BLK = c_t.n_rows,
     N_MONAD_PRED = x_t.n_rows,  N_STATE = s_mat.n_rows;
-  double linpred = 0.0, row_sum = 0.0, res = 0.0, res_int = 0.0;
+  
+  double res=0.0, prior_gr=0.0, linpred = 0.0;
+  arma::uword U_NPAR = par.n_elem;
+  
+  arma::vec gr(U_NPAR, arma::fill::zeros);
+  
+  arma::cube alpha (N_BLK, N_NODE, N_STATE, arma::fill::zeros);
+  arma::mat alpha_row(N_NODE, N_STATE, arma::fill::zeros);
+  
   for(arma::uword m = 0; m < N_STATE; ++m){
     for(arma::uword p = 0; p < N_NODE; ++p){
-      row_sum = 0.0;
-      res_int = 0.0;
       for(arma::uword g = 0; g < N_BLK; ++g){
         linpred = 0.0;
         for(arma::uword x = 0; x < N_MONAD_PRED; ++x){
           linpred += x_t(x, p) * par[x + N_MONAD_PRED * (g + N_BLK * m)];
         }
-        linpred = exp(linpred);
-        row_sum += linpred;
-        res_int += (lgamma(linpred + c_t(g, p)) - lgamma(linpred));
+        alpha(g, p, m) = exp(linpred);
+        alpha_row(p, m) += alpha(g, p, m);
       }
-      res_int += (lgamma(row_sum) - lgamma(row_sum + tot_nodes[p]));
-      res += res_int * s_mat(m, t_id[p]);
     }
   }
   
-  // Prior for beta
+  
+  double gr_tmp1 = 0.0, gr_tmp2 = 0.0, res_int = 0.0;
   for(arma::uword m = 0; m < N_STATE; ++m){
+    for(arma::uword p = 0; p < N_NODE; ++p){
+      res_int = 0.0;
+      gr_tmp1 = R::digamma(alpha_row(p, m)) - R::digamma(alpha_row(p,m) + tot_nodes[p]);
+      for(arma::uword g = 0; g < N_BLK; ++g){
+        res_int += (lgamma(alpha(g, p, m) + c_t(g, p)) - lgamma(alpha(g, p, m)));
+        gr_tmp2 = R::digamma(alpha(g, p, m) + c_t(g, p)) - R::digamma(alpha(g, p, m));
+        for(arma::uword x = 0; x < N_MONAD_PRED; ++x){
+          gr[x + N_MONAD_PRED * (g + N_BLK * m)] += (gr_tmp1 + gr_tmp2) * s_mat(m, t_id[p]) * alpha(g, p, m) * x_t(x, p);
+        }
+      }
+      res_int += (lgamma(alpha_row(p, m)) - lgamma(alpha_row(p, m) + tot_nodes[p]));
+      res += res_int * s_mat(m, t_id[p]);
+    }
+    // Prior for beta
+    
     for(arma::uword g = 0; g < N_BLK; ++g){
       for(arma::uword x = 0; x < N_MONAD_PRED; ++x){
         res -= 0.5 * pow(par[x + N_MONAD_PRED * (g + N_BLK * m)] - mu_beta(x, g, m), 2.0) / var_beta(x, g, m);
+        gr[x + N_MONAD_PRED * (g + N_BLK * m)] -= (par[x + N_MONAD_PRED * (g + N_BLK * m)] - mu_beta(x, g, m)) / var_beta(x, g, m);
       }
     } 
   }
   
+  //Compute hess (only works for one hmm state for now)
+  arma::vec allones(N_NODE, arma::fill::ones);
+  arma::mat hess = vcovBeta_ext(x_t.t(),
+                                c_t.t(),
+                                (alpha.slice(0)).t(),
+                                alpha_row.col(0),
+                                allones,
+                                arma::vectorise(var_beta.slice(0)),
+                                tot_nodes,
+                                false);
   
-  return -res;
+  Rcpp::NumericVector ret_obj(1);
+  ret_obj[0] = res;
+  ret_obj.attr("gradient") = gr;
+  ret_obj.attr("hessian") = hess;
+  
+  
+  return ret_obj;
 }
 
 //' @rdname auxfuns
