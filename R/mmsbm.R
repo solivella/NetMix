@@ -720,12 +720,12 @@ mmsbm <- function(formula.dyad,
     ## Compute approximate standard errors
     ## for monadic coefficients
     kappa_mat1 <- t(fit[["Kappa"]][,t_id_n1+1, drop=FALSE])
-    all_phi1 <- t(fit[["MixedMembership1"]])
+    all_phi1 <- (fit[["CountMatrix1"]])
     fit$vcov_monad1 <- .vcovBeta(all_phi1, fit[["MonadCoef1"]], n.blocks[1], kappa_mat1,
                                  c(ctrl$var_beta1), X1, n.hmmstates, nodes_pp1[1], ifelse(bipartite,nodes_pp2[1],nodes_pp1[1]))
     if(bipartite){
       kappa_mat2 <- t(fit[["Kappa"]][,t_id_n2+1, drop=FALSE])
-      all_phi2 <- t(fit[["MixedMembership2"]])
+      all_phi2 <- (fit[["CountMatrix2"]])
       fit$vcov_monad2 <- .vcovBeta(all_phi2, fit[["MonadCoef2"]],n.blocks[2], kappa_mat2,
                                    c(ctrl$var_beta2), X2, n.hmmstates, nodes_pp2[1], nodes_pp1[1])
     } 
@@ -744,69 +744,7 @@ mmsbm <- function(formula.dyad,
     fit$vcov_dyad <- as.matrix(hessTheta_list[[1]])
     colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
     }
-    # group_mat <- matrix(1:(n.blocks1*n.blocks2), n.blocks1, n.blocks2)
-    # lambda_vec <- c(c(var_block), ctrl$var_gamma) #var_b changed to var_block
-    # if(!directed){
-    #   group_mat[upper.tri(group_mat)] <- group_mat[lower.tri(group_mat)]
-    #   lambda_vec <- c(c(var_block[lower.tri(var_block, TRUE)]), ctrl$var_gamma)
-    # } 
-    # #hessTheta
-    # hessTheta_list <- mapply(
-    #   function(send_samp, rec_samp, y_vec, Z_d, par_theta, mu_b_mat, var_b_mat, var_g, mu_g, dir_net, group_mat, lambda_vec)
-    #   {
-    #     n_samp <- min(ctrl$dyad_vcov_samp, floor(ncol(Z_d)*0.1))
-    #     samp_ind <- sample(1:ncol(Z_d), n_samp)
-    #     tries <- 0
-    #     if(any(Z_d!=0)){ #to eval grad without all obs
-    #       while(any(apply(Z_d[,samp_ind,drop=FALSE], 1, stats::sd) == 0.0) & (tries < 100)){
-    #         samp_ind <- sample(1:ncol(Z_d), n_samp)
-    #         tries <- tries + 1
-    #       }
-    #       
-    #     }
-    #     if(tries >= 100){
-    #       stop("Bad sample for dyadic vcov computation; too little variation in dyadic covariates.")
-    #     }
-    #     group_vec <- model.matrix(~factor(diag(t(send_samp[, samp_ind]) %*% group_mat %*% rec_samp[,samp_ind]), levels = unique(c(group_mat)))-1)
-    #     mod_Z <- group_vec #fixed effects of group memberships
-    #     if(any(Z_d!=0)){
-    #       mod_Z <- cbind(mod_Z, t(Z_d[,samp_ind, drop=FALSE]))
-    #     }
-    #     if(directed){
-    #       mod_gamma <- c(c(fit$BlockModel),fit$DyadCoef) 
-    #     } else {
-    #       mod_gamma <- c(c(fit$BlockModel[lower.tri(fit$BlockModel, TRUE)]),fit$DyadCoef)
-    #     }
-    #     s_eta <- plogis(mod_Z %*% mod_gamma)
-    #     D_mat <- diag(c(s_eta*(1-s_eta)))
-    #     hess_tmp <- ((t(mod_Z) %*% D_mat %*% mod_Z) - diag(1/lambda_vec))*(ncol(Z_d)/n_samp)
-    #     vc_tmp <- Matrix::forceSymmetric(solve(hess_tmp)) 
-    #     ev <- eigen(vc_tmp)$value
-    #     if(any(ev<0)){#check pos-def of varcov, if not, adding min eigenvalue amt noise to diag to make pos-def
-    #       vc_tmp <- vc_tmp - diag(min(ev) - 1e-4, ncol(vc_tmp)) 
-    #     }
-    #     ch_vc <- chol(vc_tmp) #long vectors issue w/o?
-    #     return(t(ch_vc) %*% ch_vc)
-    #   },
-    #   z_samples, w_samples,
-    #   MoreArgs = list(par_theta = all_theta_par, 
-    #                   y_vec = Y,
-    #                   Z_d = t(Z),
-    #                   mu_b_mat = mu_block,
-    #                   var_b_mat = var_block,
-    #                   var_g = ctrl$var_gamma, 
-    #                   mu_g = ctrl$mu_gamma,
-    #                   dir_net = ctrl$directed,
-    #                   group_mat = group_mat,
-    #                   lambda_vec = lambda_vec),
-    #   SIMPLIFY = FALSE)
-    # 
-    # vcovTheta <- Reduce("+", hessTheta_list)/ctrl$se_sim
-    # N_B_PAR <- ifelse(directed, n.blocks1*n.blocks2 , n.blocks1 * (1 + n.blocks2) / 2)
-    # fit$vcov_blockmodel <- vcovTheta[1:N_B_PAR, 1:N_B_PAR, drop = FALSE]
-    # bm_names <- outer(rownames(fit[["BlockModel"]]), colnames(fit[["BlockModel"]]), paste, sep=":")
-    # colnames(fit$vcov_blockmodel) <- rownames(fit$vcov_blockmodel) <- if(directed){c(bm_names)}else{c(bm_names[lower.tri(bm_names, TRUE)])}
-    
+ 
     
     
     if(ctrl$verbose){

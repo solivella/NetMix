@@ -319,12 +319,7 @@
 
 .vcovBeta <- function(all_phi, beta_coef, n.blk,
                       kappa_mat, var.beta, X, n.hmm, n.nodes, n.nodesRec){
-  sampleC_perm <- t(apply(all_phi, 1,
-                        function(vec){
-                          ans <- rep(0, length(vec))
-                          ans[which.max(vec)] <- n.nodesRec
-                          return(ans)
-                        }))
+  sampleC_perm <- all_phi
   C_samples <- list(sampleC_perm)
   hess_all <- lapply(seq_len(1:n.hmm),
                      function(m, C_samp){
@@ -334,7 +329,7 @@
                                           function(c_mat, X_mat, A, A_sum, k_m, vb, nn){
                                             vcovBeta_ext(X_mat, c_mat, A, A_sum, k_m, vb, nn)
                                           }, X_mat = X, A = alpha, A_sum = alpha_sum, 
-                                          k_m=kappa_mat[,m], vb=var.beta, nn=n.nodes)
+                                          k_m=kappa_mat[,m], vb=var.beta, nn=n.nodesRec)
                        return(as.matrix(hess_tmp[[1]]))},
                      C_samp = C_samples)
   vcov_monad <- do.call(Matrix::bdiag, hess_all)
