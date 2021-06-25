@@ -592,7 +592,7 @@ mmsbm <- function(formula.dyad,
     prot <- array(.1, dim(ctrl$mu_beta1)[-3], dimnames=dimnames(ctrl$mu_beta1)[-3])
     ctrl$beta1_init <- vapply(seq.int(n.hmmstates),
                               function(m){
-                                array(rnorm(ctrl$mu_beta1[,,m], ctrl$mu_beta1[,,m],sqrt(ctrl$var_beta1[,,m])), dim(ctrl$mu_beta1)[-3])
+                                lm.fit(X1, t(ctrl$mm_init_t[[1]]))$coefficients
                               }, prot)
   }
   ##Initial Beta 2
@@ -601,7 +601,7 @@ mmsbm <- function(formula.dyad,
       prot <- array(.1, dim(ctrl$mu_beta2)[-3], dimnames=dimnames(ctrl$mu_beta2)[-3])
       ctrl$beta2_init <- vapply(seq.int(n.hmmstates),
                                 function(m){
-                                  array(rnorm(ctrl$mu_beta2[,,m], ctrl$mu_beta2[,,m],sqrt(ctrl$var_beta2[,,m])), dim(ctrl$mu_beta2)[-3])
+                                  lm.fit(X2,t(ctrl$mm_init_t[[2]]))$coefficients
                                 }, prot)
     }
   }
