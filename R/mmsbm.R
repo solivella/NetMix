@@ -624,6 +624,8 @@ mmsbm <- function(formula.dyad,
     X2_t <- t(X2)
     node_id_period1<-unlist(node_id_period1)
     node_id_period2<-unlist(node_id_period2)
+    dimnames(ctrl$beta1_init) <- NULL
+    dimnames(ctrl$beta2_init) <- NULL
     fit <- mmsbm_fitBi(Z_t, # matrix/array 1x100
                        X1_t,# matrix/array K1 x N1
                        X2_t,# matrix/array K2 x N2
@@ -656,6 +658,7 @@ mmsbm <- function(formula.dyad,
     )
     
   } else {
+    dimnames(ctrl$beta1_init) <- NULL
     fit <- mmsbm_fit(Z_t,
                      X1_t,
                      Y,
@@ -693,14 +696,46 @@ mmsbm <- function(formula.dyad,
     fit[["BlockModel"]] <- fit[["BlockModel"]] - c(Z_mean %*% fit[["DyadCoef"]]) #recenter block model fixed effects
     names(fit[["DyadCoef"]]) <- colnames(Z) 
   }
+  X1 <- t(t(X1) * X1_sd + X1_mean) #unscale
+  # tmp1 <- .transfBeta(fit[["MonadCoef1"]], n.hmmstates,
+  #                    X1_mean, X1_sd, n.blocks[1], colnames(X1))
+  # tmp1[1,,] <- 1
+  # tmp_beta1 <- maxLik::maxNR(alphaLBound,
+  #                       start = tmp1,
+  #                       tot_nodes = fit[["TotNodes1"]],
+  #                       c_t=t(fit[["CountMatrix1"]]),
+  #                       x_t=t(X1),
+  #                       s_mat=fit[["Kappa"]],
+  #                       t_id=t_id_n1,
+  #                       var_beta=ctrl$var_beta1,
+  #                       mu_beta=ctrl$mu_beta1, 
+  #                       control=list(iterlim=100))
+  # fit[["MonadCoef1"]] <- array(tmp_beta1$estimate, dim(fit[["MonadCoef1"]]))
+  # rownames(fit[["MonadCoef1"]]) <- colnames(X1)
+  # colnames(fit[["MonadCoef1"]]) <- paste("Group", 1:n.blocks[1])
   fit[["MonadCoef1"]] <- .transfBeta(fit[["MonadCoef1"]], n.hmmstates,
                                      X1_mean, X1_sd, n.blocks[1], colnames(X1))
-  
-  X1 <- t(t(X1) * X1_sd + X1_mean) #unscale
+
   if(bipartite){
+    X2 <- t(t(X2) * X2_sd + X2_mean) #unscale
+    # tmp2 <- .transfBeta(fit[["MonadCoef2"]], n.hmmstates,
+    #                     X2_mean, X2_sd, n.blocks[2], colnames(X2))
+    # tmp2[1,,] <- 1
+    # tmp_beta2 <- maxLik::maxNR(alphaLBound,
+    #                            start = tmp2,
+    #                            tot_nodes = fit[["TotNodes2"]],
+    #                            c_t=t(fit[["CountMatrix2"]]),
+    #                            x_t=t(X2),
+    #                            s_mat=fit[["Kappa"]],
+    #                            t_id=t_id_n2,
+    #                            var_beta=ctrl$var_beta2,
+    #                            mu_beta=ctrl$mu_beta2,
+    #                            control=list(iterlim=1))
+    # fit[["MonadCoef2"]] <- array(tmp_beta2$estimate, dim(fit[["MonadCoef2"]]))
+    # rownames(fit[["MonadCoef2"]]) <- colnames(X2)
+    # colnames(fit[["MonadCoef2"]]) <- paste("Group", 1:n.blocks[2])
     fit[["MonadCoef2"]] <- .transfBeta(fit[["MonadCoef2"]], n.hmmstates,
                                        X2_mean, X2_sd, n.blocks[2], colnames(X2))
-    X2 <- t(t(X2) * X2_sd + X2_mean) #unscale
   }
   
   
@@ -719,15 +754,29 @@ mmsbm <- function(formula.dyad,
     }
     ## Compute approximate standard errors
     ## for monadic coefficients
-    kappa_mat1 <- t(fit[["Kappa"]][,t_id_n1+1, drop=FALSE])
-    all_phi1 <- (fit[["CountMatrix1"]])
-    fit$vcov_monad1 <- .vcovBeta(all_phi1, fit[["MonadCoef1"]], n.blocks[1], kappa_mat1,
-                                 c(ctrl$var_beta1), X1, n.hmmstates, fit[["TotNodes1"]])
+    # kappa_mat1 <- t(fit[["Kappa"]][,t_id_n1+1, drop=FALSE])
+    # all_phi1 <- (fit[["CountMatrix1"]])
+    fit$vcov_monad1 <- .vcovBeta(fit[["MonadCoef1"]],
+                                 tot_nodes = fit[["TotNodes1"]],
+                                 c_t=t(fit[["CountMatrix1"]]),
+                                 x_t=t(X1),
+                                 s_mat=fit[["Kappa"]],
+                                 t_id=t_id_n1,
+                                 var_beta=ctrl$var_beta1,
+                                 mu_beta=ctrl$mu_beta1)
+    
     if(bipartite){
-      kappa_mat2 <- t(fit[["Kappa"]][,t_id_n2+1, drop=FALSE])
-      all_phi2 <- (fit[["CountMatrix2"]])
-      fit$vcov_monad2 <- .vcovBeta(all_phi2, fit[["MonadCoef2"]],n.blocks[2], kappa_mat2,
-                                   c(ctrl$var_beta2), X2, n.hmmstates, fit[["TotNodes2"]])
+      # kappa_mat2 <- t(fit[["Kappa"]][,t_id_n2+1, drop=FALSE])
+      # all_phi2 <- (fit[["CountMatrix2"]])
+      fit$vcov_monad2 <- .vcovBeta(fit[["MonadCoef2"]],
+                                   tot_nodes = fit[["TotNodes2"]],
+                                   c_t=t(fit[["CountMatrix2"]]),
+                                   x_t=t(X2),
+                                   s_mat=fit[["Kappa"]],
+                                   t_id=t_id_n2,
+                                   var_beta=ctrl$var_beta2,
+                                   mu_beta=ctrl$mu_beta2)
+     
     } 
     
     ## and for dyadic coefficients

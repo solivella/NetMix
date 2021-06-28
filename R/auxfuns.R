@@ -52,7 +52,6 @@
 #' @param .soc_mats,Y,dyads,edges,t_id_d,t_id_n,nodes_pp,dyads_pp,nt_id,node_id_period,mu_b,var_b,n_dyads,n.blocks,periods,ctrl Internal arguments for initialization.
 #' @param m1,bootrep,blist1,blist2 Arguments to internal fiunctions for bootstrapping 
 #' @param ... Numeric vectors; vectors of potentially different length to be cbind-ed.
-#' 
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (aylo@@wisc.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 #'
 #' @return See individual return section for each function:
@@ -317,25 +316,21 @@
   return(pi.states)
 }
 
-.vcovBeta <- function(all_phi, beta_coef, n.blk,
-                      kappa_mat, var.beta, X, n.hmm, n.nodesRec){
-  sampleC_perm <- all_phi
-  C_samples <- list(sampleC_perm)
-  hess_all <- lapply(seq_len(1:n.hmm),
-                     function(m, C_samp){
-                       alpha <- exp(X %*% as.matrix(beta_coef[,,m]))
-                       alpha_sum <- rowSums(alpha)
-                       hess_tmp <- lapply(C_samp,
-                                          function(c_mat, X_mat, A, A_sum, k_m, vb, nn){
-                                            vcovBeta_ext(X_mat, c_mat, A, A_sum, k_m, vb, nn)
-                                          }, X_mat = X, A = alpha, A_sum = alpha_sum, 
-                                          k_m=kappa_mat[,m], vb=var.beta, nn=n.nodesRec)
-                       return(as.matrix(hess_tmp[[1]]))},
-                     C_samp = C_samples)
-  vcov_monad <- do.call(Matrix::bdiag, hess_all)
-  colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:n.hmm), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
-                                                        rep(colnames(beta_coef), each = nrow(beta_coef), times = n.hmm),#beta_coef used to be fbeta_coef??
-                                                        rep(rownames(beta_coef), times = n.blk*n.hmm),
+#' @rdname auxfuns
+.vcovBeta <- function(beta_coef,tot_nodes, c_t, x_t,s_mat,t_id,var_beta,mu_beta){
+  
+  tmp <- alphaLBound(c(beta_coef),
+                     tot_nodes,
+                     c_t,
+                     x_t,
+                     s_mat,
+                     t_id,
+                     var_beta,
+                     mu_beta)
+  vcov_monad <- as.matrix(Matrix::nearPD(solve(-attr(tmp, "hessian")))$mat)
+  colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:dim(beta_coef)[3]), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
+                                                        rep(colnames(beta_coef), each = nrow(beta_coef), times = dim(beta_coef)[3]),#beta_coef used to be fbeta_coef??
+                                                        rep(rownames(beta_coef), times = prod(dim(beta_coef)[2:3])),
                                                         sep=":")
   return(as.matrix(vcov_monad))
 }

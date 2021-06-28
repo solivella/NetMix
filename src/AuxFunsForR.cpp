@@ -158,7 +158,7 @@ Rcpp::NumericVector alphaLBound(arma::vec par,
   double res=0.0, prior_gr=0.0, linpred = 0.0;
   arma::uword U_NPAR = par.n_elem;
   
-  arma::vec gr(U_NPAR, arma::fill::zeros);
+  Rcpp::NumericVector gr(U_NPAR);
   
   arma::cube alpha (N_BLK, N_NODE, N_STATE, arma::fill::zeros);
   arma::mat alpha_row(N_NODE, N_STATE, arma::fill::zeros);
