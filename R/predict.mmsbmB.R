@@ -59,7 +59,7 @@ predict.mmsbmB <- function(object,
   #Monadic
   #Family 1
   if(!is.null(new.data.monad1)){
-    nid1 <- ifelse(object$forms$nodeID[[1]] %in% colnames(new.data.monad1), object$forms$nodeID[[1]], "(nid1)")
+    nid1 <- ifelse(object$forms$nodeID[[1]] %in% colnames(new.data.monad1), object$forms$nodeID[[1]], "(nid)")
     monad1 <- new.data.monad1
     if(is.null(object$forms$timeID)){
       tid1 <- "(tid)"
@@ -85,7 +85,7 @@ predict.mmsbmB <- function(object,
   }
   #Family 2
   if(!is.null(new.data.monad2)){
-    nid2 <- ifelse(object$forms$nodeID[[2]] %in% colnames(new.data.monad2), object$forms$nodeID[[2]], "(nid2)")
+    nid2 <- ifelse(object$forms$nodeID[[2]] %in% colnames(new.data.monad2), object$forms$nodeID[[2]], "(nid)")
     monad2 <- new.data.monad2
     if(is.null(object$forms$timeID)){
       tid2 <- "(tid)"
@@ -165,10 +165,23 @@ predict.mmsbmB <- function(object,
   if(!rid%in%colnames(dyad)){tmp_rid <- object$forms$receiverID}else{tmp_rid<-rid}
   if(!tid%in%colnames(dyad)){tmp_tid <- object$forms$timeID}else{tmp_tid<-tid}
   
-  s_ind <- match(paste(dyad[,tmp_sid],dyad[,tmp_tid],sep="@"), 
-                 paste(monad1[,nid1],monad1[,tid1],sep="@"))
+  if(tmp_tid=="(tid)"&tid1!="(tid)"&any(names(monad1)%in%"(tid)")){
+    temp_tid<-"(tid)"
+    s_ind <- match(paste(dyad[,tmp_sid],dyad[,tmp_tid],sep="@"), 
+                   paste(monad1[,nid1],monad1[,temp_tid],sep="@"))
+  }else{
+    s_ind <- match(paste(dyad[,tmp_sid],dyad[,tmp_tid],sep="@"), 
+                   paste(monad1[,nid1],monad1[,tid1],sep="@"))
+  }
+  
+  if (tmp_tid=="(tid)"&tid2!="(tid)"&any(names(monad2)%in%"(tid)")){
+    temp_tid<-"(tid)"
+    r_ind <- match(paste(dyad[,tmp_rid],dyad[,tmp_tid],sep="@"), 
+                   paste(monad2[,nid2],monad2[,temp_tid],sep="@"))
+  }else{
   r_ind <- match(paste(dyad[,tmp_rid],dyad[,tmp_tid],sep="@"), 
                  paste(monad2[,nid2],monad2[,tid2],sep="@"))
+  }
   pi_s <- p1[,s_ind]
   pi_r <- p2[,r_ind]
   

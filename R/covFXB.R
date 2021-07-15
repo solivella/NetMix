@@ -54,10 +54,13 @@ covFXB <- function(fm, cov1=NULL, cov2=NULL, shift, max.val=FALSE){
       names(fm$dyadic.data)[which(names(fm$dyadic.data)=="(rid)")] <- rid
     }
     if(!sid%in%names(fm$monadic.data[[1]])){
-      names(fm$monadic.data[[1]])[which(names(fm$monadic.data[[1]])=="(nid1)")] <- sid
+      #create column for which node name matches
+      names(fm$monadic.data[[1]])[which(names(fm$monadic.data[[1]])=="(nid)")] <- sid
+      fm$monadic.data[[1]]$`(nid)`<-fm$monadic.data[[1]][,sid]
     }
     
-    predict.ties2 <- predict.mmsbmB(fm, new.data.monad1=monadic.data2, parametric_mm = TRUE, type="response") #change to just predict()?
+    predict.ties2 <- predict.mmsbmB(fm, new.data.monad1=monadic.data2, forecast = TRUE, type="response")
+    
     FX <- list(mean(predict.ties2 - predict.ties), #avg
                tapply(predict.ties2-predict.ties, fm$dyadic.data[,tid], mean), #time
                sapply(unique(fm$monadic.data[[1]][,sid]), function(x){ #node
