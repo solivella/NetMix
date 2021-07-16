@@ -66,11 +66,11 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
          #xlab="Time", ylab=paste("Effect of", cov, "on Pr(Edge Formation)"), main="Marginal Effect over Time")
     
     if(family==1){ 
-      monadic.data<- x$monadic1.data 
+      monadic.data<- x$monadic.data[[1]]
       nid <- x$forms$senderID
       if(!nid%in%names(monadic.data)){nid<-"(nid1)"}
     } else{ 
-        monadic.data <- x$monadic2.data
+        monadic.data <- x$monadic.data[[2]]
         nid <- x$forms$receiverID
         if(!nid%in%names(monadic.data)){nid<-"(nid2)"}
     }
@@ -105,11 +105,11 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
     #xlab="Time", ylab=paste("Effect of", cov, "on Pr(Edge Formation)"), main="Marginal Effect over Time")
     
     if(family==1){ 
-      monadic.data<- x$monadic1.data 
+      monadic.data<- x$monadic.data[[1]]
       nid <- x$forms$senderID
       if(!nid%in%names(monadic.data)){nid<-"(nid1)"}
     } else{ 
-      monadic.data <- x$monadic2.data
+      monadic.data <- x$monadic.data[[2]]
       nid <- x$forms$receiverID
       if(!nid%in%names(monadic.data)){nid<-"(nid2)"}
     }
