@@ -6,6 +6,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // approxB
 Rcpp::NumericMatrix approxB(Rcpp::NumericVector y, Rcpp::IntegerMatrix d_id, Rcpp::NumericMatrix pi1_mat, Rcpp::Nullable<Rcpp::NumericMatrix> pi2_mat_tmp, bool directed);
 RcppExport SEXP _NetMix_approxB(SEXP ySEXP, SEXP d_idSEXP, SEXP pi1_matSEXP, SEXP pi2_mat_tmpSEXP, SEXP directedSEXP) {
