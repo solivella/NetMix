@@ -1,35 +1,24 @@
 #include <RcppArmadillo.h>
 
 //' @rdname auxfuns
-// [[Rcpp::export(approxB)]]
+// [[Rcpp::export()]]
 Rcpp::NumericMatrix approxB(Rcpp::NumericVector y,
                             Rcpp::IntegerMatrix d_id,
-                            Rcpp::NumericMatrix pi1_mat,
-			    Rcpp::Nullable<Rcpp::NumericMatrix> pi2_mat_tmp = R_NilValue, 
+                            Rcpp::NumericMatrix pi_mat, 
                             bool directed = true)
 {
-  bool bipart;
-  Rcpp::NumericMatrix pi2_mat;
-  if(pi2_mat_tmp.isNotNull()){
-    pi2_mat = Rcpp::as<Rcpp::NumericMatrix>(pi2_mat_tmp);
-    bipart = true;
-  } else {
-    pi2_mat = pi1_mat;
-    bipart = false;
-  }
-   int N_BLK1 = pi1_mat.nrow();
-  int N_BLK2 = pi2_mat.nrow();
+  int N_BLK = pi_mat.nrow();
   int N_DYAD = d_id.nrow();
-  Rcpp::NumericMatrix den(N_BLK2, N_BLK1), num(N_BLK2, N_BLK1), B_t(N_BLK2, N_BLK1);
-  int s = 0, r = 0;
+  Rcpp::NumericMatrix den(N_BLK, N_BLK), num(N_BLK, N_BLK), B_t(N_BLK, N_BLK);
+  int s, r;
   double prob_temp;
   for(int d = 0; d < N_DYAD; ++d){
     s = d_id(d, 0);
     r = d_id(d, 1);
-    for(int g = 0; g < N_BLK1; ++g){
-      for(int h = 0; h < N_BLK2; ++h){
-        if((g <= h) | directed | bipart){
-          prob_temp = pi1_mat(g, s) * pi2_mat(h, r);
+    for(int g = 0; g < N_BLK; ++g){
+      for(int h = 0; h < N_BLK; ++h){
+        if((g <= h) | directed){
+          prob_temp = pi_mat(g, s) * pi_mat(h, r);
           num(h, g) += y[d] * prob_temp;
           den(h, g) += prob_temp;
         } else{

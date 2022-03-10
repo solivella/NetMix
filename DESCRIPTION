@@ -1,31 +1,30 @@
 Package: NetMix
 Type: Package
 Title: Dynamic Mixed-Membership Network Regression Model
-Version: 0.2.0.9013
-Date: 2021-06-03
+Version: 0.2.0.9014
+Date: 2022-03-10
 Encoding: UTF-8
 Author: Santiago Olivella [aut, cre],
   Adeline Lo [aut, cre],
 	Tyler Pratt [aut, cre],
 	Kosuke Imai [aut, cre]
 Maintainer: Santiago Olivella <olivella@unc.edu>
-Description: Stochastic collapsed variational inference on mixed-membership stochastic blockmodel for networks, incorporating node-level predictors of mixed-membership vectors, as well as 
+Description: Stochastic collapsed variational inference for mixed-membership stochastic blockmodel of networks,
+             incorporating node-level predictors of mixed-membership vectors, as well as 
              dyad-level predictors. For networks observed over time, the model defines a hidden
              Markov process that allows the effects of node-level predictors to evolve in discrete,
-             historical periods. In addition, the package offers a variety of utilities for 
+             historical periods. The model accommodates both one-mode and two-mode (i.e bipartite) networks.
+             In addition, the package offers a variety of utilities for 
              exploring results of estimation, including tools for conducting posterior 
-             predictive checks of goodness-of-fit and several plotting functions. The package 
-             implements methods described in Olivella, Pratt and Imai (2019) ``Dynamic Stochastic
-             Blockmodel Regression for Social Networks: Application to International Conflicts'',
-             available at <https://www.santiagoolivella.info/pdfs/socnet.pdf>.
+             predictive checks of goodness-of-fit and several plotting functions. 
 BugReports: https://github.com/solivella/NetMix/issues 
 NeedsCompilation: yes
 License: GPL (>= 2)
 Depends: R (>= 4.0.0)
 SystemRequirements: C++11
 Suggests: ergm (>= 3.9.4), ggplot2 (>= 3.1.1), network (>= 1.13), scales(>= 1.0.0)
-Imports: clue (>= 0.3-58), graphics (>= 3.5.2), grDevices (>= 3.5.2), gtools (>= 3.8.1), igraph (>= 1.2.4.1),
+Imports: blockcluster (>= 4.5.0), clue (>= 0.3-58), graphics (>= 3.5.2), grDevices (>= 3.5.2), gtools (>= 3.8.1), igraph (>= 1.2.4.1),
          lda (>= 1.4.2), Matrix (>= 1.2-15), MASS (>= 7.3-51.4), methods (>= 3.5.2), poisbinom (>= 1.0.1),
          Rcpp (>= 1.0.2), RSpectra (>= 0.14-0), stats (>= 3.5.2), utils (>= 3.5.2)
 LinkingTo: Rcpp, RcppArmadillo
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2

@@ -61,11 +61,11 @@ summary.mmsbm <- function(object, ...){
       colnames(summ$`Dyadic Coefficients`) <- c("Coefficient", "Std. Error")
     }
     
-    mse <- sqrt(diag(object$vcov_monad[[1]]))
+    mse <- sqrt(diag(object$vcov_monad1))
     summ$`Monadic Coefficients` <- cbind(c(summ$`Monadic Coefficients`),
                                          mse)
     colnames(summ$`Monadic Coefficients`) <- c("Coefficient", "Std. Error")
-    rownames(summ$`Monadic Coefficients`) <- rownames(object$vcov_monad[[1]])
+    rownames(summ$`Monadic Coefficients`) <- rownames(object$vcov_monad1)
 
   }
   print(summ)

@@ -9,7 +9,6 @@
   new.data.dyad = NULL,
   new.data.monad1 = NULL,
   new.data.monad2 = NULL,
-  parametric_mm = FALSE,
   forecast = FALSE,
   type = c("link", "response"),
   ...

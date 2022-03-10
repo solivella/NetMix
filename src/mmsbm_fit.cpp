@@ -165,20 +165,30 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
   
   //Form return objects
   arma::mat C_res = Model.getC();
+
   arma::mat postmm_res = Model.getPostMM();
+
   arma::mat send_phi = Model.getPhi(true);
+
   arma::mat rec_phi = Model.getPhi(false);
+
   arma::uvec tot_nodes = Model.getN();
+
   arma::mat A = Model.getWmn();
+
   arma::mat kappa_res = Model.getKappa();
+
   arma::mat B = Model.getB();
+
   arma::vec gamma_res = Model.getGamma();
+
   arma::cube beta_res = Model.getBeta();
+
   
   
   Rcpp::List res;
   res["MixedMembership1"] = postmm_res;
-  res["CountMatrix"] = C_res;
+  res["CountMatrix1"] = C_res;
   res["SenderPhi"] = send_phi;
   res["ReceiverPhi"] = rec_phi;
   res["TotNodes1"] = tot_nodes;

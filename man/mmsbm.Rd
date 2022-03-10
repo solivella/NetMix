@@ -100,7 +100,7 @@ to 1 (i.e. no HMM). Currently, dynamic models are only supported for non-biparti
                   is the number of  monadic predictors in the corresponding family for which a prior mean is being set (prior means need not be set for all 
                   predictors). The rows in the array should be named to identify which variables a prior mean is being set for.
                   Defaults to a common prior mean of 0.0 for all monadic coefficients.}           
-   \item{var_beta}{See \code{mu_beta}. Defaults to a single common prior variance of 5.0 for all monadic coefficients.}
+   \item{var_beta}{See \code{mu_beta}. Defaults to a single common prior variance of 2.55 for all monadic coefficients, and 10 for all intercepts.}
    \item{mu_gamma}{Either a single numeric value, in which case the same prior mean is applied to all dyadic coefficients, or
                    a named vector of numeric values (with names corresponding to the name of the variable 
                   for which a prior mean is being set). Defaults to a common prior mean of 0.0 for all dyadic coefficients.}
@@ -116,17 +116,17 @@ to 1 (i.e. no HMM). Currently, dynamic models are only supported for non-biparti
    \item{fixed_mm2}{Optional character vector, with \code{"nodeID2@timeID"} as elements, indicating which mixed-membership vectors
                    should remain constant at their initial values throughout estimation. When only one year is observed, elements should be 
                     \code{"nodeID2@1"}. Typically used with \code{mm_init_t2}.}
-   \item{mm_init_t1}{Matrix, \code{n.blocks1} by nodes across years. Optional initial values for mixed-membership vectors.
+   \item{mm_init_t1}{Matrix, \code{n.blocks[1]} by nodes across years. Optional initial values for mixed-membership vectors.
                       Although initial values need not be provided for all nodes, column names must have a \code{nodeID1@timeID} format to 
                       avoid ambiguity. When only one year is observed, names should be \code{"nodeID1@1"}.}
-   \item{mm_init_t2}{Matrix, \code{n.blocks2} by nodes across years. Optional initial values for mixed-membership vectors.
+   \item{mm_init_t2}{Matrix, \code{n.blocks[2]} by nodes across years. Optional initial values for mixed-membership vectors.
                       Although initial values need not be provided for all nodes, column names must have a \code{nodeID2@timeID} format to 
                       avoid ambiguity. When only one year is observed, names should be \code{"nodeID2@1"}.}
    \item{kappa_init_t}{Matrix, \code{n.hmmstates} by number of years. Optional initial values for variational 
                   parameters for state probabilities.}
-   \item{block_init_t}{Matrix, \code{n.blocks1} by \code{n.blocks2}. Optional initial values for blockmodel.}
-   \item{beta1_init}{Array, predictors by \code{n.blocks1} by \code{n.hmmstates}. Optional initial values for family 1 monadic coefficients.}
-   \item{beta2_init}{Array, predictors by \code{n.blocks2} by \code{n.hmmstates}. Optional initial values for family 2 monadic coefficients.}
+   \item{block_init_t}{Matrix, \code{n.blocks[1]} by \code{n.blocks2}. Optional initial values for blockmodel.}
+   \item{beta1_init}{Array, predictors by \code{n.blocks[1]} by \code{n.hmmstates}. Optional initial values for family 1 monadic coefficients.}
+   \item{beta2_init}{Array, predictors by \code{n.blocks[2]} by \code{n.hmmstates}. Optional initial values for family 2 monadic coefficients.}
    \item{gamma_init}{Vector. Optional initial values for dyadic coefficients.}
    \item{permute}{Boolean. Should all permutations be tested to realign initial block models in dynamic case? If \code{FALSE}, realignment is 
                  done via faster graph matching algorithm, but may not be exact. Defaults to \code{TRUE}.}

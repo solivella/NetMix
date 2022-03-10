@@ -36,6 +36,7 @@ lazega_mmsbm <- mmsbm(SocializeWith ~ Coworkers,
                       data.monad = lazega_monadic,
                       n.blocks = 2,
                       mmsbm.control = list(seed = 123, 
+                                           verbose = TRUE,
                                            se_sim = 2)) # Usually requires more samples.
 
 vcov(lazega_mmsbm, "MonadCoef")

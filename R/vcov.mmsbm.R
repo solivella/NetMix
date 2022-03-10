@@ -29,6 +29,7 @@
 #'                       data.monad = lazega_monadic,
 #'                       n.blocks = 2,
 #'                       mmsbm.control = list(seed = 123, 
+#'                                            verbose = TRUE,
 #'                                            se_sim = 2)) # Usually requires more samples.
 #' 
 #' vcov(lazega_mmsbm, "MonadCoef")
@@ -39,12 +40,12 @@ vcov.mmsbm <- function(object,
                        ...)
 {
   switch(param,
-         MonadCoef1 = object$vcov_monad[[1]],
-         MonadCoef2 = object$vcov_monad[[2]],
+         MonadCoef1 = object$vcov_monad1,
+         MonadCoef2 = if(object$bipartite){object$vcov_monad2}else{NULL},
          DyadCoef = object$vcov_dyad,
          BlockModel = object$vcov_blockmodel,
-         All = list(MonadCoef1 = object$vcov_monad[[1]],
-                    MonadCoef2 = object$vcov_monad[[2]],
+         All = list(MonadCoef1 = object$vcov_monad1,
+                    MonadCoef2 = if(object$bipartite){object$vcov_monad2}else{NULL},
                     DyadCoef = object$vcov_dyad,
                     BlockModel = object$vcov_blockmodel))
 }

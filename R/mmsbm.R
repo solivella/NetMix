@@ -181,7 +181,9 @@ mmsbm <- function(formula.dyad,
     }
   } else{
     formula.monad <- list(formula.monad)
+    formula.monad[[2]] <- 0
     data.monad <- list(data.monad)
+    data.monad[[2]] <- 0
     nodeID <- list(nodeID)
     n.blocks <- c(n.blocks, n.blocks)
   }
@@ -226,7 +228,7 @@ mmsbm <- function(formula.dyad,
                eta = 1.0,
                permute = TRUE,
                threads = 1,
-               conv_tol = 1e-3,
+               conv_tol = 1e-2,
                verbose = FALSE)
   ctrl[names(mmsbm.control)] <- mmsbm.control
   ctrl$bipartite <- bipartite
@@ -260,7 +262,7 @@ mmsbm <- function(formula.dyad,
     cat("Pre-processing data...\n")
   }
   
-
+  
   ## Add time variable if null or single period
   if(is.null(timeID) || (length(unique(data.dyad[[timeID]])) == 1)){
     timeID <- "tid"
@@ -277,48 +279,48 @@ mmsbm <- function(formula.dyad,
   
   ## Address missing data 
   if(any(is.na(data.monad[[1]]))|any(is.na(data.monad[[2]]))|any(is.na(data.dyad))){
-  new_dat_dyad <- .missHandle(formula.dyad, data.dyad, ctrl$missing)
-  data.dyad <- new_dat_dyad$dat
-  formula.dyad <- new_dat_dyad$form
-  
-  new_dat_monad1 <- .missHandle(formula.monad[[1]], data.monad[[1]], ctrl$missing)
-  data.monad[[1]] <- new_dat_monad1$dat
-  formula.monad1 <- new_dat_monad1$form
-  if(bipartite){
-    new_dat_monad2 <- .missHandle(formula.monad[[2]], data.monad[[2]], ctrl$missing)
-    data.monad[[2]] <- new_dat_monad2$dat
-    formula.monad2 <- new_dat_monad2$form
-  } 
-  
-  ## Drop dyads with nodes not in monadic dataset
-  
-  if(!is.null(data.monad[[1]])){
+    new_dat_dyad <- .missHandle(formula.dyad, data.dyad, ctrl$missing)
+    data.dyad <- new_dat_dyad$dat
+    formula.dyad <- new_dat_dyad$form
+    
+    new_dat_monad1 <- .missHandle(formula.monad[[1]], data.monad[[1]], ctrl$missing)
+    data.monad[[1]] <- new_dat_monad1$dat
+    formula.monad1 <- new_dat_monad1$form
     if(bipartite){
-      d.keep <- lapply(unique(data.dyad[,timeID]), function(x){
-        nts1 <- data.monad[[1]][data.monad[[1]][,timeID]==x,nodeID[[1]]]
-        dd <- data.dyad[data.dyad[,timeID]==x,]
-        dd <- dd[(dd[,senderID] %in% nts1),]
-        return(dd)
-      })
-      if(!is.null(data.monad[[2]])){
+      new_dat_monad2 <- .missHandle(formula.monad[[2]], data.monad[[2]], ctrl$missing)
+      data.monad[[2]] <- new_dat_monad2$dat
+      formula.monad2 <- new_dat_monad2$form
+    } 
+    
+    ## Drop dyads with nodes not in monadic dataset
+    
+    if(!is.null(data.monad[[1]])){
+      if(bipartite){
         d.keep <- lapply(unique(data.dyad[,timeID]), function(x){
           nts1 <- data.monad[[1]][data.monad[[1]][,timeID]==x,nodeID[[1]]]
-          nts2 <- data.monad[[2]][data.monad[[2]][,timeID]==x,nodeID[[2]]]
           dd <- data.dyad[data.dyad[,timeID]==x,]
-          dd <- dd[(dd[,senderID] %in% nts1) & (dd[,receiverID] %in% nts2),]
+          dd <- dd[(dd[,senderID] %in% nts1),]
+          return(dd)
+        })
+        if(!is.null(data.monad[[2]])){
+          d.keep <- lapply(unique(data.dyad[,timeID]), function(x){
+            nts1 <- data.monad[[1]][data.monad[[1]][,timeID]==x,nodeID[[1]]]
+            nts2 <- data.monad[[2]][data.monad[[2]][,timeID]==x,nodeID[[2]]]
+            dd <- data.dyad[data.dyad[,timeID]==x,]
+            dd <- dd[(dd[,senderID] %in% nts1) & (dd[,receiverID] %in% nts2),]
+            return(dd)
+          })
+        }
+      } else {
+        d.keep <- lapply(unique(data.dyad[,timeID]), function(x){
+          nts <- data.monad[[1]][data.monad[[1]][,timeID]==x,nodeID[[1]]]
+          dd <- data.dyad[data.dyad[,timeID]==x,]
+          dd <- dd[(dd[,senderID] %in% nts) & (dd[,receiverID] %in% nts),]
           return(dd)
         })
       }
-    } else {
-      d.keep <- lapply(unique(data.dyad[,timeID]), function(x){
-        nts <- data.monad[[1]][data.monad[[1]][,timeID]==x,nodeID[[1]]]
-        dd <- data.dyad[data.dyad[,timeID]==x,]
-        dd <- dd[(dd[,senderID] %in% nts) & (dd[,receiverID] %in% nts),]
-        return(dd)
-      })
+      data.dyad <- do.call("rbind", d.keep)
     }
-    data.dyad <- do.call("rbind", d.keep)
-  }
   }
   ##Create model frames
   mfd <- do.call(model.frame, list(formula = formula.dyad,
@@ -412,7 +414,7 @@ mmsbm <- function(formula.dyad,
   Z_sd <- attr(Z, "scaled:scale")
   n_dyad_pred <- ncol(Z)
   #if(n_dyad_pred == 0){
-    #Z <- matrix(0, nrow = nrow(Z), ncol = 1)
+  #Z <- matrix(0, nrow = nrow(Z), ncol = 1)
   #}
   
   ctrl$mu_gamma <- .transf_muvar(ctrl$mu_gamma, FALSE, FALSE, Z)
@@ -514,7 +516,7 @@ mmsbm <- function(formula.dyad,
   edges <- split(Y, mfd[, "(tid)"])
   
   #create sociomatrices
-  soc_mats <- Map(function(dyad_mat, edge_vec, bipartite){
+  soc_mats <- Map(function(dyad_mat, edge_vec, bipartite, y_var = all.vars(formula.dyad)[1]){
     #nodes <- unique(c(dyad_mat))
     if(bipartite){
       nodes1 <- unique(as.vector(dyad_mat[,which(names(dyad_mat)=="(sid)")]))
@@ -532,9 +534,9 @@ mmsbm <- function(formula.dyad,
                                       nodes2))
     indeces <- as.matrix(dyad_mat[,c("(sid)","(rid)")])
     index <- cbind(match(indeces[,1],rownames(adj_mat)),match(indeces[,2],colnames(adj_mat)))
-    adj_mat[index] <- dyad_mat[,which(names(dyad_mat)=="Y")] # out of bounds
+    adj_mat[index] <- dyad_mat[,y_var] 
     if(!directed){
-      adj_mat[index[,c(2,1)]] <- dyad_mat[,which(names(dyad_mat)=="Y")]
+      adj_mat[index[,c(2,1)]] <- dyad_mat[,y_var]
     }
     obs_prop <- mean(adj_mat, na.rm = TRUE)
     if(anyNA(adj_mat)){
@@ -680,9 +682,9 @@ mmsbm <- function(formula.dyad,
                      ctrl$gamma_init,
                      ctrl)
   }
-  if(!fit[["converged"]])
+  if(!fit[["converged"]]){
     warning(paste("Model did not converge after", fit[["niter"]] - 1, "iterations.\n"))
-  else if (ctrl$verbose){
+  } else if (ctrl$verbose){
     cat("done after", fit[["niter"]] - 1, "iterations.\n")
   }
   ##Return transposes 
@@ -715,7 +717,7 @@ mmsbm <- function(formula.dyad,
   # colnames(fit[["MonadCoef1"]]) <- paste("Group", 1:n.blocks[1])
   fit[["MonadCoef1"]] <- .transfBeta(fit[["MonadCoef1"]], n.hmmstates,
                                      X1_mean, X1_sd, n.blocks[1], colnames(X1))
-
+  
   if(bipartite){
     X2 <- t(t(X2) * X2_sd + X2_mean) #unscale
     # tmp2 <- .transfBeta(fit[["MonadCoef2"]], n.hmmstates,
@@ -776,24 +778,27 @@ mmsbm <- function(formula.dyad,
                                    t_id=t_id_n2,
                                    var_beta=ctrl$var_beta2,
                                    mu_beta=ctrl$mu_beta2)
-     
+      
     } 
     
     ## and for dyadic coefficients
     if(any(Z_sd > 0)){
       edge_eta <- Z %*% fit[["DyadCoef"]]
       z_map <- apply(fit[["MixedMembership1"]], 2, which.max) 
-      w_map <- apply(fit[["MixedMembership2"]], 2, which.max) 
+      w_map <- z_map
+      if(bipartite){
+        w_map <- apply(fit[["MixedMembership2"]], 2, which.max)
+      }
       hessTheta_list <- lapply(1,
                                function(i, eta, z, w, B, ind){
                                  offset_bm <- B[cbind(z_map[ind[,1]], w_map[ind[,2]])]
                                  pred_edges <- plogis(offset_bm + eta)
                                  return(vcovGamma_ext(Z, pred_edges, c(ctrl$var_gamma)))
                                }, eta = edge_eta, z=z_samples, w=w_samples, B=fit[["BlockModel"]], ind = as.matrix(mfd[,c("(sid)","(rid)")]))
-    fit$vcov_dyad <- as.matrix(hessTheta_list[[1]])
-    colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
+      fit$vcov_dyad <- as.matrix(hessTheta_list[[1]])
+      colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
     }
- 
+    
     
     
     if(ctrl$verbose){
@@ -840,7 +845,7 @@ mmsbm <- function(formula.dyad,
   
   ##Assign class for methods
   if(fit$bipartite){
-    class(fit) <-"mmsbmB"
+    class(fit) <- c("mmsbmB", "mmsbm")
   }else{
     class(fit) <- "mmsbm"
   }

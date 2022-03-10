@@ -3,7 +3,10 @@
 \name{approxB}
 \alias{approxB}
 \alias{getZ}
-\alias{alphaLB}
+\alias{vcovGamma_ext}
+\alias{vcovBeta_ext}
+\alias{alphaLBound}
+\alias{alphaGrad}
 \alias{vertboot_matrix_rcpp2}
 \alias{auxfuns}
 \alias{.cbind.fill}
@@ -24,11 +27,17 @@
 \alias{.vertboot2}
 \title{Internal functions and generics for \code{mmsbm} package}
 \usage{
-approxB(y, d_id, pi1_mat, pi2_mat_tmp = NULL, directed = TRUE)
+approxB(y, d_id, pi_mat, directed = TRUE)
 
 getZ(pi_mat)
 
-alphaLB(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
+vcovGamma_ext(X, probs, pen)
+
+vcovBeta_ext(X, c_mat, alpha, alpha_sum, kappa, pen, N, vcov = TRUE)
+
+alphaLBound(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
+
+alphaGrad(par, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 
 vertboot_matrix_rcpp2(m1, blist1, blist2)
 
@@ -52,21 +61,7 @@ vertboot_matrix_rcpp2(m1, blist1, blist2)
 
 .compute.alpha(X, beta)
 
-.vcovBeta(
-  all_phi,
-  beta_coef,
-  n.sim,
-  n.blk,
-  n.hmm,
-  n.nodes,
-  n.periods,
-  mu.beta,
-  var.beta,
-  est_kappa,
-  t_id_n,
-  X,
-  fit
-)
+.vcovBeta(beta_coef, tot_nodes, c_t, x_t, s_mat, t_id, var_beta, mu_beta)
 
 .e.pi(alpha_list, kappa, C_mat = NULL)
 
@@ -95,7 +90,17 @@ vertboot_matrix_rcpp2(m1, blist1, blist2)
 \item{d_id}{Integer matrix; two-column matrix with nr. dyads rows, containing zero-based
 sender (first column) and receiver (second column) node id's for each dyad.}
 
-\item{pi1_mat, pi2_mat_tmp}{Numeric matrices (or NULL for pi2_mat_tmp); row-stochastic matrices of mixed-memberships.}
+\item{pi_mat, pi1_mat, pi2_mat_tmp}{Numeric matrices (or NULL for pi2_mat_tmp); row-stochastic matrices of mixed-memberships.}
+
+\item{X}{Numeric matrix; design matrix of monadic predictors.}
+
+\item{pen}{Numeric vector; prior coefficient variaces.}
+
+\item{alpha}{Numeric matrix; Mixed-membership parameter matrix.}
+
+\item{alpha_sum}{Numeric vector; sums of rows of alpha (Nr. of nodes x 1).}
+
+\item{kappa}{Numeric matrix; matrix of marginal HMM state probabilities.}
 
 \item{par}{Vector of parameter values.}
 
@@ -146,14 +151,10 @@ be aligned to. Optional, defaults to \code{NULL}.}
 \item{use_perms}{Boolean; should all row/column permutations be explored when
 realigning matrices? defaults to \code{TRUE}.}
 
-\item{X}{Numeric matrix; design matrix of monadic predictors.}
-
 \item{beta}{Numeric array; array of coefficients associated with monadic predictors. 
 It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.}
 
 \item{alpha_list}{List of mixed-membership parameter matrices.}
-
-\item{kappa}{Numeric matrix; matrix of marginal HMM state probabilities.}
 
 \item{C_mat}{Numeric matrix; matrix of posterior counts of block instantiations per node.}
 
@@ -162,6 +163,8 @@ It of dimensions Nr. Predictors by Nr. of Blocks by Nr. of HMM states.}
 \item{fomula, formula.dyad, formula.monad1, formula.monad2}{A formula object.}
 
 \item{data, data.dyad, data.monad1, data.monad2}{A data-frame object.}
+
+\item{prob}{Numeric vector; predicted probabilities of edges.}
 
 \item{devs}{Vector of standard deviations to use in transformation of variances. Defaults to \code{NULL}.}
 
