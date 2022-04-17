@@ -49,7 +49,7 @@ chooseK<-function(formula.dyad,
   set.seed(seed)
   require(pROC)
   if(bipartite){
-    if(is.null(k2) | any(2>k2){
+    if(is.null(k2) | any(2>k2)){
       stop("mmsbm object needs both k1 AND k2 vectors of values greater than 1.")
      }
     if(is.null(train.data.monad)){
@@ -59,7 +59,7 @@ chooseK<-function(formula.dyad,
       test.data.monad <- list(NULL, NULL)
     }   
   }
-  if(any(2>k1){
+  if(any(2>k1)){
       stop("mmsbm object needs all values in k1 to be greater than 1.")
   }
   if(bipartite){
