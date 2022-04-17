@@ -71,10 +71,10 @@ chooseK<-function(formula.dyad,
   model_auc<-rep(NA,nrow(ktry)) 
   for(i in 1:nrow(ktry)){
     ## Training
-    train_models[[i]] <- mmsbm(formula.dyad = formula.dyad, formula.monad = formula.monad, 
+    train_models[[i]] <- mmsbm(formula.dyad = formula.dyad, formula.monad = formula.monad, bipartite = TRUE,
                                 senderID = senderID, receiverID = receiverID, nodeID = nodeID, timeID = timeID,
                                 data.dyad = train.data.dyad, data.monad = train.data.monad, #training data
-                                n.blocks = ktry[i, ], #k to try
+                                n.blocks = unlist(ktry[i, ]), #k to try
                                 n.hmmstates = n.hmmstates, directed = directed, 
                                 mmsbm.control = mmsbm.control)
     ## Testing
