@@ -25,7 +25,7 @@ coef_delta <- function(model, .var, family = 1, hmm.state = 1){
     vc <- vc$MonadCoef2
     coefs <- model$MonadCoef2
   }
-  vc_idx <- grep(.var, colnames(vc)) 
+  vc_idx <- grep(.var, colnames(vc),fixed=T) 
   vc_sub <- vc[vc_idx, vc_idx]
   all_vc <- diag(vc_sub)
   c_idx <- grep(.var, rownames(coefs))
