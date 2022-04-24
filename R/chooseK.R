@@ -71,7 +71,7 @@ chooseK<-function(formula.dyad,
   model_auc<-rep(NA,nrow(ktry)) 
   for(i in 1:nrow(ktry)){
     ## Training
-    train_models[[i]] <- mmsbm(formula.dyad = formula.dyad, formula.monad = formula.monad, bipartite = TRUE,
+    train_models[[i]] <- mmsbm(formula.dyad = formula.dyad, formula.monad = formula.monad, bipartite = bipartite,
                                 senderID = senderID, receiverID = receiverID, nodeID = nodeID, timeID = timeID,
                                 data.dyad = train.data.dyad, data.monad = train.data.monad, #training data
                                 n.blocks = unlist(ktry[i, ]), #k to try
