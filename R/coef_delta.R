@@ -19,10 +19,10 @@
 coef_delta <- function(model, .var, family = 1, hmm.state = 1){
   vc <- vcov(model)
   if(family == 1){
-    vc <- vc$MonadCoef1
+    vc <- vc[[1]]##vc$MonadCoef1 ## list object vc doesn't have named items; currently calling with indexed call
     coefs <- model$MonadCoef1
   } else {
-    vc <- vc$MonadCoef2
+    vc <- vc[[2]]##vc$MonadCoef2 ## list object vc doesn't have named items; currently calling with indexed call
     coefs <- model$MonadCoef2
   }
   vc_idx <- grep(.var, colnames(vc),fixed=T) 
