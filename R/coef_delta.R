@@ -28,7 +28,7 @@ coef_delta <- function(model, .var, family = 1, hmm.state = 1){
   vc_idx <- grep(.var, colnames(vc),fixed=T) 
   vc_sub <- vc[vc_idx, vc_idx]
   all_vc <- diag(vc_sub)
-  c_idx <- grep(.var, rownames(coefs))
+  c_idx <- grep(.var, rownames(coefs),fixed=T) 
   n_diff <- sum(lower.tri(vc_sub))
   diffs <- array(NA, n_diff)
   se_diffs <- array(NA, n_diff)
