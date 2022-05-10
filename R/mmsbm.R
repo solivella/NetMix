@@ -265,7 +265,7 @@ mmsbm <- function(formula.dyad,
   
   ## Add time variable if null or single period
   if(is.null(timeID) || (length(unique(data.dyad[[timeID]])) == 1)){
-    timeID <- "tid"
+    timeID <- "(tid)"
     data.dyad[timeID] <- 1
     if(!is.null(data.monad[[1]])) {
       data.monad[[1]][timeID] <- 1  
