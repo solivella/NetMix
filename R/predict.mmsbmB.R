@@ -33,7 +33,7 @@ predict.mmsbmB <- function(object,
     rid <- object$forms$receiverID
     dyad <- new.data.dyad
     if(is.null(object$forms$timeID)){
-      tid <- "(tid)" #tid <- object$forms$timeID
+      tid <- object$forms$timeID
       dyad[,tid] <- 1
     } else {
       tid <- object$forms$timeID

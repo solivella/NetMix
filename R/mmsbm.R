@@ -265,7 +265,7 @@ mmsbm <- function(formula.dyad,
   
   ## Add time variable if null or single period
   if(is.null(timeID) || (length(unique(data.dyad[[timeID]])) == 1)){
-    timeID <- "tid"
+    timeID <- "(tid)"
     data.dyad[timeID] <- 1
     if(!is.null(data.monad[[1]])) {
       data.monad[[1]][timeID] <- 1  
@@ -356,14 +356,14 @@ mmsbm <- function(formula.dyad,
   #if no monadic 1 data entered
   if(is.null(data.monad[[1]])){
     data.monad[[1]] <- data.frame(nid = rep(udnid1, periods))
-    nodeID[[1]] <- "nid"
+    nodeID[[1]] <- "(nid)"
     data.monad[[1]][timeID] <- rep(ut, each = length(udnid1))
   }
   if(bipartite){
     #if no monadic 2 data entered
     if(is.null(data.monad[[2]])){
       data.monad[[2]] <- data.frame(nid = rep(udnid2, periods))
-      nodeID[[2]] <- "nid"
+      nodeID[[2]] <- "(nid)"
       data.monad[[2]][timeID] <- rep(ut, each = length(udnid2))
     }
   }
