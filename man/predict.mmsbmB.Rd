@@ -10,7 +10,7 @@
   new.data.monad1 = NULL,
   new.data.monad2 = NULL,
   forecast = FALSE,
-  type = c("link", "response"),
+  type = c("link", "response", "mm"),
   ...
 )
 }
@@ -24,7 +24,7 @@
 \item{forecast}{Boolean. Defaults to FALSE.}
 
 \item{type}{Character string. The default is to use the linear predictor of edges. The alternative
-"response" returns predicted probabilities.}
+"response" returns predicted probabilities, and "mm" returns predicted mixed-memberships.}
 
 \item{fm}{Object of class \code{mmsbmB}.}
 }

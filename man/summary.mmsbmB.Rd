@@ -7,7 +7,7 @@
 \method{summary}{mmsbmB}(object, ...)
 }
 \arguments{
-\item{fm}{An object of class \code{mmsbmB}, a result of a call to \code{mmsbmB}.}
+\item{object}{An object of class \code{mmsbmB}, a result of a call to \code{mmsbmB}.}
 }
 \value{
 List with named components:
@@ -28,4 +28,7 @@ List with named components:
 }
 \description{
 The function summarizes the output of a mmsbmB model object
+}
+\author{
+Santiago Olivella (olivella@unc.edu), Adeline Lo (aylo@wisc.edu), Tyler Pratt (tyler.pratt@yale.edu), Kosuke Imai (imai@harvard.edu)
 }

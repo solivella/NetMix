@@ -9,7 +9,7 @@
 #' @param new.data.monad2 An optional \code{data.frame} object. 
 #' @param forecast Boolean. Defaults to FALSE.
 #' @param type Character string. The default is to use the linear predictor of edges. The alternative
-#'     "response" returns predicted probabilities.    
+#'     "response" returns predicted probabilities, and "mm" returns predicted mixed-memberships.    
 #'     
 #' @return If \code{new.data.dyad = NULL}, vector of length \code{nrow(fm$dyadic.data)}. Else, vector of length \code{nrow(new.data.dyad)}.
 #'  
@@ -22,7 +22,7 @@ predict.mmsbmB <- function(object,
                            new.data.monad1  = NULL, 
                            new.data.monad2  = NULL, 
                            forecast = FALSE,
-                           type = c("link", "response"),
+                           type = c("link", "response", "mm"),
                            ...)
 {
   require(stringr)
@@ -159,6 +159,9 @@ predict.mmsbmB <- function(object,
     p2 <- .e.pi(alpha2, object$Kappa[,as.character(monad2[,tid])], C_mat2)
   }
   
+  if(type=="mm"){
+    return(list(MixedMembership1=p1, MixedMembership2=p2))
+  }
   
   #Produce pi
   if(!sid%in%colnames(dyad)){tmp_sid <- object$forms$senderID}else{tmp_sid<-sid}

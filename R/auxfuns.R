@@ -344,14 +344,14 @@
     pi_l <- lapply(alpha_list, function(x) x + t(C_mat))
   }
   if(is.null(dim(kappa))){
-    return(pi_l[[1]])
+    return(proportions(pi_l[[1]],2))
   } else {
     n_states <- nrow(kappa)
     pi.states <- lapply(1:n_states,
                         function(m){
                           pi_l[[m]] * rep(kappa[m,], each=nrow(pi_l[[m]])) 
                         })
-    return(Reduce("+", pi.states))
+    return(proportions(Reduce("+", pi.states), 2))
   }
 }
 
