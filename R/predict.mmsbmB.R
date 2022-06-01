@@ -8,10 +8,15 @@
 #' @param new.data.monad1 An optional \code{data.frame} object. 
 #' @param new.data.monad2 An optional \code{data.frame} object. 
 #' @param forecast Boolean. Defaults to FALSE.
+#' @param samples Either NULL (default) or an integer number of predictions based on
+#' \code{samples} vectors of regression parameters obtained from their asymptotic sampling distributions. 
 #' @param type Character string. The default is to use the linear predictor of edges. The alternative
-#'     "response" returns predicted probabilities, and "mm" returns predicted mixed-memberships.    
+#'     "response" returns predicted edge probabilities, and "mm" returns predicted mixed-memberships.    
 #'     
-#' @return If \code{new.data.dyad = NULL}, vector of length \code{nrow(fm$dyadic.data)}. Else, vector of length \code{nrow(new.data.dyad)}.
+#' @return Vector of predicted edge probabilities (if \code{type="response"}), vector of linear
+#' edge predictors (if \code{type="link"}), or matrix of predicted mixed-membership probabilities (otherwise). If \code{samples!=NULL},
+#' one more dimension is added the return object, with one prediction per sample; for example, if \code{type="response"} and
+#' \code{samples=100}, the return object is a matrix with 100 columns.  
 #'  
 #' @author Kosuke Imai (imai@@harvard.edu), Adeline Lo (aylo@@wisc.edu), Santiago Olivella (olivella@@unc.edu), Tyler Pratt (tyler.pratt@@yale.edu) 
 #' 
@@ -22,11 +27,18 @@ predict.mmsbmB <- function(object,
                            new.data.monad1  = NULL, 
                            new.data.monad2  = NULL, 
                            forecast = FALSE,
+                           samples = NULL,
                            type = c("link", "response", "mm"),
                            ...)
 {
   require(stringr)
   type <- match.arg(type)
+  if(!is.null(samples) & (samples%%1 > 0)){
+      stop("If not NULL, samples must be a positive integer.")
+  }
+  if(!is.null(samples) & (forecast == TRUE)){
+    stop("Multiple samples for forecasting models not implemented yet.")
+  }
   #Set up new dyadic data
   if(!is.null(new.data.dyad)){
     sid <- object$forms$senderID
@@ -102,12 +114,12 @@ predict.mmsbmB <- function(object,
   }
   if(any(str_detect(names(monad2),pattern="as.factor"))){
     #add vars names that are as.factor, without as.factor heading
-    tmp<-as.data.frame(monad2[,which(str_detect(names(monad2),pattern="as.factor"))])
-    tmp_name<-names(monad2)[str_detect(names(monad2),pattern="as.factor")]
-    tmp_name<-gsub("as.factor\\(", "", tmp_name)
-    tmp_name<-gsub("\\)", "", tmp_name)
-    names(tmp)<-tmp_name
-    monad2<-cbind(monad2,tmp)
+    tmp <- as.data.frame(monad2[,which(str_detect(names(monad2),pattern="as.factor"))])
+    tmp_name <- names(monad2)[str_detect(names(monad2),pattern="as.factor")]
+    tmp_name <- gsub("as.factor\\(", "", tmp_name)
+    tmp_name <- gsub("\\)", "", tmp_name)
+    names(tmp) <- tmp_name
+    monad2 <- cbind(monad2,tmp)
   }
   
   #Blks, Formulas
@@ -133,9 +145,30 @@ predict.mmsbmB <- function(object,
   } else {
     X2_m <- model.matrix(eval(mform2), monad2)
   }
-  alpha1 <- .compute.alpha(X1_m, object$MonadCoef1)
-  alpha2 <- .compute.alpha(X2_m, object$MonadCoef2)
-  
+  if(is.null(samples)){
+      alpha1 <- .compute.alpha(X1_m, object$MonadCoef1)
+      alpha2 <- .compute.alpha(X2_m, object$MonadCoef2)
+  } else {
+      MonadCoef1_samples  <- MASS::mvrnorm(samples,
+                                           c(object$MonadCoef1),
+                                           object$vcov_monad1)
+      alpha1 <- apply(MonadCoef1_samples, 1,
+                      function(betas){
+                          betas <- array(betas, dim(object$MonadCoef1),
+                                         dimnames = dimnames(object$MonadCoef1))
+                          .compute.alpha(X1_m, betas)
+                      })
+      MonadCoef2_samples  <- MASS::mvrnorm(samples,
+                                           c(object$MonadCoef2),
+                                           object$vcov_monad2)
+      alpha2 <- apply(MonadCoef2_samples, 1,
+                      function(betas){
+                          betas <- array(betas, dim(object$MonadCoef2),
+                                         dimnames = dimnames(object$MonadCoef2))
+                          .compute.alpha(X2_m, betas)
+                      })
+     
+  }
   #Produce p1, p2
   
   if(forecast){
@@ -155,8 +188,16 @@ predict.mmsbmB <- function(object,
     p2 <- .e.pi(alpha2, new_kappa2, C_mat2)
   } else {
     #if(!(tid %in% colnames(monad1))){tid <- "(tid)"}
-    p1 <- .e.pi(alpha1, object$Kappa[,as.character(monad1[,tid])], C_mat1)
-    p2 <- .e.pi(alpha2, object$Kappa[,as.character(monad2[,tid])], C_mat2)
+    p1 <- vapply(seq.int(length(alpha1)),
+           function(x){
+             .e.pi(alpha1[[x]], object$Kappa[,as.character(monad1[,tid])], C_mat1)
+           },
+           array(0, dim(alpha1[[x]][[1]]), dimnames = dimnames(alpha1[[x]][[1]])))
+    p2 <- vapply(seq.int(length(alpha2)),
+                 function(x){
+                   .e.pi(alpha2[[x]], object$Kappa[,as.character(monad2[,tid])], C_mat2)
+                 },
+                 array(0, dim(alpha2[[x]][[1]]), dimnames = dimnames(alpha2[[x]][[1]])))
   }
   
   if(type=="mm"){
@@ -185,19 +226,28 @@ predict.mmsbmB <- function(object,
   r_ind <- match(paste(dyad[,tmp_rid],dyad[,tmp_tid],sep="@"), 
                  paste(monad2[,nid2],monad2[,tid2],sep="@"))
   }
-  pi_s <- p1[,s_ind]
-  pi_r <- p2[,r_ind]
+  pi_s <- p1[,s_ind,]
+  pi_r <- p2[,r_ind,]
   
   n_dyad <- nrow(X_d)
-  eta_dyad <- array(0.0, n_dyad)
-  for(i in 1:n_dyad){ 
-    eta_dyad[i] <- pi_s[,i] %*% object$BlockModel %*% pi_r[,i] #predicted
+  eta_dyad <- array(0.0, c(n_dyad, ifelse(is.null(samples),1,samples)))
+  for(j in 1:ncol(eta_dyad)){
+    for(i in 1:n_dyad){ 
+      eta_dyad[i,j] <- pi_s[,i,j] %*% object$BlockModel %*% pi_r[,i,j] #predicted
+    }
   }
-  eta_dyad <- eta_dyad + c(X_d %*% (object$DyadCoef))#add dyadic
-  if(type=="link"){
-    res<-c(eta_dyad)
+  if(!is.null(samples)){
+    dyad_gamma <-  t(MASS::mvrnorm(samples,
+                                 object$DyadCoef[-1],
+                                 object$vcov_dyad))
   } else {
-    res<-plogis(c(eta_dyad))#return via logit link
+    dyad_gamma <-  c(object$DyadCoef[-1])
+  }
+  eta_dyad <- eta_dyad + (X_d[,-1] %*% dyad_gamma)#add dyadic
+  if(type=="link"){
+    res<-eta_dyad
+  } else {
+    res<-plogis(eta_dyad)#return via logit link
   }#evaluate prediction memberships of senators/bills; return pis and find max group for each senator/bill under predicted scenario
   return(res)
 }
