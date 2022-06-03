@@ -33,10 +33,10 @@ predict.mmsbmB <- function(object,
 {
   require(stringr)
   type <- match.arg(type)
-  if(!is.null(samples) & (samples%%1 > 0)){
+  if(samples>1 & (samples%%1 > 0)){
       stop("If not NULL, samples must be a positive integer.")
   }
-  if(!is.null(samples) & (forecast == TRUE)){
+  if(samples>1 & (forecast == TRUE)){
     stop("Multiple samples for forecasting models not implemented yet.")
   }
   #Set up new dyadic data
@@ -145,9 +145,9 @@ predict.mmsbmB <- function(object,
   } else {
     X2_m <- model.matrix(eval(mform2), monad2)
   }
-  if(is.null(samples)){
-      alpha1 <- .compute.alpha(X1_m, object$MonadCoef1)
-      alpha2 <- .compute.alpha(X2_m, object$MonadCoef2)
+  if(samples==1){
+    alpha1 <- list(.compute.alpha(X1_m, object$MonadCoef1))
+    alpha2 <- list(.compute.alpha(X2_m, object$MonadCoef2))
   } else {
       MonadCoef1_samples  <- MASS::mvrnorm(samples,
                                            c(object$MonadCoef1),
@@ -190,14 +190,14 @@ predict.mmsbmB <- function(object,
     #if(!(tid %in% colnames(monad1))){tid <- "(tid)"}
     p1 <- vapply(seq.int(length(alpha1)),
            function(x){
-             .e.pi(alpha1[[x]], object$Kappa[,as.character(monad1[,tid])], C_mat1)
+             .e.pi(alpha1[[1]], object$Kappa[,as.character(monad1[,tid])], C_mat1)
            },
-           array(0, dim(alpha1[[x]][[1]]), dimnames = dimnames(alpha1[[x]][[1]])))
+           array(0, dim(alpha1[[1]][[1]]), dimnames = dimnames(alpha1[[1]][[1]])))
     p2 <- vapply(seq.int(length(alpha2)),
                  function(x){
-                   .e.pi(alpha2[[x]], object$Kappa[,as.character(monad2[,tid])], C_mat2)
+                   .e.pi(alpha2[[1]], object$Kappa[,as.character(monad2[,tid])], C_mat2)
                  },
-                 array(0, dim(alpha2[[x]][[1]]), dimnames = dimnames(alpha2[[x]][[1]])))
+                 array(0, dim(alpha2[[1]][[1]]), dimnames = dimnames(alpha2[[1]][[1]])))
   }
   
   if(type=="mm"){
@@ -226,17 +226,17 @@ predict.mmsbmB <- function(object,
   r_ind <- match(paste(dyad[,tmp_rid],dyad[,tmp_tid],sep="@"), 
                  paste(monad2[,nid2],monad2[,tid2],sep="@"))
   }
-  pi_s <- p1[,s_ind,]
-  pi_r <- p2[,r_ind,]
+  pi_s <- p1[,s_ind, ,drop=FALSE]
+  pi_r <- p2[,r_ind, ,drop=FALSE]
   
   n_dyad <- nrow(X_d)
-  eta_dyad <- array(0.0, c(n_dyad, ifelse(is.null(samples),1,samples)))
+  eta_dyad <- array(0.0, c(n_dyad, ifelse(samples==1,1,samples)))
   for(j in 1:ncol(eta_dyad)){
     for(i in 1:n_dyad){ 
       eta_dyad[i,j] <- pi_s[,i,j] %*% object$BlockModel %*% pi_r[,i,j] #predicted
     }
   }
-  if(!is.null(samples)){
+  if(samples>1){
     dyad_gamma <-  t(MASS::mvrnorm(samples,
                                  object$DyadCoef[-1],
                                  object$vcov_dyad))
