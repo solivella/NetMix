@@ -27,7 +27,7 @@ predict.mmsbmB <- function(object,
                            new.data.monad1  = NULL, 
                            new.data.monad2  = NULL, 
                            forecast = FALSE,
-                           samples = NULL,
+                           samples = 1,
                            type = c("link", "response", "mm"),
                            ...)
 {
