@@ -38,3 +38,19 @@
 #' @source \url{https://github.com/Z-co/networkdata/blob/master/networkdata/data/lazega.rda}
 "lazega_monadic"
 
+#' Bipartite network of U.S. business elites and their presidential campaign donations
+#' 
+#' A dataset containing edges of a network formed by U.S. presidential campaign donations made 
+#' by 26 people who sat on two or more boards of economic policy-making groups. The data come from 
+#' Domhoff 2016, via the \code{migraph} package, subset to only include presidential candidates during the 2008 election. 
+#' 
+#' @format A data frame with 156 rows and 3 variables:
+#' \describe{
+#'   \item{Donated}{binary variable, with a 1 indicating a campaign donation; numeric}
+#'   \item{Campaign}{name of presidential campaign; factor}
+#'   \item{Elite}{name of business elite; factor}
+#' }
+#' @usage data(elite_bipartite)
+#' @source William Domhoff, 2016 \emph{"Who Rules America? Power Elite Database."}.
+#' @source \url{https://CRAN.R-project.org/package=migraph}
+"elite_bipartite"
