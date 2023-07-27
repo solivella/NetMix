@@ -116,7 +116,7 @@ gof.mmsbm <- function(x,
                              function(y){
                                if(x$bipartite){
                                  max_x <- max(nrow(fm$monadic.data[[1]]), 
-                                              nrow(fm$monadic.data[[1]]))
+                                              nrow(fm$monadic.data[[2]]))
                                } else {
                                  max_x <- nrow(fm$monadic.data[[1]])
                                }
