@@ -10,6 +10,7 @@
   new.data.monad1 = NULL,
   new.data.monad2 = NULL,
   forecast = FALSE,
+  samples = 1,
   type = c("link", "response", "mm"),
   ...
 )
@@ -23,13 +24,19 @@
 
 \item{forecast}{Boolean. Defaults to FALSE.}
 
+\item{samples}{Either NULL (default) or an integer number of predictions based on
+\code{samples} vectors of regression parameters obtained from their asymptotic sampling distributions.}
+
 \item{type}{Character string. The default is to use the linear predictor of edges. The alternative
-"response" returns predicted probabilities, and "mm" returns predicted mixed-memberships.}
+"response" returns predicted edge probabilities, and "mm" returns predicted mixed-memberships.}
 
 \item{fm}{Object of class \code{mmsbmB}.}
 }
 \value{
-If \code{new.data.dyad = NULL}, vector of length \code{nrow(fm$dyadic.data)}. Else, vector of length \code{nrow(new.data.dyad)}.
+Vector of predicted edge probabilities (if \code{type="response"}), vector of linear
+edge predictors (if \code{type="link"}), or matrix of predicted mixed-membership probabilities (otherwise). If \code{samples!=NULL},
+one more dimension is added the return object, with one prediction per sample; for example, if \code{type="response"} and
+\code{samples=100}, the return object is a matrix with 100 columns.
 }
 \description{
 The function produces expected posterior edges based  
