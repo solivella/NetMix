@@ -114,8 +114,14 @@ gof.mmsbm <- function(x,
                                 }),
            "Degree" = sapply(nets,
                              function(y){
+                               if(x$bipartite){
+                                 max_x <- max(nrow(fm$monadic.data[[1]]), 
+                                              nrow(fm$monadic.data[[1]]))
+                               } else {
+                                 max_x <- nrow(fm$monadic.data[[1]])
+                               }
                                igraph::degree_distribution(y,
-                                                           mode = "all")[1:(nrow(fm$monadic.data[[1]])-2)]
+                                                           mode = "all")[1:(max_x-2)]
                              }),
            "Degree Family 1" = sapply(nets,
                                       function(y){
