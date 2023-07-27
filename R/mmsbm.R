@@ -167,20 +167,23 @@ mmsbm <- function(formula.dyad,
                   mmsbm.control = list()){
   
   if(bipartite){
-    if(!is.list(formula.monad) | (length(formula.monad)!=2)){
+    if(formula.monad == ~1){
+      formula.monad <- list(formula.monad, formula.monad)
+    } else if(!is.list(formula.monad) | (length(formula.monad) != 2)){
       stop("When bipartite is TRUE, formula.monad must be a list of formulas of length two.")
     }
-    if(!is.list(data.monad) | (length(data.monad)!=2)){
+    if(!is.null(data.monad) & (!is.list(data.monad) | (length(data.monad)!=2))){
       stop("When bipartite is TRUE, data.monad must be a list of data.frame's of length two.")
     }
-    if(!is.list(nodeID) | (length(nodeID)!=2)){
+    if(is.null(nodeID)){
+      nodeID <- list(NULL, NULL)
+    } else if(!is.list(nodeID) | (length(nodeID)!=2)){
       stop("When bipartite is TRUE, nodeID must be a list of character vectors of length two.")
     }
     if(length(n.blocks) != 2){
       stop("n.blocks must be an integer vector of length 2.")
     }
   } else{
-    formula.monad <- list(formula.monad)
     formula.monad[[2]] <- 0
     data.monad <- list(data.monad)
     data.monad[[2]] <- 0
@@ -261,7 +264,6 @@ mmsbm <- function(formula.dyad,
   if(ctrl$verbose){
     cat("Pre-processing data...\n")
   }
-  
   
   ## Add time variable if null or single period
   if(is.null(timeID) || (length(unique(data.dyad[[timeID]])) == 1)){
@@ -355,14 +357,15 @@ mmsbm <- function(formula.dyad,
   
   #if no monadic 1 data entered
   if(is.null(data.monad[[1]])){
-    data.monad[[1]] <- data.frame(nid = rep(udnid1, periods))
+    data.monad <- list(data.monad)
+    data.monad[[1]] <- data.frame("(nid)" = rep(udnid1, periods), check.names = FALSE)
     nodeID[[1]] <- "(nid)"
     data.monad[[1]][timeID] <- rep(ut, each = length(udnid1))
   }
   if(bipartite){
     #if no monadic 2 data entered
-    if(is.null(data.monad[[2]])){
-      data.monad[[2]] <- data.frame(nid = rep(udnid2, periods))
+    if((length(data.monad) == 1) || is.null(data.monad[[2]])){
+      data.monad[[2]] <- data.frame("(nid)" = rep(udnid2, periods), check.names = FALSE)
       nodeID[[2]] <- "(nid)"
       data.monad[[2]][timeID] <- rep(ut, each = length(udnid2))
     }

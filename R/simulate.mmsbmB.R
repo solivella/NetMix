@@ -41,9 +41,10 @@ simulate.mmsbmB <- function(object,
       tid <- object$forms$timeID
     }
   } else {
-    #sid <- "(sid)" #rid <- "(rid)"
-    sid <- object$forms$senderID
-    rid <- object$forms$receiverID
+    sid <- "(sid)" 
+    rid <- "(rid)"
+    #sid <- object$forms$senderID
+    #rid <- object$forms$receiverID
     if(is.null(object$forms$timeID)){ tid <- "(tid)"} else{tid <- object$forms$timeID}
     dyad <- object$dyadic.data
   }
@@ -58,9 +59,9 @@ simulate.mmsbmB <- function(object,
       tid <- object$forms$timeID
     }
   } else {
-    if(is.null(object$forms$nodeID1)){nid1 <- "(nid1)"}else{nid1<-object$forms$nodeID1}#nid1 <- "(nid1)"
+    if(is.null(object$forms$nodeID1)){nid1 <- "(nid)"}else{nid1<-object$forms$nodeID1}#nid1 <- "(nid1)"
     #tid <- "(tid)"
-    monad1 <- object$monadic1.data
+    monad1 <- object$monadic.data[[1]]
   }
   
   
@@ -75,8 +76,8 @@ simulate.mmsbmB <- function(object,
       tid <- object$forms$timeID
     }
   } else {
-    if(is.null(object$forms$nodeID2)){nid2 <- "(nid2)"}else{nid2<-object$forms$nodeID2}
-    monad2 <- object$monadic2.data
+    if(is.null(object$forms$nodeID2)){nid2 <- "(nid)"}else{nid2<-object$forms$nodeID2}
+    monad2 <- object$monadic.data[[2]]
   }
   
   if(! (tid %in% c(names(dyad), names(monad1)) |tid %in% c(names(dyad), names(monad2)) )){
@@ -154,8 +155,8 @@ simulate.mmsbmB <- function(object,
                        )})
       p2 <- .e.pi(pind, states_ind)
     } else {
-      p1 <- object$`MixedMembership 1`
-      p2 <- object$`MixedMembership 2`
+      p1 <- object$MixedMembership1
+      p2 <- object$MixedMembership2
     }
     
     z <- getZ(p1[,s_ind])
