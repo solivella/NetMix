@@ -71,7 +71,7 @@ gof.mmsbm <- function(x,
                       new.data.monad  = NULL, 
                       seed = NULL,
                       ...
-                      ){
+){
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop("Package \"ggplot2\" needed to produce plot of GOF statistics. Please install it.",
          call. = FALSE)
@@ -80,7 +80,7 @@ gof.mmsbm <- function(x,
   if((length(gof_stat) == 1) && (gof_stat == "all")){
     gof_stat <- c("Geodesics","3-Motifs", "Dyad Shared Partners", "Edge Shared Partners", "Indegree","Outdegree","Degree","Incoming K-stars")
   }
-  if(x$forms$directed & ("Degree"%in%gof_stat) & !x$bipartite){
+  if(x$forms$directed & ("Degree"%in%gof_stat) & !(x$bipartite)){
     gof_stat <- c(gof_stat[-which(gof_stat=="Degree")],"Indegree","Outdegree")
   }
   if(x$bipartite & ("Degree"%in%gof_stat)){
@@ -100,67 +100,66 @@ gof.mmsbm <- function(x,
   
   ## Define helper function
   gof_getter <- function(gof, nets, fm){
+    mat_maker <- ifelse(fm$bipartite, igraph::as_incidence_matrix,igraph::as_adjacency_matrix)
     switch(gof,
            "Indegree" = sapply(nets,
-                             function(y){
-                               igraph::degree_distribution(y,
-                                                           mode = "in")[1:(max(fm$NodeIndex[,2])-1)]
-                             }),
+                               function(y){
+                                 igraph::degree_distribution(y,
+                                                             mode = "in")[1:(nrow(fm$monadic.data[[1]])-2)]
+                               }),
            "Outdegree" = sapply(nets,
-                             function(y){
-                               igraph::degree_distribution(y,
-                                                           mode = "out")[1:(max(fm$NodeIndex[,1])-1)]
-                             }),
-           "Degree" = sapply(nets,
                                 function(y){
                                   igraph::degree_distribution(y,
-                                                              mode = "all")[1:(max(fm$NodeIndex)-1)]
+                                                              mode = "out")[1:(nrow(fm$monadic.data[[1]])-2)]
                                 }),
+           "Degree" = sapply(nets,
+                             function(y){
+                               igraph::degree_distribution(y,
+                                                           mode = "all")[1:(nrow(fm$monadic.data[[1]])-2)]
+                             }),
            "Degree Family 1" = sapply(nets,
-                               function(y){
-                                 node_names <- unique(x$monadic.data[[1]][[x$forms$nodeID[[1]]]]) 
-                                 types <- which(names(V(y)) %in% node_names)
-                                 igraph::degree_distribution(y, v = (igraph::V(y))[types])[1:(max(fm$NodeIndex[,2])-1)]
-                               }),
+                                      function(y){
+                                        types <- igraph::vertex_attr(y, "type")
+                                        igraph::degree_distribution(y, v = (igraph::V(y))[types])[1:(max(fm$NodeIndex[,2])-1)]
+                                      }),
            "Degree Family 2" = sapply(nets,
-                               function(y){
-                                 node_names <- unique(x$monadic.data[[2]][[x$forms$nodeID[[2]]]]) 
-                                 types <- which(names(V(y)) %in% node_names)
-                                 igraph::degree_distribution(y, v =( igraph::V(y))[types])[1:(max(fm$NodeIndex[,1])-1)]
-                               }),
+                                      function(y){
+                                        types <- !(igraph::vertex_attr(y, "type"))
+                                        igraph::degree_distribution(y, v =( igraph::V(y))[types])[1:(max(fm$NodeIndex[,1])-1)]
+                                      }),
            "Geodesics" = lapply(nets,
-                               function(y){
-                                 prop.table(table(igraph::distances(y)))
-                               }),
+                                function(y){
+                                  prop.table(table(igraph::distances(y)))
+                                }),
            "3-Motifs" = sapply(nets,
-                            function(y){
-                              res <- igraph::triad_census(y)
-                              res/sum(res, na.rm=TRUE)
-                            }),
+                               function(y){
+                                 res <- igraph::triad_census(y)
+                                 res/sum(res, na.rm=TRUE)
+                               }),
            "Dyad Shared Partners" = sapply(nets,
-                          function(y){
-                            prop.table(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(igraph::as_adj(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
-                                         dsp(0:(igraph::gorder(y) - 2))))
-                            }),
+                                           function(y){
+                                             prop.table(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(mat_maker(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
+                                                                                                                       dsp(0:(igraph::gorder(y) - 2))))
+                                           }),
            "Edge Shared Partners" = sapply(nets,
-                          function(y){
-                            prop.table(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(igraph::as_adj(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
-                                         esp(0:(igraph::gorder(y) - 2))))
-                          }),
+                                           function(y){
+                                             prop.table(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(mat_maker(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
+                                                                                                                       esp(0:(igraph::gorder(y) - 2))))
+                                           }),
            "Incoming K-stars" = sapply(nets,
-                            function(y){
-                              prop.table(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(igraph::as_adj(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
-                                           istar(0:(igraph::gorder(y) - 1))))
-                            })
+                                       function(y){
+                                         prop.table(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(mat_maker(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
+                                                                                                                   istar(0:(igraph::gorder(y) - 1))))
+                                       })
     )
   }
-
-
+  
+  
   # Get networks
-
-  el <- simulate(x, samples, seed=seed,
-                 new.data.dyad,
-                 new.data.monad)
+  
+  el <- NetMix::simulate.mmsbmB(x, samples, seed=seed,
+                                new.data.dyad,
+                                new.data.monad)
   if(!is.null(new.data.dyad)){
     if(is.null(x$forms$timeID)){
       tid <- "(tid)"
@@ -176,63 +175,92 @@ gof.mmsbm <- function(x,
     obs_dyad <- x$dyadic.data[,c("(sid)","(rid)","(tid)")]
     el_obs <- x$dyadic.data[x$Y==1,c("(sid)","(rid)", "(tid)")]
   }
-
-
+  
+  
   ## Convert to igraph objects
   nets_sim <- lapply(el,
-                 function(i){
-                   x_full <- cbind(obs_dyad, i)
-                   x_sub <- x_full[x_full[,4] == 1, c(1, 2, 3)]
-                   lapply(seq.int(length(unique(x_full[,3]))),
-                          function(y){
-                            x_sub_y <- x_sub[x_sub[,3]==y, c(1,2)]
-                            igraph::graph_from_edgelist(as.matrix(x_sub_y), x$forms$directed)
-                          })
-                 })
+                     function(i){
+                       x_full <- cbind(obs_dyad, i)
+                       x_sub <- x_full[x_full[,4] == 1, c(1, 2, 3)]
+                       lapply(seq.int(length(unique(x_full[,3]))),
+                              function(y){
+                                x_sub_y <- x_sub[x_sub[,3]==y, c(1,2)]
+                                if(x$bipartite){
+                                  tmp_g <- igraph::make_empty_graph(directed = FALSE)
+                                  tmp_g <- igraph::add_vertices(tmp_g,
+                                                                nv = length(unique(x_sub_y[,1])),
+                                                                attr = list(name = unique(x_sub_y[,1]),
+                                                                            type = rep(0, length(unique(x_sub_y[,1])))))
+                                  tmp_g <- igraph::add_vertices(tmp_g,
+                                                                nv = length(unique(x_sub_y[,2])),
+                                                                attr = list(name = unique(x_sub_y[,2]),
+                                                                            type = 1))
+                                  tmp_g <- igraph::add_edges(tmp_g, as.vector(t(x_sub_y)))
+                                  return(tmp_g)
+                                } else {
+                                  return(igraph::graph_from_edgelist(as.matrix(x_sub_y), x$forms$directed))
+                                }
+                              })
+                     })
   el_obs_list <- split.data.frame(el_obs, el_obs[,3])
   net_obs <- lapply(el_obs_list,
                     function(y){
-                      igraph::graph_from_edgelist(as.matrix(y[,c(1, 2)]), x$forms$directed)
+                      if(x$bipartite){
+                        tmp_g <- igraph::make_empty_graph(directed = FALSE)
+                        tmp_g <- igraph::add_vertices(tmp_g,
+                                                      nv = length(unique(y[,1])),
+                                                      attr = list(name = unique(y[,1]),
+                                                                  type = rep(0, length(unique(y[,1])))))
+                        tmp_g <- igraph::add_vertices(tmp_g,
+                                                      nv = length(unique(y[,2])),
+                                                      attr = list(name = unique(y[,2]),
+                                                                  type = 1))
+                        tmp_g <- igraph::add_edges(tmp_g, as.vector(t(y[,c(1,2)])))
+                        return(tmp_g)
+                      } else {
+                        return(igraph::graph_from_edgelist(as.matrix(y[,c(1, 2)]), x$forms$directed))
+                      }
                     })
+  
   ## Compute for simulated nets
   sim_stats_l <- lapply(gof_stat, gof_getter, nets = unlist(nets_sim, recursive = FALSE), fm = x)
   alpha <- (1 - level)/2
   sim_stats <- mapply(function(z, y){
-                       if(is.list(z)){
-                         z <- do.call(.cbind.fill, z)
-                       }
-                       z[is.na(z)] <- 0
-                       res <- as.data.frame(t(apply(z, 1, quantile, probs = c(alpha, 0.5, level + alpha), na.rm=TRUE)))
-                       names(res) <- c("LB","Est","UB")
-                       res$GOF <- y
-                       res$Val <- as.numeric(rownames(res))
-                       return(res)
-                      },
-                      sim_stats_l, gof_stat,
-                      SIMPLIFY = FALSE)
+    if(is.list(z)){
+      z <- do.call(NetMix:::.cbind.fill, z)
+    }
+    z[is.na(z)] <- 0
+    res <- as.data.frame(t(apply(z, 1, quantile, probs = c(alpha, 0.5, level + alpha), na.rm=TRUE)))
+    names(res) <- c("LB","Est","UB")
+    res$GOF <- y
+    res$Val <- as.numeric(gsub(".*?([0-9]+).*", "\\1", rownames(res)))
+    return(res)
+  },
+  sim_stats_l, gof_stat,
+  SIMPLIFY = FALSE)
   sim_stats_full <-  do.call("rbind",sim_stats)
   Observed_l <- lapply(gof_stat, gof_getter, nets = net_obs, fm = x)
   obs_stats <- mapply(function(z, y){
-                        if(is.list(z)){
-                          z <- do.call(.cbind.fill, z)
-                        }
-                      z[is.na(z)] <- 0
-                      res <- data.frame(Observed = apply(z, 1, median, na.rm=TRUE))
-                      res$GOF <- y
-                      res$Val <- as.numeric(rownames(res))
-                      return(res)
-                      },
-                      Observed_l, gof_stat,
-                      SIMPLIFY = FALSE)
+    if(is.list(z)){
+      z <- do.call(NetMix:::.cbind.fill, z)
+    }
+    z[is.na(z)] <- 0
+    res <- data.frame(Observed = apply(z, 1, median, na.rm=TRUE))
+    res$GOF <- y
+    res$Val <- as.numeric(gsub(".*?([0-9]+).*", "\\1", rownames(res)))
+    return(res)
+  },
+  Observed_l, gof_stat,
+  SIMPLIFY = FALSE)
   Observed <- do.call("rbind", obs_stats)
   res_df <- merge(sim_stats_full, Observed)
-
+  
   ## Plot results
   return(ggplot2::ggplot(data=res_df, ggplot2::aes_string(x="Val", y="Observed")) +
-    ggplot2::facet_wrap(~GOF, scales="free") +
-    ggplot2::geom_linerange(ggplot2::aes_string(ymin="LB", ymax="UB"), col="gray60", lwd=2) +
-    ggplot2::geom_line(ggplot2::aes_string(y="Observed"), lwd=1.1, alpha=0.5, col="darkred") +
-    ggplot2::theme_bw() +
-    ggplot2::xlab("") +
-    ggplot2::ylab("Density"))
+           ggplot2::facet_wrap(~GOF, scales="free") +
+           ggplot2::geom_linerange(ggplot2::aes_string(ymin="LB", ymax="UB"), col="black", lwd=2) +
+           ggplot2::geom_line(ggplot2::aes_string(y="Observed"), lwd=1.1, alpha=0.8, col="darkred") +
+           ggplot2::theme_bw() +
+           ggplot2::xlab("") +
+           ggplot2::ylab("Density"))
 } 
