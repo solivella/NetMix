@@ -387,7 +387,7 @@
   res <- vector("list", 2L)
   if(bipartite){
     phi_init_temp <- lapply(soc_mats, function(mat){
-      clust.o<-blockcluster::coclusterBinary(mat,nbcocluster=c(n.blocks[1],n.blocks[2]))
+      msg <- capture.output(clust.o<-blockcluster::coclusterBinary(mat,nbcocluster=c(n.blocks[1],n.blocks[2])))
       phi1_init_temp<-matrix(0,nrow=nrow(mat),ncol=n.blocks[1])
       phi2_init_temp<-matrix(0,nrow=ncol(mat),ncol=n.blocks[2])
       for(i in 1:nrow(mat)){#node1
