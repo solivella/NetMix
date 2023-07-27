@@ -15,7 +15,6 @@
 #' @return Table of coefficients differences and their p-values. 
 #' @export
 #'
-#' @examples
 coef_delta <- function(model, .var, family = 1, hmm.state = 1){
   vc <- vcov(model)
   if(family == 1){
