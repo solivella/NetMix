@@ -167,7 +167,7 @@ mmsbm <- function(formula.dyad,
                   mmsbm.control = list()){
   
   if(bipartite){
-    if(formula.monad == ~1){
+    if(identical(formula.monad, ~1)){
       formula.monad <- list(formula.monad, formula.monad)
     } else if(!is.list(formula.monad) | (length(formula.monad) != 2)){
       stop("When bipartite is TRUE, formula.monad must be a list of formulas of length two.")
