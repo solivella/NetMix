@@ -270,6 +270,7 @@ double MMModelB::alphaLBInternal(
     bool all
 )  
 {
+ // Rcpp::Rcout << "Running computeAlpha" << std::endl;
   computeAlpha(
     tmpNODE,
     tmpBLK,
@@ -284,9 +285,10 @@ double MMModelB::alphaLBInternal(
     tmpNode_in_batch,
     tmpNode_batch,
     all);
+  //Rcpp::Rcout << "alphaLBInternal" << std::endl;
   double res = 0.0, res_int = 0.0, alpha_row = 0.0, alpha_val = 0.0;
   for(arma::uword m = 0; m < N_STATE; ++m){
-#pragma omp parallel for firstprivate(alpha_val, alpha_row, res_int) reduction(+: res)
+  #pragma omp parallel for firstprivate(alpha_val, alpha_row, res_int) reduction(+: res)
     for(arma::uword p = 0; p < tmpNODE; ++p){
       if((tmpNode_in_batch[p] == 1) || all){
         alpha_row = 0.0;
@@ -394,7 +396,7 @@ void MMModelB::alphaGrInternal(int N_PAR, double *gr,
                                arma::uvec tmpNode_in_batch,
                                const arma::uword tmpNode_batch
 )
-{
+{//Rcpp::Rcout << "Running alphaGr" << std::endl;
   double res=0.0, alpha_row=0.0, prior_gr=0.0;
   arma::uword U_NPAR = N_PAR;
   // arma::rowvec alpha_sum = arma::sum(tmpAlpha.slice(0));
@@ -447,6 +449,7 @@ void MMModelB::alphaGrInternal(int N_PAR, double *gr,
   for(arma::uword i = 0; i < U_NPAR; ++i){
     gr[i] /= -(1. *tmpNODE);
   }
+  //Rcpp::Rcout << "Finished alphaGr" << std::endl;
 }
 
 void MMModelB::alphaGr(bool mode2, int n, double* gr)
@@ -536,8 +539,9 @@ void MMModelB::computeAlpha(
  */
 double MMModelB::thetaLB(bool entropy, bool all)
 {
+  //Rcpp::Rcout << "Running computeTheta" << std::endl;
   computeTheta();
-  
+  //Rcpp::Rcout << "Running thetaLB" << std::endl;
   double res = 0.0;
 #pragma omp parallel for reduction(+: res)
   for(arma::uword d = 0; d < N_DYAD; ++d){
@@ -561,6 +565,7 @@ double MMModelB::thetaLB(bool entropy, bool all)
     }
   }
   return -res / N_DYAD;
+  //Rcpp::Rcout << "Finished thetaLB" << std::endl;
 }
 
 
@@ -625,7 +630,6 @@ void MMModelB::thetaGr(int N_PAR, double *gr){
  */
 
 void MMModelB::computeTheta(bool all){
-  
   for(arma::uword g = 0; g < N_BLK1; ++g){
     for(arma::uword h = 0; h < N_BLK2; ++h){
       b_t(h, g) = theta_par[par_ind(h, g)];
@@ -654,6 +658,7 @@ void MMModelB::computeTheta(bool all){
 
 void MMModelB::optim_ours(bool alpha)
 {
+  //Rcpp::Rcout << "Running optim_ours" << std::endl;
   if(alpha){
     arma::uword npar1 = N_MONAD_PRED1 * N_BLK1 * N_STATE;
     beta1old = beta1;
@@ -686,6 +691,7 @@ void MMModelB::optim_ours(bool alpha)
       theta_par[i] = (1.0 - step_size) * thetaold[i] + step_size * theta_par[i]; 
     }
   }
+ // Rcpp::Rcout << "Finished optim_ours" << std::endl;
 }
 
 /**
@@ -722,12 +728,16 @@ void MMModelB::alphaGrWMode2(int n, double *par, double *gr, void *ex)
  * LOG LIKELIHOOD
  */
 double MMModelB::LB()
-{
+{ //Rcpp::Rcout << "Running LB" << std::endl;
   double res = lgamma(double(N_STATE) * eta) - lgamma(eta);
   res -= thetaLB(true,true);
   res -= alphaLB(true,true);
   res -= alphaLB(false,true);
   for(arma::uword t = 0; t < N_TIME; ++t){
+    //Rcpp::Rcout << "now working on t= "<< t << std::endl;
+    if (t < N_TIME) {
+     // Rcpp::Rcout << "t < N_STATE" << std::endl;
+    }
     for(arma::uword m = 0; m < N_STATE; ++m){
       res -= lgamma(double(N_STATE) * eta + e_wm[m]);
       for(arma::uword n = 0; n < N_STATE; ++n){
@@ -736,11 +746,19 @@ double MMModelB::LB()
       //Entropy for kappa
       res -= kappa_t(m, t) * log(kappa_t(m,t) + 1e-8);
     }
+   // Rcpp::Rcout << "Finished t= " << t <<std::endl;
+   // Rcpp::Rcout << "N_TIME= " << N_TIME <<std::endl;
+   // Rcpp::Rcout << "res= " << res <<std::endl;
+      }
+   // Rcpp::Rcout << "Exiting loop" << std::endl;
+   // Rcpp::Rcout << "when existing, res= " << res << std::endl;
+   return res;
   }
-  return res;
-}
+
+
 double MMModelB::LL()
 {
+ // Rcpp::Rcout << "Running LL" << std::endl;
   double ll = 0.0;
 #pragma omp parallel for reduction(-:ll)
   for(arma::uword d = 0; d < N_DYAD; ++d){
@@ -753,6 +771,7 @@ double MMModelB::LL()
     }
   }
   return(ll);
+ // Rcpp::Rcout << ll << std::endl;
 }
 
 /**
@@ -762,6 +781,7 @@ double MMModelB::LL()
 
 void MMModelB::updateKappa()
 {
+ // Rcpp::Rcout << "Running updateKappa" << std::endl;
   Rcpp::checkUserInterrupt();
   arma::vec kappa_vec(N_STATE, arma::fill::zeros);
   double res, log_denom;
@@ -820,6 +840,7 @@ void MMModelB::updateKappa()
       }
     }
   }
+  
 }
 
 
@@ -991,7 +1012,7 @@ void MMModelB::updatePhiInternal2(
 
 void MMModelB::updatePhi()
 {
-  
+ // Rcpp::Rcout << "running updatePhi"  << std::endl;
   arma::uword err = 0;
   // Update dyads with sampled nodes
   for(arma::uword d = 0; d < N_DYAD; ++d){
@@ -1145,7 +1166,7 @@ void MMModelB::updatePhi()
     //                     N_STATE);
     // }//**edit out above to test out updatePhiInternal1 and 2 and separate fns
   }
-  
+ // Rcpp::Rcout << "Finished updatePhi"  << std::endl;
   if(err){
     Rcpp::stop("Phi value became NaN.");
   }
@@ -1156,24 +1177,41 @@ void MMModelB::updatePhi()
 void MMModelB::sampleDyads(arma::uword iter)
 {
   // Sample nodes for stochastic variational update
-  if(N_TIME < 2){
+  if(N_TIME < 2){ // here change 2 to 1?
     node_batch1 = arma::randperm(N_NODE1, n_nodes_batch1[0]);
     node_batch2 = arma::randperm(N_NODE2, n_nodes_batch2[0]);
   } else{ // N_TIME  >= 2
+   // Rcpp::Rcout << "Running sampleDyads"  << std::endl;
     arma::uvec node_batch1_t, node_batch2_t;
     arma::uword ind1 = 0, ind2 = 0;
     for(arma::uword t = 0; t < N_TIME; ++t){
+    //  Rcpp::Rcout << "t=" << t << std::endl;
+     // Rcpp::Rcout << "n_nodes_time1[t]=" << n_nodes_time1[t]  << std::endl;
+     // Rcpp::Rcout << "n_nodes_batch1[t]="  << n_nodes_batch1[t]  << std::endl;
+     // Rcpp::Rcout << "n_nodes_time2[t]=" << n_nodes_time2[t]  << std::endl;
+     // Rcpp::Rcout << "n_nodes_batch2[t]="  << n_nodes_batch2[t]  << std::endl;
+      
       node_batch1_t = arma::randperm(n_nodes_time1[t], n_nodes_batch1[t]);
       node_batch2_t = arma::randperm(n_nodes_time2[t], n_nodes_batch2[t]);
-      for(arma::uword p = 0; p < node_batch1_t[t]; ++p){
+      
+     // Rcpp::Rcout << "node_batch1_t[t]=" << node_batch1_t[t] << std::endl;
+     // Rcpp::Rcout << "node_batch2_t[t]=" << node_batch2_t[t] << std::endl;
+      
+      for(arma::uword p = 0; p <  n_nodes_batch1[t]; ++p){ //change "p < node_batch1_t[t]" to "p <  n_nodes_batch1[t]"
         node_batch1[ind1] = node_id_period1[t][node_batch1_t[p]];
         ++ind1;
+      //  Rcpp::Rcout << "finished p part"  << std::endl;
+     //   Rcpp::Rcout << "p=" << p << std::endl;
       }
-      for(arma::uword q = 0; q < node_batch2_t[t]; ++q){
+      for(arma::uword q = 0; q <  n_nodes_batch2[t]; ++q){ //change "q < node_batch2_t[t]" to "p <  n_nodes_batch2[t]"
         node_batch2[ind2] = node_id_period2[t][node_batch2_t[q]];
         ++ind2;
+      //  Rcpp::Rcout << "finished q part"  << std::endl;
+      //  Rcpp::Rcout << "q=" << q << std::endl;
       }
+     // Rcpp::Rcout << "Finished t=" << t  << std::endl;
     }
+   // Rcpp::Rcout << "Finished node_batch part" << std::endl;
   }
   
   for(arma::uword p = 0; p < N_NODE1; ++p){
@@ -1308,6 +1346,7 @@ arma::mat MMModelB::getB()
 }
 
 void MMModelB::getB(arma::mat& res) {
+ // Rcpp::Rcout << "running getB" << res << std::endl;
   std::copy(b_t.begin(), b_t.end(), res.begin());
 }
 
@@ -1315,12 +1354,14 @@ arma::cube MMModelB::getBeta1(){
   return(beta1);
 }
 void MMModelB::getBeta1(arma::cube& res) {
+ // Rcpp::Rcout << "running getBeta1" << res << std::endl;
   std::copy(beta1.begin(), beta1.end(), res.begin());
 }
 arma::cube MMModelB::getBeta2(){
   return(beta2);
 }
 void MMModelB::getBeta2(arma::cube& res){
+ // Rcpp::Rcout << "running getBeta2" << res << std::endl;
   std::copy(beta2.begin(), beta2.end(), res.begin());
 }
 
@@ -1517,6 +1558,7 @@ arma::vec MMModelB::getGamma(){
   return(gamma);
 }
 void  MMModelB::getGamma(arma::vec& res){
+//  Rcpp::Rcout << "running getGamma" << res << std::endl;
   std::copy(gamma.begin(), gamma.end(), res.begin());
 }
 
