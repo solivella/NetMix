@@ -43,6 +43,7 @@ simulate.mmsbmB <- function(object,
   } else {
     sid <- "(sid)" 
     rid <- "(rid)"
+    tid <- "(tid)" # add this line
     #sid <- object$forms$senderID
     #rid <- object$forms$receiverID
     if(is.null(object$forms$timeID)){ tid <- "(tid)"} else{tid <- object$forms$timeID}
@@ -59,7 +60,11 @@ simulate.mmsbmB <- function(object,
       tid <- object$forms$timeID
     }
   } else {
-    if(is.null(object$forms$nodeID1)){nid1 <- "(nid)"}else{nid1<-object$forms$nodeID1}#nid1 <- "(nid1)"
+    if(is.null(object$forms$nodeID1)){nid1 <- "(nid)"
+     tid <- "(tid)" # add this line
+     }else{nid1<-object$forms$nodeID1
+      tid <- "(tid)" # add this line
+      }#nid1 <- "(nid1)"
     #tid <- "(tid)"
     monad1 <- object$monadic.data[[1]]
   }
@@ -76,7 +81,11 @@ simulate.mmsbmB <- function(object,
       tid <- object$forms$timeID
     }
   } else {
-    if(is.null(object$forms$nodeID2)){nid2 <- "(nid)"}else{nid2<-object$forms$nodeID2}
+    if(is.null(object$forms$nodeID2)){nid2 <- "(nid)"
+     tid <- "(tid)" # add this line
+     }else{nid2<-object$forms$nodeID2
+      tid <- "(tid)" # add this line
+      }
     monad2 <- object$monadic.data[[2]]
   }
   
@@ -129,7 +138,8 @@ simulate.mmsbmB <- function(object,
                                    new_kappa <- last_kappa %*% .mpower(object$TransitionKernel, steps)
                                    return(rmultinom(1, 1, new_kappa))
                                  }}))
-    colnames(states) <- unique_t
+    states<-t(states) #add this line
+    colnames(states) <- unique_t # THIS IS CAUSING ERROR
     states_ind <- states[,match(monad1[,tid], colnames(object$Kappa))]#only for monad1 currently
     if(parametric_mm){
       #Family 1
