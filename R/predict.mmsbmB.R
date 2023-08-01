@@ -34,7 +34,7 @@ predict.mmsbmB <- function(object,
   require(stringr)
   type <- match.arg(type)
   if(samples>1 & (samples%%1 > 0)){
-      stop("If not NULL, samples must be a positive integer.")
+    stop("If not NULL, samples must be a positive integer.")
   }
   if(samples>1 & (forecast == TRUE)){
     stop("Multiple samples for forecasting models not implemented yet.")
@@ -149,25 +149,25 @@ predict.mmsbmB <- function(object,
     alpha1 <- list(.compute.alpha(X1_m, object$MonadCoef1))
     alpha2 <- list(.compute.alpha(X2_m, object$MonadCoef2))
   } else {
-      MonadCoef1_samples  <- MASS::mvrnorm(samples,
-                                           c(object$MonadCoef1),
-                                           object$vcov_monad1)
-      alpha1 <- apply(MonadCoef1_samples, 1,
-                      function(betas){
-                          betas <- array(betas, dim(object$MonadCoef1),
-                                         dimnames = dimnames(object$MonadCoef1))
-                          .compute.alpha(X1_m, betas)
-                      })
-      MonadCoef2_samples  <- MASS::mvrnorm(samples,
-                                           c(object$MonadCoef2),
-                                           object$vcov_monad2)
-      alpha2 <- apply(MonadCoef2_samples, 1,
-                      function(betas){
-                          betas <- array(betas, dim(object$MonadCoef2),
-                                         dimnames = dimnames(object$MonadCoef2))
-                          .compute.alpha(X2_m, betas)
-                      })
-     
+    MonadCoef1_samples  <- MASS::mvrnorm(samples,
+                                         c(object$MonadCoef1),
+                                         object$vcov_monad1)
+    alpha1 <- apply(MonadCoef1_samples, 1,
+                    function(betas){
+                      betas <- array(betas, dim(object$MonadCoef1),
+                                     dimnames = dimnames(object$MonadCoef1))
+                      .compute.alpha(X1_m, betas)
+                    })
+    MonadCoef2_samples  <- MASS::mvrnorm(samples,
+                                         c(object$MonadCoef2),
+                                         object$vcov_monad2)
+    alpha2 <- apply(MonadCoef2_samples, 1,
+                    function(betas){
+                      betas <- array(betas, dim(object$MonadCoef2),
+                                     dimnames = dimnames(object$MonadCoef2))
+                      .compute.alpha(X2_m, betas)
+                    })
+    
   }
   #Produce p1, p2
   
@@ -189,10 +189,10 @@ predict.mmsbmB <- function(object,
   } else {
     #if(!(tid %in% colnames(monad1))){tid <- "(tid)"}
     p1 <- vapply(seq.int(length(alpha1)),
-           function(x){
-             .e.pi(alpha1[[1]], object$Kappa[,as.character(monad1[,tid])], C_mat1)
-           },
-           array(0, dim(alpha1[[1]][[1]]), dimnames = dimnames(alpha1[[1]][[1]])))
+                 function(x){
+                   .e.pi(alpha1[[1]], object$Kappa[,as.character(monad1[,tid])], C_mat1)
+                 },
+                 array(0, dim(alpha1[[1]][[1]]), dimnames = dimnames(alpha1[[1]][[1]])))
     p2 <- vapply(seq.int(length(alpha2)),
                  function(x){
                    .e.pi(alpha2[[1]], object$Kappa[,as.character(monad2[,tid])], C_mat2)
@@ -223,8 +223,8 @@ predict.mmsbmB <- function(object,
     r_ind <- match(paste(dyad[,tmp_rid],dyad[,tmp_tid],sep="@"), 
                    paste(monad2[,nid2],monad2[,temp_tid],sep="@"))
   }else{
-  r_ind <- match(paste(dyad[,tmp_rid],dyad[,tmp_tid],sep="@"), 
-                 paste(monad2[,nid2],monad2[,tid2],sep="@"))
+    r_ind <- match(paste(dyad[,tmp_rid],dyad[,tmp_tid],sep="@"), 
+                   paste(monad2[,nid2],monad2[,tid2],sep="@"))
   }
   pi_s <- p1[,s_ind, ,drop=FALSE]
   pi_r <- p2[,r_ind, ,drop=FALSE]
@@ -238,12 +238,12 @@ predict.mmsbmB <- function(object,
   }
   if(samples>1){
     dyad_gamma <-  t(MASS::mvrnorm(samples,
-                                 object$DyadCoef[-1],
-                                 object$vcov_dyad))
+                                   object$DyadCoef[-1],
+                                   object$vcov_dyad))
   } else {
     dyad_gamma <-  c(object$DyadCoef[-1])
   }
-  eta_dyad <- eta_dyad + (X_d[,-1] %*% dyad_gamma)#add dyadic
+  eta_dyad <- eta_dyad + (as.matrix((as.data.frame(X_d))[,-1]) %*% dyad_gamma)#add dyadic  #changed here from  eta_dyad + X_d[,-1] %*% dyad_gamma
   if(type=="link"){
     res<-eta_dyad
   } else {
