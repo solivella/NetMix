@@ -159,7 +159,7 @@ Rcpp::List mmsbm_fit(const arma::mat& z_t,
     ++iter;
   }
   if(verbose){
-      Rprintf("Final LB: %f.                     \n", iter+1, newLL);
+      Rprintf("Final LB: %f.                     \n", newLL);
   }
   
   ll_vec.erase(ll_vec.begin());

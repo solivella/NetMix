@@ -1,3 +1,8 @@
+NetMix 0.2.0.2
+--------------------------------------
+- Fix minor bugs
+- Update R version dependency to 4.1.0
+
 NetMix 0.2.0
 --------------------------------------
 - Add online estimation algorithm for

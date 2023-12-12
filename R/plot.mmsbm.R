@@ -148,8 +148,8 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, node=NULL, ...){ # network gra
                                    rep(1:nrow(x$MixedMembership), each=length(unique(x$monadic.data[nr,"(tid)"])))))
     colnames(avgmems) <- c("Time", "Avg.Membership", "Group")
     avgmems$Group <- factor(avgmems$Group, levels=length(unique(avgmems$Group)):1)
-    if(class(avgmems$Avg.Membership) != "numeric"){avgmems$Avg.Membership <- as.numeric(as.character(avgmems$Avg.Membership))}
-    if(class(avgmems$Time) != "numeric"){avgmems$Time <- as.numeric(as.character(avgmems$Time))}
+    if(!inherits(avgmems$Avg.Membership,"numeric")){avgmems$Avg.Membership <- as.numeric(as.character(avgmems$Avg.Membership))}
+    if(!inherits(avgmems$Time, "numeric")){avgmems$Time <- as.numeric(as.character(avgmems$Time))}
     return(ggplot2::ggplot() + 
              ggplot2::geom_area(ggplot2::aes_string(y = "Avg.Membership", x = "Time", fill="Group"), data = avgmems,
                                 stat="identity", position="stack") + 

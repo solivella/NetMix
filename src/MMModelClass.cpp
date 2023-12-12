@@ -799,7 +799,7 @@ void MMModel::sampleDyads(arma::uword iter)
   
   for(arma::uword d = 0; d < N_DYAD; ++d){
     dyad_in_batch[d] = (arma::any(node_batch == node_id_dyad(d, 0)) 
-                          | arma::any(node_batch == node_id_dyad(d, 1))) ? 1 : 0;
+                          || arma::any(node_batch == node_id_dyad(d, 1))) ? 1 : 0;
   }
   
   reweightFactor = (1. * N_DYAD) / arma::sum(dyad_in_batch);
