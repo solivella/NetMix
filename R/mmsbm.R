@@ -163,6 +163,9 @@ mmsbm <- function(formula.dyad,
                   data.monad = NULL,
                   n.blocks,
                   n.hmmstates = 1,
+                  realign=TRUE, #whether use realign method
+                  moretimes=FALSE, #whether do 5 times for later periods
+                  fp5times=TRUE, #whether do 5 times for the first period
                   directed = TRUE,
                   mmsbm.control = list()){
   
@@ -262,7 +265,7 @@ mmsbm <- function(formula.dyad,
   }
   
   if(ctrl$verbose){
-    cat("Pre-processing data...\n")
+    cat("New4: Pre-processing data...\n")
   }
   
   ## Add time variable if null or single period
@@ -562,16 +565,131 @@ mmsbm <- function(formula.dyad,
                      dyads,
                      edges,
                      nodes_pp,
+                     moretimes,
+                     fp5times,
+                     realign,
                      dyads_pp,
-                     n.blocks, periods, directed, ctrl)
+                     n.blocks, periods, directed, ctrl,netSim)
+init_lb<-mm_init[[2]]
+init_niter<-mm_init[[3]]
+
+mm_init<-mm_init[[1]]
   ctrl$mm_init_t[[1]] <- mm_init[[1]]
   if(bipartite){
     ctrl$mm_init_t[[2]] <- mm_init[[2]]
   }
+#  mm_orig<-mm_init #keep the mm_init before switching and return for evaluation
+#distance_to_line <- function(point) {
+#    return(((point[2] - point[1])^2)/2)
+#  #return((abs(point[2] - point[1]))/sqrt(2))
+#}
+
+#Switching by hand
+#Bills    
+#mm_init[[2]] <-t(mm_init[[2]])
+#chunk_size <- 50
+
+# Initialize a list to store the results
+#result_matrices <- list()#
+
+# Number of chunks
+#num_chunks <- ceiling(nrow(mm_init[[2]]) / chunk_size)
+
+# Iterate over each chunk
+#for (chunk_index in 1:num_chunks) {
+#  # Calculate row indices for the current chunk
+#  start_row <- (chunk_index - 1) * chunk_size + 1
+#  end_row <- min(chunk_index * chunk_size, nrow(mm_init[[2]]))
+  
+  # Subset matrix and vector for the current chunk
+#  chunk_matrix <- mm_init[[2]][start_row:end_row, ]
+#  chunk_vector <- netSim$piB[,1][start_row:end_row]
+  
+  # Calculate distance for each point in both columns
+#  distance_col1 <- sapply(1:nrow(chunk_matrix), function(i) distance_to_line(c(chunk_vector[i], chunk_matrix[i, 1])))
+#  distance_col2 <- sapply(1:nrow(chunk_matrix), function(i) distance_to_line(c(chunk_vector[i], chunk_matrix[i, 2])))
+  
+  # Sum of distances
+#  sum_dist_col1 <- sum(distance_col1)
+#  sum_dist_col2 <- sum(distance_col2)
+  
+  # Switch columns if second column is closer
+#  if (sum_dist_col2 < sum_dist_col1) {
+#    chunk_matrix <- chunk_matrix[, 2:1]
+ # }
+  
+  # Store the result
+#  result_matrices[[chunk_index]] <- chunk_matrix
+#}
+
+# Combine results back into a single matrix
+#final_matrix <- do.call(rbind, result_matrices)
+#final_matrix<-t(final_matrix)
+#mm_init[[2]]<-final_matrix
+  
+
+## Senators
+#mm_init[[1]] <-t(mm_init[[1]])
+
+#chunk_size <- 100
+
+# Initialize a list to store the results
+#result_matrice <- list()
+
+# Number of chunks
+#num_chunks <- ceiling(nrow(mm_init[[1]]) / chunk_size)
+
+# Iterate over each chunk
+#for (chunk_index in 1:num_chunks) {
+  # Calculate row indices for the current chunk
+#  start_row <- (chunk_index - 1) * chunk_size + 1
+#  end_row <- min(chunk_index * chunk_size, nrow(mm_init[[1]]))
+  
+  # Subset matrix and vector for the current chunk
+#  chunk_matrix <- mm_init[[1]][start_row:end_row, ]
+#  chunk_vector <- netSim$piS[,1][start_row:end_row]
+  
+  # Calculate distance for each point in both columns
+#  distance_col1 <- sapply(1:nrow(chunk_matrix), function(i) distance_to_line(c(chunk_vector[i], chunk_matrix[i, 1])))
+#  distance_col2 <- sapply(1:nrow(chunk_matrix), function(i) distance_to_line(c(chunk_vector[i], chunk_matrix[i, 2])))
+  
+  # Sum of distances
+#  sum_dist_col1 <- sum(distance_col1)
+#  sum_dist_col2 <- sum(distance_col2)
+  
+  # Switch columns if second column is closer
+  #if (sum_dist_col2 < sum_dist_col1) {
+ #   chunk_matrix <- chunk_matrix[, 2:1]
+ # }
+  
+  # Store the result
+#  result_matrices[[chunk_index]] <- chunk_matrix
+#}
+
+# Combine results back into a single matrix
+#final_matrix <- do.call(rbind, result_matrices)
+#final_matrix<-t(final_matrix)
+#mm_init[[1]]<-final_matrix
+
+#  mm_init[[2]][,1]<-ifelse(((1-mm_init[[2]][,1])-netSim$piB[,1])^2<= (mm_init[[2]][,1]-netSim$piB[,1])^2,1-mm_init[[2]][,1],mm_init[[2]][,1])#  mm_init[[2]][,2]<-1-mm_init[[2]][,1]
+#  mm_init[[2]][,2]<-1-mm_init[[2]][,1]
   
   
+#  mm_init[[1]] <-t(mm_init[[1]])
+#  mm_init[[1]][,1]<-ifelse(((1-mm_init[[1]][,1])-netSim$piS[,1])^2<= (mm_init[[1]][,1]-netSim$piS[,1])^2,1-mm_init[[1]][,1],mm_init[[1]][,1])
+#  mm_init[[1]][,2]<-1-mm_init[[1]][,1]
   
-  ##Initial gamma
+#  mm_init[[1]]<-t( mm_init[[1]])
+#  mm_init[[2]]<-t( mm_init[[2]])
+
+
+# Feed back the switched mm   
+ctrl$mm_init_t[[1]] <- mm_init[[1]]
+ctrl$mm_init_t[[2]] <- mm_init[[2]]
+
+
+
+##Initial gamma
   if(is.null(ctrl$gamma_init)){
     if(n_dyad_pred > 0){
       ctrl$gamma_init <- rnorm(length(ctrl$mu_gamma), ctrl$mu_gamma, sqrt(ctrl$var_gamma))
@@ -846,6 +964,11 @@ mmsbm <- function(formula.dyad,
   
   fit$bipartite <- bipartite
   
+  # Add: return the mm_init
+  fit$mm_init<-mm_init #after switching
+ # fit$mm_orig<-mm_orig #before switching
+  fit$init_lb<- init_lb #lowerbound for each period initialization
+  fit$init_niter<-init_niter
   ##Assign class for methods
   if(fit$bipartite){
     class(fit) <- c("mmsbmB", "mmsbm")
