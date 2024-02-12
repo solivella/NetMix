@@ -52,6 +52,9 @@
 #' @param .soc_mats,Y,dyads,edges,t_id_d,t_id_n,nodes_pp,dyads_pp,nt_id,node_id_period,mu_b,var_b,n_dyads,n.blocks,periods,ctrl Internal arguments for initialization.
 #' @param m1,bootrep,blist1,blist2 Arguments to internal fiunctions for bootstrapping 
 #' @param ... Numeric vectors; vectors of potentially different length to be cbind-ed.
+#' @param moretimes Run 5 times for each period's initialization?
+#' @param realign Use BM realignment method?
+#' @param fp5times Run the first period's initialization 5 times?
 #' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (aylo@@wisc.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 #'
 #' @return See individual return section for each function:
@@ -390,6 +393,9 @@
   res <- vector("list", 2L)
   init_lb<-c()
   init_niter<-c()
+  realign<-TRUE #manual
+  moretimes<-TRUE
+  fp5times<-TRUE
   if(bipartite){
     if (periods==1){
     phi_init_temp <- lapply(soc_mats, function(mat){
@@ -424,17 +430,20 @@
         sdf<-netSim[["df_monad_S"]]%>%filter(year==i)
         bdf<-netSim[["df_monad_B"]]%>%filter(year==i)
         
-          seeds<-c(sample(100:9999, 5)) #run 5 times
-       if(fp5times==FALSE){
-         seeds<-c(sample(100:9999, 1))
+          seeds<-c(sample(100:9999, 1)) #run 5 times
+       if(fp5times){
+         seeds<-c(sample(100:9999, 5))
        }
+          else{
+            seeds<-c(sample(100:9999, 1))
+          }
         # seeds<-c(02138) #only run once
         
         best_model <- NULL
         best_lower_bound <- -Inf
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = Y~1,
-                     #formula.monad = list(~VarS1, ~VarB1),
+          m_s<-mmsbm(formula.dyad = Y~var1,
+                     formula.monad = list(~VarS1, ~VarB1),
                      # timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
@@ -448,7 +457,7 @@
                                           svi = TRUE,
                                           vi_iter = 5000,
                                           batch_size = 1.0,
-                                          conv_tol = 1e-2,
+                                          conv_tol = 1e-3,
                                           var_beta=list(c(0.01),
                                                         c(0.01)),
                                           hessian = FALSE,
@@ -479,7 +488,7 @@
       dy<-netSim[["df_dyad_1"]]%>%filter(year==i)
       sdf<-netSim[["df_monad_S"]]%>%filter(year==i)
       bdf<-netSim[["df_monad_B"]]%>%filter(year==i)
-      if (moretimes==TRUE){
+      if (moretimes){
       seeds<-c(sample(100:9999, 5))} #run 5 times
       else{
       seeds<-c(sample(100:9999, 1))
@@ -489,8 +498,8 @@
       best_model <- NULL
       best_lower_bound <- -Inf
       for (s in seeds){
-      m_s<-mmsbm(formula.dyad = Y~1,
-               #formula.monad = list(~VarS1, ~VarB1),
+      m_s<-mmsbm(formula.dyad = Y~var1,
+               formula.monad = list(~VarS1, ~VarB1),
               # timeID="year",
                senderID = "id1",
                receiverID = "id2",
@@ -504,7 +513,7 @@
                                     svi = TRUE,
                                     vi_iter = 5000,
                                     batch_size = 1.0,
-                                    conv_tol = 1e-2,
+                                    conv_tol = 1e-3,
                                     var_beta=list(c(0.01),
                                                   c(0.01)),
                                     hessian = FALSE,
@@ -551,6 +560,7 @@
       
 
       bm_base<-plogis(block_models[[1]])
+      #bm_base<-matrix((c(0.9, 0.2, 0.05, 0.35)), ncol = 2) #if want to use the truth
       
       # Define a function to find the closest matrix to bm_base in a list
       calculate_norm <- function(matrix1, matrix2) {
@@ -571,7 +581,7 @@
           # Check if the current norm is smaller than the smallest found so far
           if (current_norm < smallest_norm) {
             smallest_norm <- current_norm
-            perms_temp_id <-  i # Store the index or any other identifier of the matrix
+            perms_temp_id <-  i 
           }
         }
         perms_temp_store<-list(
@@ -592,15 +602,20 @@
       #      closest_matrix <- permuted_matrix
       #      perms_temp<-as.matrix(as(all_perms[2,], "pMatrix"))
            #     }
-          
+      cat("Permutation id",perms_temp_id,"\n")
                 return(perms_temp)
+    
       }
       
       # Apply the find_closest_matrix function to each matrix in the list
-      perms_temp <- lapply(bm1, find_closest_matrix, t_mat = bm_base)
-      if(realign==FALSE){
-        perms_temp<-lapply(1:50, function(x) list(as.matrix(as(all_perms[1,], "pMatrix")), as.matrix(as(all_perms[1,], "pMatrix"))))
+   #   perms_temp <- lapply(bm1, find_closest_matrix, t_mat = bm_base)
+     
+      if(realign){
+        perms_temp <- lapply(bm1, find_closest_matrix, t_mat = bm_base)
       }
+     else{
+        perms_temp<-lapply(1:50, function(x) list(as.matrix(as(all_perms[1,], "pMatrix")), as.matrix(as(all_perms[1,], "pMatrix"))))
+   }
 
       
       phis_temp <- lapply(out, `[[`, 1) 

@@ -39,6 +39,9 @@
 #'    to 1 (i.e. no HMM). Currently, dynamic models are only supported for non-bipartite models.  
 #' @param directed Boolean. Is the network directed? Defaults to \code{TRUE}.
 #' @param missing Means of handling missing data. One of "indicator method" (default) or "listwise deletion".
+#' @param moretimes Run 5 times for each period's initialization?
+#' @param realign Use BM realignment method?
+#' @param fp5times Run the first period's initialization 5 times?
 #' @param mmsbm.control A named list of optional algorithm control parameters.
 #'     \describe{
 #'        \item{seed}{RNG seed. Defaults to \code{NULL}, which does not seed the RNG}

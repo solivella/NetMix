@@ -41,17 +41,42 @@ p_load(LaplacesDemon,MCMCpack,igraph,ggplot2,tidyverse,gridExtra,NetMix)
 ##                                          -0.75,  -1.0),
 ##                                        c(2, 2))))
 
-BM_easy = matrix(qlogis(c(0.9, 0.2, 0.05, 0.35)), ncol = 2) #2*2
+#BM_easy = matrix(qlogis(c(0.9, 0.2, 0.05, 0.35)), ncol = 2) #2*2
+
+#BM_easy = matrix(qlogis(c(0.9, 0.2, 0.05, 0.35)), ncol = 2) #easy
+#BM_easy = matrix(qlogis(c(0.9, 0.45, 0.20, 0.35)), ncol = 2) #medium
+#BM_easy = matrix(qlogis(c(0.9, 0.75, 0.60, 0.35)), ncol = 2) #hard
+
+#BM_easy = matrix(qlogis(c(0.7, 0.2, 0.05, 0.35)), ncol = 2) #ok
+#BM_easy = matrix(qlogis(c(0.6, 0.10, 0.01, 0.5)), ncol = 2) 
+BM_easy = matrix(qlogis(c(0.85, 0.01, 0.01, 0.99)), ncol = 2) #easy case
+
+#BM_easy = matrix(qlogis(c(0.65, 0.2, 0.35, 0.75)), ncol = 2) #2*2
 #BM_easy = matrix(qlogis(c(0.9, 0.2,0.5, 0.05, 0.35,0.8)), ncol = 2) #2*3
 #BM_easy = matrix(qlogis(c(0.85, 0.05, 0.10, 0.35)), ncol = 2) #m3
 
 
 #BM_easy = matrix(qlogis(c(0.65, 0.35, 0.20, 0.75)), ncol = 2)
-beta_easy = list(array(c(-2.5, -2.5 ##Intercepts
-), ## Predictor coefficients
-c(2, 1)),
-array(c(1, -1),
-      c(2, 1)))
+#beta_easy = list(array(c(-2.5, -2.5 ##Intercepts
+#), ## Predictor coefficients
+#c(2, 1)),
+#array(c(1, -1),
+#      c(2, 1)))
+
+
+#beta_easy = list(array(c(-2.5, -2.5, ##Intercepts
+#                         0.5, -0.5), ## Predictor coefficients
+#                       c(2, 2)),
+#                 array(c(1, -1,
+#                         1, -1),
+#                       c(2, 2)))
+
+beta_easy = list(array(c(-4.5, -4.5, ##Intercepts
+                         0.0, 0.0), ## Predictor coefficients
+                       c(2, 2)),
+                 array(c(-4.5, -4.5,
+                         0.0, 0.0),
+                       c(2, 2)))
 
 # three blocks?
 #beta_easy = list(array(c(-4.5, -4.5,-4.5 ##Intercepts
@@ -72,15 +97,16 @@ nbB <- 2
 
 ## Sample monadic predictors
 nnS <- 100
-nnB <- 50
-TIME <- 50
+nnB <-50
+TIME <- 1
 
 
 XS <- matrix(NA, nrow = TIME, ncol = nnS)
-XS[1,] <- rnorm(nnS,0,2)
+XS[1,] <- rnorm(nnS,0,1)
 if(TIME > 1){
   for(t in 2:TIME){
-    XS[t,] <- rnorm(1, XS[t-1,], 1)
+  #  XS[t,] <- rnorm(1, XS[t-1,], 1)
+    XS[t,] <- rnorm(nnS,0,1) #no time dependency
   }
 }
 colnames(XS) <- paste0("S", 1:nnS)
@@ -93,10 +119,11 @@ for (i in 1: nrow(XS)) {
 
 
 XB <- matrix(NA, nrow = TIME, ncol = nnB)
-XB[1,] <- rnorm(nnB,0,2)
+XB[1,] <- rnorm(nnB,0,1)
 if(TIME > 1){
   for(t in 2:TIME){
-    XB[t,] <- rnorm(1, XB[t-1,], 1)
+   # XB[t,] <- rnorm(1, XB[t-1,], 1)
+    XB[t,] <- rnorm(nnB,0,1) #no time dependency
   }
 }
 colnames(XB) <- paste0("B", 1:nnB)
@@ -109,7 +136,7 @@ for (i in 1: nrow(XB)) {
 
 ## Sample mixed membership for each family
 piS <- lapply(1:nnS, function(x){
-  Xsub <- as.data.frame(XS_array[,x,])[1,]
+  Xsub <- as.data.frame(XS_array[,x,])#[1,] remove # to get no monadic cov
   debetas <- sapply(1:ncol(Xsub), function(y){
     ebeta <- exp(t(Xsub[,y]) %*% t(beta_easy[[sVec[y]]]))
     pi_vec <- rdirichlet(1, ebeta)
@@ -126,7 +153,7 @@ piS <- lapply(1:nnS, function(x){
 piS <- t(do.call(cbind, piS))
 
 piB <- lapply(1:nnB, function(x){
-  Xsub <- as.data.frame(XB_array[,x,])[1,]
+  Xsub <- as.data.frame(XB_array[,x,])#[1,] remove # to get no monadic cov
   debetas <- sapply(1:ncol(Xsub), function(y){
     ebeta <- exp(t(Xsub[,y]) %*% t(beta_easy[[sVec[y]]]))
     pi_vec <- rdirichlet(1, ebeta)
@@ -169,8 +196,8 @@ w <- apply(Z, 1, function(x){
 ## Sample network edges
 
 gamma_vec = c(0.1)
-#dgam <- (as.matrix(Z[,-c(1:3)])) %*% as.matrix(gamma_vec) 
-dgam<-as.matrix(rep(0,nrow(Z)))
+dgam <- (as.matrix(Z[,-c(1:3)])) %*% as.matrix(gamma_vec) 
+#dgam<-as.matrix(rep(0,nrow(Z))) #use this for no dyadic pred
 theta <- lapply(BM_easy, function(x){exp(x + dgam) / (1 + exp(x + dgam))}) #element1 for B[1,1], 2 for B[2,1], etc.
 prob.edge <- mapply(function(a, b, c){theta[[which(BM_easy==BM_easy[a,b])[1]]][c]}, a=z, b=w, c=1:nrow(Z))
 Y <- sapply(prob.edge, function(x){rbinom(n=1, size=1, prob=x)}) 
@@ -179,7 +206,7 @@ Y <- sapply(prob.edge, function(x){rbinom(n=1, size=1, prob=x)})
 ## List Generator
 
 df_dyad_1 <- data.frame(Y = Y,
-                        #var1 = Z[,4],  
+                        var1 = Z[,4],  # comment out for no dyad cov
                         id1 = paste0("S",Z[,1]),
                         id2 = paste0("B", Z[,2]),
                         year=Z[,3])
@@ -188,14 +215,14 @@ df_monad_B0 <- as.data.frame(XB)
 
 df_monad_S <- df_monad_S0 %>% 
   rownames_to_column(var = "year") %>%  
-  pivot_longer(1:nnS+1, names_to = "id", values_to = "VarS1")%>%
-  select(-VarS1)
+  pivot_longer(1:nnS+1, names_to = "id", values_to = "VarS1")#%>%
+  #select(-VarS1) remove # to get no monadic cov
 
 
 df_monad_B <- df_monad_B0 %>% 
   rownames_to_column(var = "year") %>%  
-  pivot_longer(1:nnB+1, names_to = "id", values_to = "VarB1")%>%
-  select(-VarB1)
+  pivot_longer(1:nnB+1, names_to = "id", values_to = "VarB1")#%>%
+  #select(-VarB1) remove # to get no monadic cov
 
 piS <- piS[paste(df_monad_S$id, df_monad_S$year, sep = "_"),]
 piB <- piB[paste(df_monad_B$id, df_monad_B$year, sep = "_"),]
@@ -222,8 +249,8 @@ netSim <- list(piS = piS, piB = piB,
 ## Fitting the simulated data
 ##############################
 
-res_dynbi <- mmsbm(formula.dyad = Y~1,
-                   #formula.monad = list(~VarS1, ~VarB1),
+res_dynbi <- mmsbm(formula.dyad = Y~var1, #Y~1 for no monadic cov
+                   formula.monad = list(~VarS1, ~VarB1), #ocmment out for no dyadic cov
                    timeID="year",
                    senderID = "id1",
                    receiverID = "id2",
@@ -231,7 +258,7 @@ res_dynbi <- mmsbm(formula.dyad = Y~1,
                    bipartite= TRUE,
                    data.dyad = netSim[["df_dyad_1"]],
                    data.monad = list(netSim[["df_monad_S"]],netSim[["df_monad_B"]]),
-                   n.blocks = c(2,2), n.hmmstates = 2,moretimes=FALSE,realign=FALSE,fp5times = FALSE,
+                   n.blocks = c(2,2), moretimes=FALSE,realign=TRUE,fp5times = TRUE,#n.hmmstates = 2,
                    mmsbm.control = list(verbose = TRUE,
                                         threads=1,
                                         svi = FALSE,
@@ -250,7 +277,7 @@ res_dynbi$MixedMembership1 <- res_dynbi$MixedMembership1[phi_ord, ]
 rownames(res_dynbi$MixedMembership1) <- orig_mm_names
 orig_g_names <- dimnames(res_dynbi$BlockModel)
 res_dynbi$BlockModel <- res_dynbi$BlockModel[phi_ord, phi_ord]
-dimnames(res_dynbi$BlockModel) <- orig_g_names
+dimnames(res_dynbi$BlockModel) <- orig_g_names #comment out following lines if no covariates
 #loss.mat.kappa <- res_dynbi$Kappa %*% model.matrix(~-1+as.factor(netSim$sVec))
 #kappa_ord <- clue::solve_LSAP((loss.mat.kappa), TRUE)
 #orig_coef_names <- dimnames(res_dynbi$MonadCoef1)
@@ -267,7 +294,7 @@ pred_piS <- data.frame(#netSimwork = rep(c(type), each=with(SynthnetSims[[i]],NO
   Group = factor(rep(c(1:netSim$nbS), each = with(netSim,nnS*TIME))),
   Year = rep(paste("Year",1:netSim$TIME), each=netSim$nnS, times=netSim$nbS),
   State = rep(c("State 1","State 2"),c(25*netSim$nnS,25*netSim$nnS)),
-  #V2 = rep(netSim$df_monad_S[,"VarS1"], netSim$nbS),
+  V2 = rep(netSim$df_monad_S[,"VarS1"], netSim$nbS), #comment out if no covariates
   Truth = c(netSim$piS),
   Pred = c(t(res_dynbi$MixedMembership1[phi_ord,])))
 
@@ -283,7 +310,7 @@ res_dynbi$MixedMembership2 <- res_dynbi$MixedMembership2[phi_ord, ]
 rownames(res_dynbi$MixedMembership2) <- orig_mm_names
 orig_g_names <- dimnames(res_dynbi$BlockModel)
 res_dynbi$BlockModel <- res_dynbi$BlockModel[phi_ord, phi_ord]
-dimnames(res_dynbi$BlockModel) <- orig_g_names
+dimnames(res_dynbi$BlockModel) <- orig_g_names #comment out following lines if no covariates
 #loss.mat.kappa <- res_dynbi$Kappa %*% model.matrix(~-1+as.factor(netSim$sVec))
 #kappa_ord <- clue::solve_LSAP((loss.mat.kappa), TRUE)
 #orig_coef_names <- dimnames(res_dynbi$MonadCoef2)
@@ -300,7 +327,7 @@ pred_piB <- data.frame(#netSimwork = rep(c(type), each=with(SynthnetSims[[i]],NO
   Group = factor(rep(c(1:netSim$nbB), each = with(netSim,nnB*TIME))),
   Year = rep(paste("Year",1:netSim$TIME), each=netSim$nnB, times=netSim$nbB),
   State = rep(c("State 1","State 2"),c(25*netSim$nnB,25*netSim$nnB)),
-  #V2 = rep(netSim$df_monad_B[,"VarB1"], netSim$nbB),
+  V2 = rep(netSim$df_monad_B[,"VarB1"], netSim$nbB), #comment out if no covariates
   Truth = c(netSim$piB),
   Pred = c(t(res_dynbi$MixedMembership2[phi_ord,])))
 
@@ -329,7 +356,7 @@ init_b<-c(mm_init[[2]][1,],mm_init[[2]][2,])
 plot(y=init_b, x=c(netSim$piB[,1],netSim$piB[,2]), xlab="True Value", ylab="Initialized Membership")
 
 init_s<-c(mm_init[[1]][1,],mm_init[[1]][2,])
-plot(y=init_s, x=pred_piS[,5], xlab="True Value", ylab="Initialized Membership")
+plot(y=init_s, x=c(netSim$piS[,1],netSim$piS[,2]), xlab="True Value", ylab="Initialized Membership")
 
 #Initialization compared to prediction
 #init_b<-c(mm_init[[2]][1,],mm_init[[2]][2,])
@@ -356,31 +383,9 @@ ggplot(pred_piS, aes(x=Truth, y=Pred))+
   xlab("True mixed-membership")
 
 # initialization performance by year 
-### Before switching
 pred_piB$year<-parse_number(pred_piB$Year)
 pred_piS$year<-parse_number(pred_piS$Year)
-mm_init<-res_dynbi$mm_orig
-init_b<-c(mm_init[[2]][1,],mm_init[[2]][2,])
-init_s<-c(mm_init[[1]][1,],mm_init[[1]][2,])
 
-pred_piB2<-pred_piB%>%mutate(init_b=init_b)
-pred_piS2<-pred_piS%>%mutate(init_b=init_s)
-
-ggplot(pred_piB2, aes(x=Truth, y=init_b))+
-  geom_point(alpha=1, size=0.2,color="red") +
-  facet_wrap(~year) +
-  theme_bw() +
-  ylab("Initialization") +
-  xlab("True mixed-membership")
-
-ggplot(pred_piS2, aes(x=Truth, y=init_s))+
-  geom_point(alpha=1, size=0.2,color="red") +
-  facet_wrap(~year) +
-  theme_bw() +
-  ylab("Initialization") +
-  xlab("True mixed-membership")
-
-### After switching
 mm_init<-res_dynbi$mm_init
 init_b<-c(mm_init[[2]][1,],mm_init[[2]][2,])
 init_s<-c(mm_init[[1]][1,],mm_init[[1]][2,])
@@ -392,14 +397,14 @@ ggplot(pred_piB2, aes(x=Truth, y=init_b))+
   geom_point(alpha=1, size=0.2,color="red") +
   facet_wrap(~year) +
   theme_bw() +
-  ylab("Initialization after realignment") +
+  ylab("Initialization with realignment") +
   xlab("True mixed-membership")
 
 ggplot(pred_piS2, aes(x=Truth, y=init_s))+
   geom_point(alpha=1, size=0.2,color="red") +
   facet_wrap(~year) +
   theme_bw() +
-  ylab("Initialization after realignment") +
+  ylab("Initialization with realignment") +
   xlab("True mixed-membership")
 
 
@@ -421,7 +426,7 @@ ggplot(pred_piS2, aes(x=Truth, y=init_s))+
 ## Plot simulated network
 Z2<-Z%>%mutate(groupS=z,groupB=w)
 Z2$link<-Y
-Z3<-Z2%>%select(groupS,groupB,link)
+Z3<-Z2%>%select(groupS,groupB,link,year)
 d11<-sum(Z3%>%filter(groupS==1,groupB==1)%>%select(link))/nrow(Z3%>%filter(groupS==1,groupB==1)%>%select(link))
 d12<-sum(Z3%>%filter(groupS==1,groupB==2)%>%select(link))/nrow(Z3%>%filter(groupS==1,groupB==2)%>%select(link))
 d21<-sum(Z3%>%filter(groupS==2,groupB==1)%>%select(link))/nrow(Z3%>%filter(groupS==2,groupB==1)%>%select(link))
@@ -442,7 +447,21 @@ Z3<-cbind(Z3,Z2[,1:2])
 #  labs(x = "Senator", y = "Bill", title = "Network Generation Heatmap")
 
 Z3$link<-as.factor(Z3$link)
+
+
 ggplot(Z3, aes(x = S, y = B, color = link)) +
+  geom_point(size=0.5)+ scale_colour_grey(start = 1, end = 0)+
+  facet_grid(groupS ~ groupB) +
+  labs(x = "Bills", y = "Senators", title = "Network Generation Heatmap")
+#state 1
+Z3_1<-Z3%>%filter(year<=25)
+ggplot(Z3_1, aes(x = S, y = B, color = link)) +
+  geom_point(size=0.5)+ scale_colour_grey(start = 1, end = 0)+
+  facet_grid(groupS ~ groupB) +
+  labs(x = "Bills", y = "Senators", title = "Network Generation Heatmap")
+#state 2
+Z3_2<-Z3%>%filter(year<=25)
+ggplot(Z3_2, aes(x = S, y = B, color = link)) +
   geom_point(size=0.5)+ scale_colour_grey(start = 1, end = 0)+
   facet_grid(groupS ~ groupB) +
   labs(x = "Bills", y = "Senators", title = "Network Generation Heatmap")
@@ -514,6 +533,11 @@ p1<-ggplot(Z3, aes(x = S, y = B, color = link)) +
   labs(x = "Bill", y = "Senator", title = "Network Generation Heatmap")
 return(p1)
 }
+Z3$link2<-as.numeric(Z3$link)-1
+probabilities <- Z3 %>%
+  group_by(groupS, groupB) %>%
+  summarize(probability_of_link = mean(link2)) %>%
+  ungroup()
 
 yeardens<-function(year){
   y<-year
@@ -572,12 +596,39 @@ mean(res_dynbi$init_lb) #-45.40337
 
 
 
-#Year 2
-i<-2
+#Year 3
+i<-6
 dy<-netSim[["df_dyad_1"]]%>%filter(year==i)
 sdf<-netSim[["df_monad_S"]]%>%filter(year==i)
 bdf<-netSim[["df_monad_B"]]%>%filter(year==i)
-m_s<-mmsbm(formula.dyad = Y~1,
+m_3<-mmsbm(formula.dyad = Y~var1,
+           formula.monad = list(~VarS1, ~VarB1),
+           # timeID="year",
+           senderID = "id1",
+           receiverID = "id2",
+           nodeID = list("id","id"),
+           bipartite= TRUE,
+           data.dyad = dy,
+           data.monad = list(sdf,bdf),
+           n.blocks = c(2,2), 
+           mmsbm.control = list(verbose = TRUE,
+                                threads=1,
+                                svi = TRUE,
+                                vi_iter = 5000,
+                                batch_size = 1.0,
+                                conv_tol = 1e-3,
+                                var_beta=list(c(0.01),
+                                              c(0.01)),
+                                hessian = FALSE,seed=1891
+                                ))
+bm3<-plogis(m_3$BlockModel)
+
+## Year 1
+i<-1
+dy<-netSim[["df_dyad_1"]]%>%filter(year==i)
+sdf<-netSim[["df_monad_S"]]%>%filter(year==i)
+bdf<-netSim[["df_monad_B"]]%>%filter(year==i)
+m_1<-mmsbm(formula.dyad = Y~1,
            #formula.monad = list(~VarS1, ~VarB1),
            # timeID="year",
            senderID = "id1",
@@ -595,44 +646,184 @@ m_s<-mmsbm(formula.dyad = Y~1,
                                 conv_tol = 1e-2,
                                 var_beta=list(c(0.01),
                                               c(0.01)),
-                                hessian = FALSE,
-                                seed=234))
+                                hessian = FALSE,seed=8529
+           ))
 
+bm1<-plogis(m_1$BlockModel)
 
-loss.mat.phi<- m_s$MixedMembership1 %*% netSim$piS[nnS*(i-1)+1:nnS*i,]
+netSim$piB<-netSim$piB[1:50,1]
+netSim$piS<-netSim$piS[1:100,1]
+
+plot(netSim$piB,m_3$MixedMembership2[1,])
+
+## statistics for S
+loss.mat.phi<- m_s$MixedMembership1 %*% netSim$piS
 phi_ord <- clue::solve_LSAP(t(loss.mat.phi), TRUE)
 orig_mm_names <- rownames(m_s$MixedMembership1)
 m_s$MixedMembership1 <- m_s$MixedMembership1[phi_ord, ]
 rownames(m_s$MixedMembership1) <- orig_mm_names
 orig_g_names <- dimnames(m_s$BlockModel)
 m_s$BlockModel <- m_s$BlockModel[phi_ord, phi_ord]
-dimnames(m_s$BlockModel) <- orig_g_names
-pred_piS <- data.frame(
+dimnames(m_s$BlockModel) <- orig_g_names #comment out following lines if no covariates
+loss.mat.kappa <- m_s$Kappa %*% model.matrix(~-1+as.factor(netSim$sVec))
+kappa_ord <- clue::solve_LSAP((loss.mat.kappa), TRUE)
+orig_coef_names <- dimnames(m_s$MonadCoef1)
+m_s$MonadCoef1 <- m_s$MonadCoef1[, phi_ord, kappa_ord, drop = FALSE]
+dimnames(m_s$MonadCoef1) <- orig_coef_names
+orig_k_names <- rownames(m_s$Kappa)
+m_s$Kappa <- m_s$Kappa[kappa_ord, , drop = FALSE]
+rownames(m_s$Kappa) <- orig_k_names
+orig_tk_names <- dimnames(m_s$TransitionKernel)
+m_s$TransitionKernel <- m_s$TransitionKernel[kappa_ord, kappa_ord, drop = FALSE]
+dimnames(m_s$TransitionKernel) <- orig_tk_names
+pred_piS <- data.frame(#netSimwork = rep(c(type), each=with(SynthnetSims[[i]],NODE*BLK*TIME)),
   NodeType = "Senator",
-  Group = factor(rep(c(1:netSim$nbS), each = with(netSim,nnS*1))),
-  #Year = rep(paste("Year",1:netSim$1), each=netSim$nnS, times=netSim$nbS),
- # State = rep(c("State 1","State 2"),c(25*netSim$nnS,25*netSim$nnS)),
-  #V2 = rep(netSim$df_monad_S[,"VarS1"], netSim$nbS),
-  Truth = c(netSim$piS[nnS*(i-1)+1:nnS*i,]),
+  Group = factor(rep(c(1:netSim$nbS), each = with(netSim,nnS*TIME))),
+  Year = rep(paste("Year",1:netSim$TIME), each=netSim$nnS, times=netSim$nbS),
+  State = rep(c("State 1","State 2"),c(25*netSim$nnS,25*netSim$nnS)),
+  V2 = rep(netSim$df_monad_S[,"VarS1"], netSim$nbS), #comment out if no covariates
+  Truth = c(netSim$piS),
   Pred = c(t(m_s$MixedMembership1[phi_ord,])))
 
+#pred_piS <-pred_piS%>%
+#  mutate(switched_Pred=1-Pred)%>%
+#  mutate(best_Pred=ifelse((switched_Pred-Truth)^2<= (Pred-Truth)^2, switched_Pred, Pred ))
+
 ## statistics for B
-loss.mat.phi<- m_s$MixedMembership2 %*% netSim$piB[nnB*(i-1)+1:nnB*i,]
+loss.mat.phi<- m_s$MixedMembership2 %*% netSim$piB
 phi_ord <- clue::solve_LSAP(t(loss.mat.phi), TRUE)
 orig_mm_names <- rownames(m_s$MixedMembership2)
 m_s$MixedMembership2 <- m_s$MixedMembership2[phi_ord, ]
 rownames(m_s$MixedMembership2) <- orig_mm_names
 orig_g_names <- dimnames(m_s$BlockModel)
 m_s$BlockModel <- m_s$BlockModel[phi_ord, phi_ord]
-dimnames(m_s$BlockModel) <- orig_g_names
-
+dimnames(m_s$BlockModel) <- orig_g_names #comment out following lines if no covariates
+loss.mat.kappa <- m_s$Kappa %*% model.matrix(~-1+as.factor(netSim$sVec))
+kappa_ord <- clue::solve_LSAP((loss.mat.kappa), TRUE)
+orig_coef_names <- dimnames(m_s$MonadCoef2)
+m_s$MonadCoef2 <- m_s$MonadCoef2[, phi_ord, kappa_ord, drop = FALSE]
+dimnames(m_s$MonadCoef2) <- orig_coef_names
+orig_k_names <- rownames(m_s$Kappa)
+m_s$Kappa <- m_s$Kappa[kappa_ord, , drop = FALSE]
+rownames(m_s$Kappa) <- orig_k_names
+orig_tk_names <- dimnames(m_s$TransitionKernel)
+m_s$TransitionKernel <- m_s$TransitionKernel[kappa_ord, kappa_ord, drop = FALSE]
+dimnames(m_s$TransitionKernel) <- orig_tk_names
 pred_piB <- data.frame(#netSimwork = rep(c(type), each=with(SynthnetSims[[i]],NODE*BLK*TIME)),
   NodeType = "Bill",
-  Group = factor(rep(c(1:netSim$nbB), each = with(netSim,nnB*1))),
- #Year = rep(paste("Year",1:netSim$TIME), each=netSim$nnB, times=netSim$nbB),
-  #State = rep(c("State 1","State 2"),c(25*netSim$nnB,25*netSim$nnB)),
-  #V2 = rep(netSim$df_monad_B[,"VarB1"], netSim$nbB),
-  Truth = c(netSim$piB[nnB*(i-1)+1:nnB*i,]),
+  Group = factor(rep(c(1:netSim$nbB), each = with(netSim,nnB*TIME))),
+  Year = rep(paste("Year",1:netSim$TIME), each=netSim$nnB, times=netSim$nbB),
+  State = rep(c("State 1","State 2"),c(25*netSim$nnB,25*netSim$nnB)),
+  V2 = rep(netSim$df_monad_B[,"VarB1"], netSim$nbB), #comment out if no covariates
+  Truth = c(netSim$piB),
+  Pred = c(t(m_s$MixedMembership2[phi_ord,])))
+
+plot(x = pred_piB$Truth, y = pred_piB$Pred, xlab="True Value", ylab="Predicted Membership")
+plot(x = pred_piS$Truth, y = pred_piS$Pred, xlab="True Value", ylab="Predicted Membership")
+
+
+#the model did not swap for year 3
+bm1<-plogis(m_1$BlockModel)
+calculate_norm <- function(matrix1, matrix2) {
+        return(base::norm(matrix1 - matrix2, type = "f"))
+       }
+calculate_norm(bm1,bm3) # 0.1950383
+calculate_norm(bm1,bm3[c(2, 1), c(2, 1)]) #0.290135
+bm1
+bm3
+bm3[c(2, 1), c(2, 1)]
+# data in year 3:
+y<-3
+Z2<-Z%>%mutate(groupS=z,groupB=w)
+Z2$link<-Y
+Z2<-Z2%>%filter(year==y)
+Z3<-Z2%>%select(groupS,groupB,link)
+d11<-sum(Z3%>%filter(groupS==1,groupB==1)%>%select(link))/nrow(Z3%>%filter(groupS==1,groupB==1)%>%select(link))
+d12<-sum(Z3%>%filter(groupS==1,groupB==2)%>%select(link))/nrow(Z3%>%filter(groupS==1,groupB==2)%>%select(link))
+d21<-sum(Z3%>%filter(groupS==2,groupB==1)%>%select(link))/nrow(Z3%>%filter(groupS==2,groupB==1)%>%select(link))
+d22<-sum(Z3%>%filter(groupS==2,groupB==2)%>%select(link))/nrow(Z3%>%filter(groupS==2,groupB==2)%>%select(link))
+m<-matrix(c(d11,d12,d21,d22),
+          nrow=2,ncol=2,
+          byrow=T)
+Z3$groupS<-as.factor(Z3$groupS)
+Z3$groupB<-as.factor(Z3$groupB)
+Z3$d<-ifelse(Z3$groupS==1 & Z3$groupB==1,d11,
+             ifelse(Z3$groupS==1 & Z3$groupB==2,d12,
+                    ifelse(Z3$groupS==2 &Z3$groupB==1,d21,d22)))
+Z3<-cbind(Z3,Z2[,1:2])
+Z3$link<-as.factor(Z3$link)
+
+Z3$link2<-as.numeric(Z3$link)-1
+probabilities <- Z3 %>%
+  group_by(groupS, groupB) %>%
+  summarize(probability_of_link = mean(link2)) %>%
+  ungroup()
+matrix(c(probabilities$probability_of_link),nrow=2,ncol=2,byrow=T)
+
+
+
+
+
+## statistics for S
+loss.mat.phi<- m_s$MixedMembership1 %*% netSim$piS
+phi_ord <- clue::solve_LSAP(t(loss.mat.phi), TRUE)
+orig_mm_names <- rownames(m_s$MixedMembership1)
+m_s$MixedMembership1 <- m_s$MixedMembership1[phi_ord, ]
+rownames(m_s$MixedMembership1) <- orig_mm_names
+orig_g_names <- dimnames(m_s$BlockModel)
+m_s$BlockModel <- m_s$BlockModel[phi_ord, phi_ord]
+dimnames(m_s$BlockModel) <- orig_g_names #comment out following lines if no covariates
+loss.mat.kappa <- m_s$Kappa %*% model.matrix(~-1+as.factor(netSim$sVec))
+kappa_ord <- clue::solve_LSAP((loss.mat.kappa), TRUE)
+orig_coef_names <- dimnames(m_s$MonadCoef1)
+m_s$MonadCoef1 <- m_s$MonadCoef1[, phi_ord, kappa_ord, drop = FALSE]
+dimnames(m_s$MonadCoef1) <- orig_coef_names
+orig_k_names <- rownames(m_s$Kappa)
+m_s$Kappa <- m_s$Kappa[kappa_ord, , drop = FALSE]
+rownames(m_s$Kappa) <- orig_k_names
+orig_tk_names <- dimnames(m_s$TransitionKernel)
+m_s$TransitionKernel <- m_s$TransitionKernel[kappa_ord, kappa_ord, drop = FALSE]
+dimnames(m_s$TransitionKernel) <- orig_tk_names
+pred_piS <- data.frame(#netSimwork = rep(c(type), each=with(SynthnetSims[[i]],NODE*BLK*TIME)),
+  NodeType = "Senator",
+  Group = factor(rep(c(1:netSim$nbS), each = with(netSim,nnS*TIME))),
+  Year = rep(paste("Year",1:netSim$TIME), each=netSim$nnS, times=netSim$nbS),
+  State = rep(c("State 1","State 2"),c(25*netSim$nnS,25*netSim$nnS)),
+  V2 = rep(netSim$df_monad_S[,"VarS1"], netSim$nbS), #comment out if no covariates
+  Truth = c(netSim$piS),
+  Pred = c(t(m_s$MixedMembership1[phi_ord,])))
+
+#pred_piS <-pred_piS%>%
+#  mutate(switched_Pred=1-Pred)%>%
+#  mutate(best_Pred=ifelse((switched_Pred-Truth)^2<= (Pred-Truth)^2, switched_Pred, Pred ))
+
+## statistics for B
+loss.mat.phi<- m_s$MixedMembership2 %*% netSim$piB
+phi_ord <- clue::solve_LSAP(t(loss.mat.phi), TRUE)
+orig_mm_names <- rownames(m_s$MixedMembership2)
+m_s$MixedMembership2 <- m_s$MixedMembership2[phi_ord, ]
+rownames(m_s$MixedMembership2) <- orig_mm_names
+orig_g_names <- dimnames(m_s$BlockModel)
+m_s$BlockModel <- m_s$BlockModel[phi_ord, phi_ord]
+dimnames(m_s$BlockModel) <- orig_g_names #comment out following lines if no covariates
+loss.mat.kappa <- m_s$Kappa %*% model.matrix(~-1+as.factor(netSim$sVec))
+kappa_ord <- clue::solve_LSAP((loss.mat.kappa), TRUE)
+orig_coef_names <- dimnames(m_s$MonadCoef2)
+m_s$MonadCoef2 <- m_s$MonadCoef2[, phi_ord, kappa_ord, drop = FALSE]
+dimnames(m_s$MonadCoef2) <- orig_coef_names
+orig_k_names <- rownames(m_s$Kappa)
+m_s$Kappa <- m_s$Kappa[kappa_ord, , drop = FALSE]
+rownames(m_s$Kappa) <- orig_k_names
+orig_tk_names <- dimnames(m_s$TransitionKernel)
+m_s$TransitionKernel <- m_s$TransitionKernel[kappa_ord, kappa_ord, drop = FALSE]
+dimnames(m_s$TransitionKernel) <- orig_tk_names
+pred_piB <- data.frame(#netSimwork = rep(c(type), each=with(SynthnetSims[[i]],NODE*BLK*TIME)),
+  NodeType = "Bill",
+  Group = factor(rep(c(1:netSim$nbB), each = with(netSim,nnB*TIME))),
+  Year = rep(paste("Year",1:netSim$TIME), each=netSim$nnB, times=netSim$nbB),
+  State = rep(c("State 1","State 2"),c(25*netSim$nnB,25*netSim$nnB)),
+  V2 = rep(netSim$df_monad_B[,"VarB1"], netSim$nbB), #comment out if no covariates
+  Truth = c(netSim$piB),
   Pred = c(t(m_s$MixedMembership2[phi_ord,])))
 
 plot(x = pred_piB$Truth, y = pred_piB$Pred, xlab="True Value", ylab="Predicted Membership")
