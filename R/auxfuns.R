@@ -394,7 +394,7 @@
   init_lb<-c()
   init_niter<-c()
   realign<-TRUE #manual
-  moretimes<-TRUE
+  moretimes<-FALSE
   fp5times<-TRUE
   if(bipartite){
     if (periods==1){
