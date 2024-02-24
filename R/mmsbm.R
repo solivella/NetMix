@@ -712,6 +712,12 @@ ctrl$mm_init_t[[2]] <- mm_init[[2]]
     ctrl$block_init_t <- array(rnorm(mu_block, mu_block, sqrt(var_block)), c(n.blocks[2], n.blocks[1]))
   }
   
+beta_easy = list(array(c(-2.5, -2.5, ##Intercepts
+                         0.5, -0.5), ## Predictor coefficients
+                       c(2, 2)),
+                 array(c(1, -1,
+                         1, -1),
+                       c(2, 2)))
   
   ##Initial Beta 1
   if(is.null(ctrl$beta1_init)){
@@ -720,16 +726,27 @@ ctrl$mm_init_t[[2]] <- mm_init[[2]]
                               function(m){
                                 lm.fit(X1, t(ctrl$mm_init_t[[1]]))$coefficients
                               }, prot)
-  }
+    ori_beta1<-ctrl$beta1_init
+    ctrl$beta1_init[1, , 1] <- beta_easy[[1]][1, ]
+    ctrl$beta1_init[1, , 2] <- beta_easy[[2]][1, ]
+    
+    #ctrl$beta1_init["(Intercept)", , ] <- lapply(beta_easy, function(x) x[1,]) #make the intercept init to be 0.2*original
+    new_beta1<-ctrl$beta1_init
+    }
   ##Initial Beta 2
   if(bipartite){
     if(is.null(ctrl$beta2_init)){
       prot <- array(.1, dim(ctrl$mu_beta2)[-3], dimnames=dimnames(ctrl$mu_beta2)[-3])
       ctrl$beta2_init <- vapply(seq.int(n.hmmstates),
                                 function(m){
-                                  lm.fit(X2,t(ctrl$mm_init_t[[2]]))$coefficients
+                                 lm.fit(X2,t(ctrl$mm_init_t[[2]]))$coefficients
                                 }, prot)
-    }
+      ori_beta2<-ctrl$beta2_init
+      ctrl$beta2_init[1, , 1] <- beta_easy[[1]][1, ]
+      ctrl$beta2_init[1, , 2] <- beta_easy[[2]][1, ]
+      #ctrl$beta2_init["(Intercept)", , ] <- lapply(beta_easy, function(x) x[1,]) #make the intercept init to be 0.2*original
+      new_beta2<-ctrl$beta2_init
+      }
   }
   ## Create randomizer for order of updatePhis
   ctrl$phi_order <- rbinom(nrow(Z)[1],1,0.5) #ndyad
