@@ -272,18 +272,31 @@ mmsbm <- function(formula.dyad,
   }
   
   ## Add time variable if null or single period
-  if(is.null(timeID) || (length(unique(data.dyad[[timeID]])) == 1)){
-    timeID <- "(tid)"
+ # if(is.null(timeID) || (length(unique(data.dyad[[timeID]])) == 1)){
+   # timeID <- "(tid)"
+  #  data.dyad[timeID] <- 1
+#    if(!is.null(data.monad[[1]])) {
+#      data.monad[[1]][timeID] <- 1  
+#    }
+ #   if(bipartite){
+#      if(!is.null(data.monad[[2]])) {
+#        data.monad[[2]][timeID] <- 1  
+#      }
+#    }
+#  }
+  
+  if(is.null(timeID)){
+     timeID <- "(tid)"
     data.dyad[timeID] <- 1
-    if(!is.null(data.monad[[1]])) {
-      data.monad[[1]][timeID] <- 1  
-    }
-    if(bipartite){
-      if(!is.null(data.monad[[2]])) {
-        data.monad[[2]][timeID] <- 1  
+        if(!is.null(data.monad[[1]])) {
+          data.monad[[1]][timeID] <- 1  
+        }
+       if(bipartite){
+          if(!is.null(data.monad[[2]])) {
+            data.monad[[2]][timeID] <- 1  
+          }
+        }
       }
-    }
-  }
   
   ## Address missing data 
   if(any(is.na(data.monad[[1]]))|any(is.na(data.monad[[2]]))|any(is.na(data.dyad))){
@@ -712,42 +725,95 @@ ctrl$mm_init_t[[2]] <- mm_init[[2]]
     ctrl$block_init_t <- array(rnorm(mu_block, mu_block, sqrt(var_block)), c(n.blocks[2], n.blocks[1]))
   }
   
-beta_easy = list(array(c(-2.5, -2.5, ##Intercepts
-                         0.5, -0.5), ## Predictor coefficients
-                       c(2, 2)),
-                 array(c(1, -1,
-                         1, -1),
-                       c(2, 2)))
+
   
   ##Initial Beta 1
   if(is.null(ctrl$beta1_init)){
+    print(paste0("this is year: ",unique(data.dyad[[timeID]])))
+    beta_easy = list(array(c(-2.5, -2.5, ##Intercepts
+                             0.5, -0.5), ## Predictor coefficients
+                           c(2, 2)),
+                     array(c(1, -1,
+                             1, -1),
+                           c(2, 2)))
     prot <- array(.1, dim(ctrl$mu_beta1)[-3], dimnames=dimnames(ctrl$mu_beta1)[-3])
+    print(paste0("state when initializing beta 1: ",n.hmmstates))
     ctrl$beta1_init <- vapply(seq.int(n.hmmstates),
                               function(m){
                                 lm.fit(X1, t(ctrl$mm_init_t[[1]]))$coefficients
                               }, prot)
     ori_beta1<-ctrl$beta1_init
-    ctrl$beta1_init[1, , 1] <- beta_easy[[1]][1, ]
-    ctrl$beta1_init[1, , 2] <- beta_easy[[2]][1, ]
-    
-    #ctrl$beta1_init["(Intercept)", , ] <- lapply(beta_easy, function(x) x[1,]) #make the intercept init to be 0.2*original
-    new_beta1<-ctrl$beta1_init
+  if (length(unique(data.dyad[[timeID]]))==1){
+    if (unique(data.dyad[[timeID]])<=25){
+      intercept_values <- beta_easy[[1]][1, ]
+      ctrl$beta1_init[1, , 1] <- intercept_values
+    }else{
+      intercept_values <- beta_easy[[2]][1, ]
+      ctrl$beta1_init[1, , 1] <- intercept_values
     }
+  }else{
+    for(i in seq_along(beta_easy)) {
+              intercept_values <- beta_easy[[i]][1, ]
+             ctrl$beta1_init[1, , i] <- intercept_values
+         }
+  }
+    
+
+    new_beta1<-ctrl$beta1_init
+  }
+
+cat("ori_beta1\n")
+print(ori_beta1)
+cat("ctrl$beta1_init\n")
+print(ctrl$beta1_init)
+
+
   ##Initial Beta 2
   if(bipartite){
+    beta_easy = list(array(c(-2.5, -2.5, ##Intercepts
+                             0.5, -0.5), ## Predictor coefficients
+                           c(2, 2)),
+                     array(c(1, -1,
+                             1, -1),
+                           c(2, 2)))
+    
     if(is.null(ctrl$beta2_init)){
       prot <- array(.1, dim(ctrl$mu_beta2)[-3], dimnames=dimnames(ctrl$mu_beta2)[-3])
+      print(paste0("state when initializing beta 2: ",n.hmmstates))
       ctrl$beta2_init <- vapply(seq.int(n.hmmstates),
                                 function(m){
                                  lm.fit(X2,t(ctrl$mm_init_t[[2]]))$coefficients
                                 }, prot)
       ori_beta2<-ctrl$beta2_init
-      ctrl$beta2_init[1, , 1] <- beta_easy[[1]][1, ]
-      ctrl$beta2_init[1, , 2] <- beta_easy[[2]][1, ]
-      #ctrl$beta2_init["(Intercept)", , ] <- lapply(beta_easy, function(x) x[1,]) #make the intercept init to be 0.2*original
+      
+      if (length(unique(data.dyad[[timeID]]))==1){
+        if (unique(data.dyad[[timeID]])<=25){
+          intercept_values <- beta_easy[[1]][1, ]
+          ctrl$beta2_init[1, , 1] <- intercept_values
+        }else{
+          intercept_values <- beta_easy[[2]][1, ]
+          ctrl$beta2_init[1, , 1] <- intercept_values
+        }
+      }else{
+        for(i in seq_along(beta_easy)) {
+          intercept_values <- beta_easy[[i]][1, ]
+          ctrl$beta2_init[1, , i] <- intercept_values
+        }
+      }
+      
       new_beta2<-ctrl$beta2_init
       }
   }
+cat("ori_beta2\n")
+print(ori_beta2)
+cat("ctrl$beta2_init\n")
+print(ctrl$beta2_init)
+
+#ctrl$beta1_init[1, , 1] <- beta_easy[[1]][1, ]
+#ctrl$beta1_init[1, , 2] <- beta_easy[[2]][1, ]
+#ctrl$beta2_init[1, , 1] <- beta_easy[[1]][1, ]
+#ctrl$beta2_init[1, , 2] <- beta_easy[[2]][1, ]
+
   ## Create randomizer for order of updatePhis
   ctrl$phi_order <- rbinom(nrow(Z)[1],1,0.5) #ndyad
   #test print

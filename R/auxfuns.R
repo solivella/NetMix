@@ -395,7 +395,7 @@
   init_niter<-c()
   realign<-TRUE #manual
   moretimes<-FALSE
-  fp5times<-TRUE
+  fp5times<-FALSE
   if(bipartite){
     if (periods==1){
     phi_init_temp <- lapply(soc_mats, function(mat){
@@ -444,14 +444,14 @@
         for (s in seeds){
           m_s<-mmsbm(formula.dyad = Y~var1,
                      formula.monad = list(~VarS1, ~VarB1),
-                     # timeID="year",
+                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
                      nodeID = list("id","id"),
                      bipartite= TRUE,
                      data.dyad = dy,
                      data.monad = list(sdf,bdf),
-                     n.blocks = c(2,2), 
+                     n.blocks = c(2,2), n.hmmstates = 1,
                      mmsbm.control = list(verbose = TRUE,
                                           threads=1,
                                           svi = TRUE,
@@ -463,6 +463,7 @@
                                           hessian = FALSE,
                                           seed=s))
           cat("Seed:", s, "\n")
+          
           if (m_s$LowerBound > best_lower_bound) {
             best_lower_bound <- m_s$LowerBound
             best_model <- m_s
@@ -500,14 +501,14 @@
       for (s in seeds){
       m_s<-mmsbm(formula.dyad = Y~var1,
                formula.monad = list(~VarS1, ~VarB1),
-              # timeID="year",
+               timeID="year",
                senderID = "id1",
                receiverID = "id2",
                nodeID = list("id","id"),
                bipartite= TRUE,
                data.dyad = dy,
                data.monad = list(sdf,bdf),
-               n.blocks = c(2,2), 
+               n.blocks = c(2,2),  n.hmmstates = 1,
                mmsbm.control = list(verbose = TRUE,
                                     threads=1,
                                     svi = TRUE,
@@ -519,6 +520,7 @@
                                     hessian = FALSE,
                                     seed=s))
       cat("Seed:", s, "\n")
+     
       if (m_s$LowerBound > best_lower_bound) {
         best_lower_bound <- m_s$LowerBound
         best_model <- m_s
