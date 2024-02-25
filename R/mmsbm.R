@@ -745,16 +745,18 @@ ctrl$mm_init_t[[2]] <- mm_init[[2]]
     ori_beta1<-ctrl$beta1_init
   if (length(unique(data.dyad[[timeID]]))==1){
     if (unique(data.dyad[[timeID]])<=25){
-      intercept_values <- beta_easy[[1]][1, ]
-      ctrl$beta1_init[1, , 1] <- intercept_values
+      #intercept_values <- beta_easy[[1]][1, ]
+      #ctrl$beta1_init[1, , 1] <- intercept_values
+      ctrl$beta1_init[, , 1] <- t(beta_easy[[1]])
     }else{
-      intercept_values <- beta_easy[[2]][1, ]
-      ctrl$beta1_init[1, , 1] <- intercept_values
+      #intercept_values <- beta_easy[[2]][1, ]
+      #ctrl$beta1_init[1, , 1] <- intercept_values
+      ctrl$beta1_init[, , 1] <- t(beta_easy[[2]])
     }
   }else{
     for(i in seq_along(beta_easy)) {
-              intercept_values <- beta_easy[[i]][1, ]
-             ctrl$beta1_init[1, , i] <- intercept_values
+              #intercept_values <- beta_easy[[i]][1, ]
+             ctrl$beta1_init[, , i] <- t(beta_easy[[i]])
          }
   }
     
@@ -788,16 +790,18 @@ print(ctrl$beta1_init)
       
       if (length(unique(data.dyad[[timeID]]))==1){
         if (unique(data.dyad[[timeID]])<=25){
-          intercept_values <- beta_easy[[1]][1, ]
-          ctrl$beta2_init[1, , 1] <- intercept_values
+          #intercept_values <- beta_easy[[1]][1, ]
+          #ctrl$beta2_init[1, , 1] <- intercept_values
+          ctrl$beta2_init[, , 1] <- t(beta_easy[[1]])
         }else{
-          intercept_values <- beta_easy[[2]][1, ]
-          ctrl$beta2_init[1, , 1] <- intercept_values
+          #intercept_values <- beta_easy[[2]][1, ]
+          #ctrl$beta2_init[1, , 1] <- intercept_values
+          ctrl$beta2_init[, , 1] <- t(beta_easy[[2]])
         }
       }else{
         for(i in seq_along(beta_easy)) {
-          intercept_values <- beta_easy[[i]][1, ]
-          ctrl$beta2_init[1, , i] <- intercept_values
+          #intercept_values <- beta_easy[[i]][1, ]
+          ctrl$beta2_init[, , i] <- t(beta_easy[[i]])
         }
       }
       
