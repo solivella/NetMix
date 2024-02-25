@@ -730,11 +730,11 @@ ctrl$mm_init_t[[2]] <- mm_init[[2]]
   ##Initial Beta 1
   if(is.null(ctrl$beta1_init)){
     print(paste0("this is year: ",unique(data.dyad[[timeID]])))
-    beta_easy = list(array(c(-2.5, -2.5, ##Intercepts
-                             0.5, -0.5), ## Predictor coefficients
+    beta_easy = list(array(c(0.05, -0.75, ##Intercepts
+                             0.75, -1.0), ## Predictor coefficients
                            c(2, 2)),
-                     array(c(1, -1,
-                             1, -1),
+                     array(c(-0.05, -0.75,
+                             0.55, 0.75),
                            c(2, 2)))
     prot <- array(.1, dim(ctrl$mu_beta1)[-3], dimnames=dimnames(ctrl$mu_beta1)[-3])
     print(paste0("state when initializing beta 1: ",n.hmmstates))
@@ -770,11 +770,11 @@ print(ctrl$beta1_init)
 
   ##Initial Beta 2
   if(bipartite){
-    beta_easy = list(array(c(-2.5, -2.5, ##Intercepts
-                             0.5, -0.5), ## Predictor coefficients
+    beta_easy = list(array(c(0.05, -0.75, ##Intercepts
+                             0.75, -1.0), ## Predictor coefficients
                            c(2, 2)),
-                     array(c(1, -1,
-                             1, -1),
+                     array(c(-0.05, -0.75,
+                             0.55, 0.75),
                            c(2, 2)))
     
     if(is.null(ctrl$beta2_init)){

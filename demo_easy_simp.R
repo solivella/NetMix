@@ -71,11 +71,11 @@ BM_easy = matrix(qlogis(c(0.6, 0.10, 0.01, 0.5)), ncol = 2)
 #                         1, -1),
 #                       c(2, 2)))
 
-beta_easy = list(array(c(-2.5, -2.5, ##Intercepts
-                         0.5, -0.5), ## Predictor coefficients
+beta_easy = list(array(c(0.05, -0.75, ##Intercepts
+                         0.75, -1.0), ## Predictor coefficients
                        c(2, 2)),
-                 array(c(1, -1,
-                         1, -1),
+                 array(c(-0.05, -0.75,
+                         0.55, 0.75),
                        c(2, 2)))
 
 # three blocks?
@@ -86,7 +86,7 @@ beta_easy = list(array(c(-2.5, -2.5, ##Intercepts
 #      c(3, 1)))
 
 
-sVec<-rep(c(1,2),c(5,5))
+sVec<-rep(c(1,2),c(25,25))
 
 nbS <- 2 # senators have 2 groups
 nbB <- 2
@@ -96,9 +96,9 @@ nbB <- 2
 ########################################
 
 ## Sample monadic predictors
-nnS <- 100
-nnB <-50
-TIME <- 10
+nnS <- 400
+nnB <-200
+TIME <- 50
 
 
 XS <- matrix(NA, nrow = TIME, ncol = nnS)
