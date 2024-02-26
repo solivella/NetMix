@@ -742,76 +742,75 @@ ctrl$mm_init_t[[2]] <- mm_init[[2]]
                               function(m){
                                 lm.fit(X1, t(ctrl$mm_init_t[[1]]))$coefficients
                               }, prot)
-    ori_beta1<-ctrl$beta1_init
-  if (length(unique(data.dyad[[timeID]]))==1){
-    if (unique(data.dyad[[timeID]])<=25){
-      #intercept_values <- beta_easy[[1]][1, ]
-      #ctrl$beta1_init[1, , 1] <- intercept_values
-      ctrl$beta1_init[, , 1] <- t(beta_easy[[1]])
-    }else{
-      #intercept_values <- beta_easy[[2]][1, ]
-      #ctrl$beta1_init[1, , 1] <- intercept_values
-      ctrl$beta1_init[, , 1] <- t(beta_easy[[2]])
-    }
-  }else{
-    for(i in seq_along(beta_easy)) {
-              #intercept_values <- beta_easy[[i]][1, ]
-             ctrl$beta1_init[, , i] <- t(beta_easy[[i]])
-         }
-  }
+ #   ori_beta1<-ctrl$beta1_init
+#  if (length(unique(data.dyad[[timeID]]))==1){
+#    if (unique(data.dyad[[timeID]])<=25){#      #intercept_values <- beta_easy[[1]][1, ]
+#      #ctrl$beta1_init[1, , 1] <- intercept_values
+ #     ctrl$beta1_init[, , 1] <- t(beta_easy[[1]])
+  #  }else{
+   #   #intercept_values <- beta_easy[[2]][1, ]
+  #    #ctrl$beta1_init[1, , 1] <- intercept_values
+   #   ctrl$beta1_init[, , 1] <- t(beta_easy[[2]])
+   # }
+ # }else{
+  #  for(i in seq_along(beta_easy)) {
+  #            #intercept_values <- beta_easy[[i]][1, ]
+  #           ctrl$beta1_init[, , i] <- t(beta_easy[[i]])
+   #      }
+  #}
     
 
-    new_beta1<-ctrl$beta1_init
+   # new_beta1<-ctrl$beta1_init
   }
 
-cat("ori_beta1\n")
-print(ori_beta1)
-cat("ctrl$beta1_init\n")
-print(ctrl$beta1_init)
+#cat("ori_beta1\n")
+#print(ori_beta1)
+#cat("ctrl$beta1_init\n")
+#print(ctrl$beta1_init)
 
 
   ##Initial Beta 2
   if(bipartite){
-    beta_easy = list(array(c(0.05, -0.75, ##Intercepts
-                             0.75, -1.0), ## Predictor coefficients
-                           c(2, 2)),
-                     array(c(-0.05, -0.75,
-                             0.55, 0.75),
-                           c(2, 2)))
+ #   beta_easy = list(array(c(0.05, -0.75, ##Intercepts
+#                             0.75, -1.0), ## Predictor coefficients
+#                           c(2, 2)),
+#                     array(c(-0.05, -0.75,
+#                             0.55, 0.75),
+#                           c(2, 2)))
     
     if(is.null(ctrl$beta2_init)){
       prot <- array(.1, dim(ctrl$mu_beta2)[-3], dimnames=dimnames(ctrl$mu_beta2)[-3])
-      print(paste0("state when initializing beta 2: ",n.hmmstates))
+#      print(paste0("state when initializing beta 2: ",n.hmmstates))
       ctrl$beta2_init <- vapply(seq.int(n.hmmstates),
                                 function(m){
                                  lm.fit(X2,t(ctrl$mm_init_t[[2]]))$coefficients
                                 }, prot)
-      ori_beta2<-ctrl$beta2_init
+#      ori_beta2<-ctrl$beta2_init
       
-      if (length(unique(data.dyad[[timeID]]))==1){
-        if (unique(data.dyad[[timeID]])<=25){
-          #intercept_values <- beta_easy[[1]][1, ]
-          #ctrl$beta2_init[1, , 1] <- intercept_values
-          ctrl$beta2_init[, , 1] <- t(beta_easy[[1]])
-        }else{
-          #intercept_values <- beta_easy[[2]][1, ]
-          #ctrl$beta2_init[1, , 1] <- intercept_values
-          ctrl$beta2_init[, , 1] <- t(beta_easy[[2]])
-        }
-      }else{
-        for(i in seq_along(beta_easy)) {
-          #intercept_values <- beta_easy[[i]][1, ]
-          ctrl$beta2_init[, , i] <- t(beta_easy[[i]])
-        }
+ #     if (length(unique(data.dyad[[timeID]]))==1){
+#        if (unique(data.dyad[[timeID]])<=25){
+#          #intercept_values <- beta_easy[[1]][1, ]
+#          #ctrl$beta2_init[1, , 1] <- intercept_values
+#          ctrl$beta2_init[, , 1] <- t(beta_easy[[1]])
+#        }else{
+#          #intercept_values <- beta_easy[[2]][1, ]
+#          #ctrl$beta2_init[1, , 1] <- intercept_values
+#          ctrl$beta2_init[, , 1] <- t(beta_easy[[2]])
+#        }
+#      }else{
+#        for(i in seq_along(beta_easy)) {
+#          #intercept_values <- beta_easy[[i]][1, ]
+#          ctrl$beta2_init[, , i] <- t(beta_easy[[i]])
+ #       }
       }
       
       new_beta2<-ctrl$beta2_init
       }
   }
-cat("ori_beta2\n")
-print(ori_beta2)
-cat("ctrl$beta2_init\n")
-print(ctrl$beta2_init)
+#cat("ori_beta2\n")
+#print(ori_beta2)
+#cat("ctrl$beta2_init\n")
+#print(ctrl$beta2_init)
 
 #ctrl$beta1_init[1, , 1] <- beta_easy[[1]][1, ]
 #ctrl$beta1_init[1, , 2] <- beta_easy[[2]][1, ]
