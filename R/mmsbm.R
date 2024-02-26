@@ -806,7 +806,7 @@ ctrl$mm_init_t[[2]] <- mm_init[[2]]
       
       new_beta2<-ctrl$beta2_init
       }
-  }
+  
 #cat("ori_beta2\n")
 #print(ori_beta2)
 #cat("ctrl$beta2_init\n")
