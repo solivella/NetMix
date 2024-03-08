@@ -97,7 +97,7 @@ nbB <- 2
 
 ## Sample monadic predictors
 nnS <- 400
-nnB <-200
+nnB <-400
 TIME <- 50
 
 
@@ -542,12 +542,12 @@ probabilities <- Z3 %>%
 
 yeardens<-function(year){
   y<-year
-  pred_piB2<-pred_piB2%>%filter(year==y)
-  pred_piS2<-pred_piS2%>%filter(year==y)
-  plot1<-ggplot(data = pred_piB2, aes(x = Truth)) +
+  pred_piB3<-pred_piB2%>%filter(year==y)
+  pred_piS3<-pred_piS2%>%filter(year==y)
+  plot1<-ggplot(data = pred_piB3, aes(x = Truth)) +
     geom_density(fill = "blue", alpha = 0.5) +ylim(0,1.3)+
     labs(title = "Bills")+theme_bw()+xlab("Membership in Group 1")
-  plot2<-ggplot(data = pred_piS2, aes(x = Truth)) +
+  plot2<-ggplot(data = pred_piS3, aes(x = Truth)) +
     geom_density(fill = "blue", alpha = 0.5) +ylim(0,1.3)+
     labs(title = "Senators")+theme_bw()+xlab("Membership in Group 1")
   p<-grid.arrange(plot1, plot2, ncol = 2)
@@ -598,7 +598,7 @@ mean(res_dynbi$init_lb) #-45.40337
 
 
 #Year 3
-i<-6
+i<-35
 dy<-netSim[["df_dyad_1"]]%>%filter(year==i)
 sdf<-netSim[["df_monad_S"]]%>%filter(year==i)
 bdf<-netSim[["df_monad_B"]]%>%filter(year==i)
@@ -625,12 +625,12 @@ m_3<-mmsbm(formula.dyad = Y~var1,
 bm3<-plogis(m_3$BlockModel)
 
 ## Year 1
-i<-8
+i<-1
 dy<-netSim[["df_dyad_1"]]%>%filter(year==i)
 sdf<-netSim[["df_monad_S"]]%>%filter(year==i)
 bdf<-netSim[["df_monad_B"]]%>%filter(year==i)
-m_1<-mmsbm(formula.dyad = Y~1,
-           #formula.monad = list(~VarS1, ~VarB1),
+m_1<-mmsbm(formula.dyad = Y~var1,
+           formula.monad = list(~VarS1, ~VarB1),
            # timeID="year",
            senderID = "id1",
            receiverID = "id2",
