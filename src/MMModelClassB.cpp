@@ -307,7 +307,7 @@ double MMModelB::alphaLBInternal(
     
     for(arma::uword g = 0; g < tmpBLK; ++g){
       for(arma::uword x = 0; x < tmpPRED; ++x){
-        res -= 0.5 * pow(tmpBeta(x, g, m)- tmp_mu_beta(x, g, m), 2.0) / (0.1*tmp_var_beta(x, g, m));
+        res -= 0.5 * pow(tmpBeta(x, g, m)- tmp_mu_beta(x, g, m), 2.0) / (tmp_var_beta(x, g, m));
       }
     }
   }
@@ -438,7 +438,7 @@ void MMModelB::alphaGrInternal(int N_PAR, double *gr,
           }
         }
         res*= (1. * tmpNODE)/(1. * tmpNode_batch);
-        prior_gr =  (tmpBeta(x, g, m) - tmp_mu_beta(x, g, m))/(0.1*tmp_var_beta(x, g, m));//x > 0 ? (tmpBeta(x, g, m) - tmp_mu_beta(x, g, m)) / tmp_var_beta(x, g, m) : 0.0;
+        prior_gr =  (tmpBeta(x, g, m) - tmp_mu_beta(x, g, m))/(tmp_var_beta(x, g, m));//x > 0 ? (tmpBeta(x, g, m) - tmp_mu_beta(x, g, m)) / tmp_var_beta(x, g, m) : 0.0;
         gr[x + tmpPRED * (g + tmpBLK * m)] = (res - prior_gr);//(res - prior_gr);//
       }
     }
