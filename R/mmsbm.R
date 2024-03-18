@@ -737,7 +737,7 @@ ctrl$mm_init_t[[2]] <- mm_init[[2]]
                              0.55, 0.75),
                            c(2, 2)))
     prot <- array(.1, dim(ctrl$mu_beta1)[-3], dimnames=dimnames(ctrl$mu_beta1)[-3])
-    print(paste0("state when initializing beta 1: ",n.hmmstates))
+   # print(paste0("state when initializing beta 1: ",n.hmmstates))
     ctrl$beta1_init <- vapply(seq.int(n.hmmstates),
                               function(m){
                                 lm.fit(X1, t(ctrl$mm_init_t[[1]]))$coefficients

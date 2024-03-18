@@ -451,7 +451,7 @@
                      bipartite= TRUE,
                      data.dyad = dy,
                      data.monad = list(sdf,bdf),
-                     n.blocks = c(2,2), n.hmmstates = 1,
+                     n.blocks = c(n.blocks[1],n.blocks[2]), n.hmmstates = 1,
                      mmsbm.control = list(verbose = TRUE,
                                           threads=1,
                                           svi = TRUE,
@@ -508,7 +508,7 @@
                bipartite= TRUE,
                data.dyad = dy,
                data.monad = list(sdf,bdf),
-               n.blocks = c(2,2),  n.hmmstates = 1,
+               n.blocks = c(n.blocks[1],n.blocks[2]),  n.hmmstates = 1,
                mmsbm.control = list(verbose = TRUE,
                                     threads=1,
                                     svi = TRUE,
@@ -549,18 +549,48 @@
       bm1<-block_models #original bm
       bm1<-lapply(bm1,plogis)
       
-      permute_matrix <- function(matrix) {
-        # Permute the rows
-        row_permuted_matrix <- matrix[c(2, 1), ]
-        # Permute the cols
-        col_permuted_matrix <- matrix[,c(2, 1)]
-        # Permute both
-        both_permuted_matrix <- row_permuted_matrix[, c(2, 1)]
-        return(list(matrix,row_permuted_matrix,col_permuted_matrix,both_permuted_matrix))
-      }
+     # permute_matrix <- function(matrix) {
+    #    # Permute the rows
+    #    row_permuted_matrix <- matrix[c(2, 1), ]
+    #    # Permute the cols
+    #    col_permuted_matrix <- matrix[,c(2, 1)]
+    #    # Permute both
+    #    both_permuted_matrix <- row_permuted_matrix[, c(2, 1)]
+    #    return(list(matrix,row_permuted_matrix,col_permuted_matrix,both_permuted_matrix))
+    #  }
     #  bm2<-lapply(bm1, permute_matrix)
+      install.packages("combinat")
+      library(combinat)
       
-
+      permute_matrix <- function(mat) {
+        index <- 1
+        perms_temp_store<-list()
+        permuted_matrices<-list()
+        m<-nrow(mat)
+        n<-ncol(mat)
+        all_row_perms <- gtools::permutations(m, m, v=1:m)
+        all_col_perms <- gtools::permutations(n, n, v=1:n)
+        for (i in 1:nrow(all_row_perms)) {
+          for (j in 1:nrow(all_col_perms)) {
+            # Create permutation matrices for the i-th row permutation and the j-th column permutation
+            row_perm_matrix <- as.matrix(as(all_row_perms[i,], "pMatrix"))
+            col_perm_matrix <- as.matrix(as(all_col_perms[j,], "pMatrix"))
+            
+            # Store the pair of permutation matrices in perms_temp_store
+            perms_temp_store[[index]] <- list(row_perm_matrix, col_perm_matrix)
+            index <- index + 1
+          }
+        }
+        for (i in 1:length(perms_temp_store)){
+          permuted_matrices[[i]]<-perms_temp_store[[i]][[1]]%*%mat%*%perms_temp_store[[i]][[2]]
+        }
+        
+        return(permuted_matrices)
+      }
+      bm2<-lapply(bm1, permute_matrix)
+      
+      
+      
       bm_base<-plogis(block_models[[1]])
       #bm_base<-matrix((c(0.9, 0.2, 0.05, 0.35)), ncol = 2) #if want to use the truth
       
@@ -568,46 +598,99 @@
       calculate_norm <- function(matrix1, matrix2) {
         return(base::norm(matrix1 - matrix2, type = "f"))
       }
-      all_perms <- gtools::permutations(2,2)
+     # all_perms <- gtools::permutations(2,2)
  
-      find_closest_matrix <- function(m, t_mat) {
-        permuted_matrix_list <- permute_matrix(m)
-        smallest_norm <- Inf
-        perms_temp <- NULL
+     # find_closest_matrix <- function(m, t_mat) {
+    #    permuted_matrix_list <- permute_matrix(m)
+    #    smallest_norm <- Inf
+    #    perms_temp <- NULL
+    #    
+    #    # Loop through each matrix in the list
+    #    for (i in 1:length(permuted_matrix_list)) {
+    #      current_matrix <- permuted_matrix_list[[i]]
+    #      current_norm <- calculate_norm(current_matrix, t_mat)
+    #      
+    #      # Check if the current norm is smaller than the smallest found so far
+    #      if (current_norm < smallest_norm) {
+    #        smallest_norm <- current_norm
+    #        perms_temp_id <-  i 
+    #      }
+    #    }
+    #    perms_temp_store<-list(
+    #      list(as.matrix(as(all_perms[1,], "pMatrix")),as.matrix(as(all_perms[1,], "pMatrix"))),
+    #      list(as.matrix(as(all_perms[2,], "pMatrix")),as.matrix(as(all_perms[1,], "pMatrix"))),
+    #      list(as.matrix(as(all_perms[1,], "pMatrix")),as.matrix(as(all_perms[2,], "pMatrix"))),
+    #      list(as.matrix(as(all_perms[2,], "pMatrix")),as.matrix(as(all_perms[2,], "pMatrix")))
+    #    )
+    #    perms_temp<-perms_temp_store[[perms_temp_id]]
+
+    #  cat("Permutation id",perms_temp_id,"\n")
+     #           return(perms_temp)
+    #
+      #}
+     # find_closest_matrix <- function(m, t_mat) {
+    #  permuted_matrix_list <- permute_matrix(m)
+    #    smallest_norm <- Inf
+    #    closest_matrix <- NULL
         
-        # Loop through each matrix in the list
-        for (i in 1:length(permuted_matrix_list)) {
-          current_matrix <- permuted_matrix_list[[i]]
-          current_norm <- calculate_norm(current_matrix, t_mat)
-          
-          # Check if the current norm is smaller than the smallest found so far
-          if (current_norm < smallest_norm) {
-            smallest_norm <- current_norm
-            perms_temp_id <-  i 
-          }
-        }
-        perms_temp_store<-list(
-          list(as.matrix(as(all_perms[1,], "pMatrix")),as.matrix(as(all_perms[1,], "pMatrix"))),
-          list(as.matrix(as(all_perms[2,], "pMatrix")),as.matrix(as(all_perms[1,], "pMatrix"))),
-          list(as.matrix(as(all_perms[1,], "pMatrix")),as.matrix(as(all_perms[2,], "pMatrix"))),
-          list(as.matrix(as(all_perms[2,], "pMatrix")),as.matrix(as(all_perms[2,], "pMatrix")))
-        )
-        perms_temp<-perms_temp_store[[perms_temp_id]]
-      #  min_norm <- calculate_norm(m, t_mat)
-      #  closest_matrix <- m
-      #  perms_temp<-as.matrix(as(all_perms[1,], "pMatrix"))
-        
-       #   permuted_matrix_list <- permute_matrix(m)
-      #    norm_value <- calculate_norm(permuted_matrix, t_mat)
-      #    if (norm_value < min_norm) {
-      #      min_norm <- norm_value
-      #      closest_matrix <- permuted_matrix
-      #      perms_temp<-as.matrix(as(all_perms[2,], "pMatrix"))
-           #     }
-      cat("Permutation id",perms_temp_id,"\n")
-                return(perms_temp)
+        # Loop through each permuted matrix
+     #   for (current_matrix in permuted_matrix_list) {
+    #      # Calculate the norm between the current permuted matrix and the target matrix
+    #      current_norm <- calculate_norm(current_matrix, t_mat)
+    #      
+    #      # Check if the current norm is smaller than the smallest found so far
+    ##      if (current_norm < smallest_norm) {
+    #        smallest_norm <- current_norm
+    #        closest_matrix <- current_matrix
+    #      }
+    #    }
+    #    cat("closest matrix",closest_matrix,"\n")
+        # Return the closest matrix and its associated norm
+     #   return(closest_matrix)
+     # }
+    m<-nrow(bm_base)
+    n<-ncol(bm_base)
+      all_row_perms <- gtools::permutations(m, m, v=1:m)
+      all_col_perms <- gtools::permutations(n, n, v=1:n)
     
+       find_closest_matrix <- function(m, t_mat) {
+          permuted_matrix_list <- permute_matrix(m)
+          smallest_norm <- Inf
+          perms_temp <- NULL
+          cat("length(permuted_matrix_list)",length(permuted_matrix_list),"\n")
+          # Loop through each matrix in the list
+          for (i in 1:length(permuted_matrix_list)) {
+            current_matrix <- permuted_matrix_list[[i]]
+            current_norm <- calculate_norm(current_matrix, t_mat)
+            
+            # Check if the current norm is smaller than the smallest found so far
+            if (current_norm < smallest_norm) {
+              smallest_norm <- current_norm
+              perms_temp_id <-  i 
+            }
+          }
+          # Initialize perms_temp_store to hold pairs of permutation matrices
+          perms_temp_store <- list()
+          
+          # Populate perms_temp_store with all possible combinations of row and column permutation matrices
+          index <- 1
+          for (i in 1:nrow(all_row_perms)) {
+            for (j in 1:nrow(all_col_perms)) {
+              # Create permutation matrices for the i-th row permutation and the j-th column permutation
+              row_perm_matrix <- as.matrix(as(all_row_perms[i,], "pMatrix"))
+              col_perm_matrix <- as.matrix(as(all_col_perms[j,], "pMatrix"))
+              
+              # Store the pair of permutation matrices in perms_temp_store
+              perms_temp_store[[index]] <- list(row_perm_matrix, col_perm_matrix)
+              index <- index + 1
+            }
+          }
+          perms_temp<-perms_temp_store[[perms_temp_id]]
+      
+        cat("Permutation id",perms_temp_id,"\n")
+                 return(perms_temp)
       }
+      
       
       # Apply the find_closest_matrix function to each matrix in the list
    #   perms_temp <- lapply(bm1, find_closest_matrix, t_mat = bm_base)
@@ -619,13 +702,15 @@
         perms_temp<-lapply(1:50, function(x) list(as.matrix(as(all_perms[1,], "pMatrix")), as.matrix(as(all_perms[1,], "pMatrix"))))
    }
 
-      
       phis_temp <- lapply(out, `[[`, 1) 
       perms_temp1<-lapply(perms_temp, `[[`, 1) 
     
       phi.ord <- as.numeric(lapply(phis_temp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get correct temporal order
       mm_init_t1 <- do.call(cbind,mapply(function(phi,perm){perm %*% phi },
                                         phis_temp, perms_temp1, SIMPLIFY = FALSE))
+    
+      cat("dimension of mm_init_t1",dim(mm_init_t1),"\n")
+      cat("n.blocks[1]",n.blocks[1],"\n")
       rownames(mm_init_t1) <- 1:n.blocks[1]
       res[[1]] <- mm_init_t1
       
@@ -639,8 +724,10 @@
     #  p2<-lapply(perms_temp, `[[`, 2) 
       phi.ord <- as.numeric(lapply(phis_temp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get correct temporal order
       mm_init_t2 <- do.call(cbind,mapply(function(phi,perm){perm %*% phi },
-                                         phis_temp, perms_temp2, SIMPLIFY = FALSE))
-      rownames(mm_init_t2) <- 1:n.blocks[2]
+                                        phis_temp, perms_temp2, SIMPLIFY = FALSE))
+      cat("dimension of mm_init_t2",dim(mm_init_t2),"\n")
+      cat("n.blocks[2]",n.blocks[2],"\n")
+       rownames(mm_init_t2) <- 1:n.blocks[2]
       res[[2]] <- mm_init_t2
     }
     
