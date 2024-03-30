@@ -83,14 +83,15 @@ chooseK<-function(formula.dyad,
                                  new.data.dyad = test.data.dyad,
                                  new.data.monad1  = test.data.monad[[1]],
                                  new.data.monad2  = test.data.monad[[2]], 
-                                 parametric_mm = TRUE,
+                                 forecast = FALSE,
+                                 samples = 1,
                                  type = "response")
       
     } else {
         pred[[i]]<-predict.mmsbm(object=train_models[[i]], 
                                  new.data.dyad = test.data.dyad,
                                  new.data.monad  = test.data.monad, 
-                                 parametric_mm = TRUE,
+                                 forecast = FALSE,
                                  type = "response")
     }
     

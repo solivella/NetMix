@@ -46,7 +46,8 @@ covMM<-function(object,cov,data.monad,family=1,...)
     tmp<-lapply(vals,function(x){
       data.monad[,cov]<-factor(x,levels=levels(data.monad[,cov]))
       if(family==1){predict.mmsbmB(object,new.data.monad1=data.monad,type="mm")
-      }else{ predict.mmsbmB(object,new.data.monad2=data.monad,type="mm")}})
+      }else{ predict.mmsbmB(object,new.data.monad2=data.monad,type="mm")}
+      })
     #get first element in list (mm for family 1/2)
     if(family==1){tmp2<-lapply(tmp,"[[",1)}else{tmp2<-lapply(tmp,"[[",2)}
     #take the mean of elements of list of matrices
