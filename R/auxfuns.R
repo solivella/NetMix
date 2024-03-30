@@ -470,6 +470,7 @@
           }
         }
         m<-best_model
+        cat("BM1:", m$BlockModel, "\n")
         init_lb <- c(init_lb, best_lower_bound)
         init_niter<-c(init_niter,m$niter)
         #PredS = matrix(c(t(m$MixedMembership1)),nrow=2,byrow=T)
