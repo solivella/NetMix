@@ -577,7 +577,7 @@ mmsbm <- function(formula.dyad,
   
   ##Initial mm 
   if(is.null(ctrl$mm_init_t1) & is.null(ctrl$mm_init_t2)){  
-  cat("mm_init_t is NULL\n")
+  #cat("mm_init_t is NULL\n")
   mm_init <- .initPi(soc_mats,
                      bipartite,
                      dyads,
