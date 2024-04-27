@@ -926,7 +926,7 @@ void MMModelB::updatePhiInternal1(
     arma::uword H,
     arma::uword N_STATE
 )
-{
+{ //Rprintf("updating Phi 1");
   arma::uword t = time_id_dyad[dyad];
   double edge = y[dyad];
   arma::uword node = node_id_dyad(dyad, 0); //rec=0

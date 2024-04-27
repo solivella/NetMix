@@ -576,6 +576,8 @@ mmsbm <- function(formula.dyad,
   }, dyads, edges, MoreArgs = list(bipartite=bipartite))
   
   ##Initial mm 
+  if(is.null(ctrl$mm_init_t1) & is.null(ctrl$mm_init_t2)){  
+  cat("mm_init_t is NULL\n")
   mm_init <- .initPi(soc_mats,
                      bipartite,
                      dyads,
@@ -588,6 +590,7 @@ mmsbm <- function(formula.dyad,
                      n.blocks, periods, directed, ctrl,netSim)
 init_lb<-mm_init[[2]]
 init_niter<-mm_init[[3]]
+
 
 mm_init<-mm_init[[1]]
   ctrl$mm_init_t[[1]] <- mm_init[[1]]
@@ -702,7 +705,14 @@ mm_init<-mm_init[[1]]
 # Feed back the switched mm   
 ctrl$mm_init_t[[1]] <- mm_init[[1]]
 ctrl$mm_init_t[[2]] <- mm_init[[2]]
-
+  }else{
+    ctrl$mm_init_t[[1]]<-ctrl$mm_init_t1
+    ctrl$mm_init_t[[2]]<-ctrl$mm_init_t2
+    
+    mm_init<-list()
+    mm_init[[1]]<-ctrl$mm_init_t1
+    mm_init[[2]]<-ctrl$mm_init_t2
+}
 
 
 ##Initial gamma
@@ -729,7 +739,7 @@ ctrl$mm_init_t[[2]] <- mm_init[[2]]
   
   ##Initial Beta 1
   if(is.null(ctrl$beta1_init)){
-    print(paste0("this is year: ",unique(data.dyad[[timeID]])))
+  #  print(paste0("this is year: ",unique(data.dyad[[timeID]])))
     beta_easy = list(array(c(0.05, -0.75, ##Intercepts
                              0.75, -1.0), ## Predictor coefficients
                            c(2, 2)),
@@ -1056,8 +1066,8 @@ ctrl$mm_init_t[[2]] <- mm_init[[2]]
   # Add: return the mm_init
   fit$mm_init<-mm_init #after switching
  # fit$mm_orig<-mm_orig #before switching
-  fit$init_lb<- init_lb #lowerbound for each period initialization
-  fit$init_niter<-init_niter
+ # fit$init_lb<- init_lb #lowerbound for each period initialization
+  #fit$init_niter<-init_niter
   ##Assign class for methods
   if(fit$bipartite){
     class(fit) <- c("mmsbmB", "mmsbm")

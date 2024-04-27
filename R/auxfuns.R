@@ -521,7 +521,7 @@
                                     hessian = FALSE,
                                     seed=s))
       cat("Seed:", s, "\n")
-     
+     cat("BM original",i, m$BlockModel, "\n")
       if (m_s$LowerBound > best_lower_bound) {
         best_lower_bound <- m_s$LowerBound
         best_model <- m_s
@@ -560,8 +560,7 @@
     #    return(list(matrix,row_permuted_matrix,col_permuted_matrix,both_permuted_matrix))
     #  }
     #  bm2<-lapply(bm1, permute_matrix)
-      install.packages("combinat")
-      library(combinat)
+  
       
       permute_matrix <- function(mat) {
         index <- 1
@@ -689,6 +688,7 @@
           perms_temp<-perms_temp_store[[perms_temp_id]]
       
         cat("Permutation id",perms_temp_id,"\n")
+       # cat("BM original",i, m$BlockModel, "\n")
                  return(perms_temp)
       }
       
@@ -710,8 +710,8 @@
       mm_init_t1 <- do.call(cbind,mapply(function(phi,perm){perm %*% phi },
                                         phis_temp, perms_temp1, SIMPLIFY = FALSE))
     
-      cat("dimension of mm_init_t1",dim(mm_init_t1),"\n")
-      cat("n.blocks[1]",n.blocks[1],"\n")
+      #cat("dimension of mm_init_t1",dim(mm_init_t1),"\n")
+      #cat("n.blocks[1]",n.blocks[1],"\n")
       rownames(mm_init_t1) <- 1:n.blocks[1]
       res[[1]] <- mm_init_t1
       
@@ -726,8 +726,8 @@
       phi.ord <- as.numeric(lapply(phis_temp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get correct temporal order
       mm_init_t2 <- do.call(cbind,mapply(function(phi,perm){perm %*% phi },
                                         phis_temp, perms_temp2, SIMPLIFY = FALSE))
-      cat("dimension of mm_init_t2",dim(mm_init_t2),"\n")
-      cat("n.blocks[2]",n.blocks[2],"\n")
+     # cat("dimension of mm_init_t2",dim(mm_init_t2),"\n")
+    #  cat("n.blocks[2]",n.blocks[2],"\n")
        rownames(mm_init_t2) <- 1:n.blocks[2]
       res[[2]] <- mm_init_t2
     }

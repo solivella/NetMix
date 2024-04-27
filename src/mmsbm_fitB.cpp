@@ -100,7 +100,7 @@ Rcpp::List mmsbm_fitBi(const arma::mat& z_t,
     // E-STEP
     //ec_1_old = ModelB.getC(false);
     //ec_2_old = ModelB.getC(true);
-    ModelB.updatePhi();
+   ModelB.updatePhi();
     //ModelB.convCheck(conv, ec_1_old, ec_2_old, tol);
 
     if(N_STATE > 1){
