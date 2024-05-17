@@ -97,10 +97,17 @@ gof.mmsbm <- function(x,
       message("Resorting to third-party package \"ergm\"; expect substantial increase in computation time.\n")
     }
   }
+  if(x$bipartite & ("Dyad Shared Partners"%in%gof_stat)){
+    gof_stat <- c(gof_stat[-which(gof_stat=="Dyad Shared Partners")],"Dyad Shared Partners Family 1","Dyad Shared Partners Family 2")
+  }
+  if(x$bipartite & ("Incoming K-stars"%in%gof_stat)){
+    warning("Incoming K-stars only defined for directed networks, and I can only handle undirected bipartite networks. Switching to k-stars by family.")
+    gof_stat <- c(gof_stat[-which(gof_stat=="Incoming K-stars")],"K-Stars Family 1","K-Stars Family 2")
+  }
   
   ## Define helper function
   gof_getter <- function(gof, nets, fm){
-    mat_maker <- ifelse(fm$bipartite, igraph::as_incidence_matrix,igraph::as_adjacency_matrix)
+    mat_maker <- ifelse(fm$bipartite, igraph::as_biadjacency_matrix(),igraph::as_adjacency_matrix)
     switch(gof,
            "Indegree" = sapply(nets,
                                function(y){
@@ -135,7 +142,7 @@ gof.mmsbm <- function(x,
                                       }),
            "Geodesics" = lapply(nets,
                                 function(y){
-                                  prop.table(table(igraph::distances(y)))
+                                  proportions(table(igraph::distances(y)))
                                 }),
            "3-Motifs" = sapply(nets,
                                function(y){
@@ -144,18 +151,38 @@ gof.mmsbm <- function(x,
                                }),
            "Dyad Shared Partners" = sapply(nets,
                                            function(y){
-                                             prop.table(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(mat_maker(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
+                                             proportions(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(mat_maker(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
                                                                                                                        dsp(0:(igraph::gorder(y) - 2))))
                                            }),
+           "Dyad Shared Partners Family 1" = sapply(nets,
+                                                    function(y){
+                                                      proportions(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(mat_maker(y, sparse=FALSE), directed=FALSE, bipartite = TRUE) ~
+                                                                                                                                b1dsp(0:(igraph::bipartite_projection_size(y)$vcount2 - 2))))
+                                                    }),
+           "Dyad Shared Partners Family 2" = sapply(nets,
+                                                    function(y){
+                                                      proportions(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(mat_maker(y, sparse=FALSE), directed=FALSE, bipartite = TRUE) ~
+                                                                                                                                b2dsp(0:(igraph::bipartite_projection_size(y)$vcount1 - 2))))
+                                                    }),
            "Edge Shared Partners" = sapply(nets,
                                            function(y){
-                                             prop.table(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(mat_maker(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
+                                             proportions(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(mat_maker(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
                                                                                                                        esp(0:(igraph::gorder(y) - 2))))
                                            }),
            "Incoming K-stars" = sapply(nets,
                                        function(y){
-                                         prop.table(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(mat_maker(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
+                                         proportions(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(mat_maker(y, sparse=FALSE), directed=igraph::is_directed(y)) ~
                                                                                                                    istar(0:(igraph::gorder(y) - 1))))
+                                       }),
+           "K-stars Family 1" = sapply(nets,
+                                       function(y){
+                                         proportions(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(mat_maker(y, sparse=FALSE), directed=FALSE, bipartite = TRUE) ~
+                                                                                                                    b1star(0:(igraph::bipartite_projection_size(y)$vcount2 - 1))))
+                                       }),
+           "K-stars Family 2" = sapply(nets,
+                                       function(y){
+                                         proportions(getS3method("summary", "formula", envir=asNamespace("ergm"))(network::network(mat_maker(y, sparse=FALSE), directed=FALSE, bipartite = TRUE) ~
+                                                                                                                    b2star(0:(igraph::bipartite_projection_size(y)$vcount1 - 1))))
                                        })
     )
   }
