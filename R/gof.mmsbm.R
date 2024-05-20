@@ -107,7 +107,7 @@ gof.mmsbm <- function(x,
   
   ## Define helper function
   gof_getter <- function(gof, nets, fm){
-    mat_maker <- ifelse(fm$bipartite, igraph::as_biadjacency_matrix(),igraph::as_adjacency_matrix)
+    mat_maker <- ifelse(fm$bipartite, igraph::as_biadjacency_matrix,igraph::as_adjacency_matrix)
     switch(gof,
            "Indegree" = sapply(nets,
                                function(y){
@@ -127,18 +127,23 @@ gof.mmsbm <- function(x,
                                } else {
                                  max_x <- nrow(fm$monadic.data[[1]])
                                }
-                               igraph::degree_distribution(y,
-                                                           mode = "all")[1:(max_x-2)]
+                               dist <- igraph::degree_distribution(y, mode = "all")
+                               names(dist) <- 1:length(dist)
+                               dist[1:min(length(dist), max_x-2)]
                              }),
            "Degree Family 1" = sapply(nets,
                                       function(y){
                                         types <- igraph::vertex_attr(y, "type")
-                                        igraph::degree_distribution(y, v = (igraph::V(y))[types])[1:(max(fm$NodeIndex[,2])-1)]
+                                        dist <- igraph::degree_distribution(y, v = (igraph::V(y))[as.logical(types)])
+                                        names(dist) <- 1:length(dist)
+                                        dist[1:min(length(dist), sum(!types)-1)]
                                       }),
            "Degree Family 2" = sapply(nets,
                                       function(y){
                                         types <- !(igraph::vertex_attr(y, "type"))
-                                        igraph::degree_distribution(y, v =( igraph::V(y))[types])[1:(max(fm$NodeIndex[,1])-1)]
+                                        dist <- igraph::degree_distribution(y, v = (igraph::V(y))[as.logical(types)])
+                                        names(dist) <- 1:length(dist)
+                                        dist[1:min(length(dist), sum(!types)-1)]
                                       }),
            "Geodesics" = lapply(nets,
                                 function(y){
@@ -189,10 +194,15 @@ gof.mmsbm <- function(x,
   
   
   # Get networks
-  
+  if(x$bipartite){
   el <- NetMix::simulate.mmsbmB(x, samples, seed=seed,
                                 new.data.dyad,
                                 new.data.monad)
+  } else {
+    el <- NetMix::simulate.mmsbm(x, samples, seed=seed,
+                                  new.data.dyad,
+                                  new.data.monad)
+  }
   if(!is.null(new.data.dyad)){
     if(is.null(x$forms$timeID)){
       tid <- "(tid)"
@@ -219,6 +229,8 @@ gof.mmsbm <- function(x,
                               function(y){
                                 x_sub_y <- x_sub[x_sub[,3]==y, c(1,2)]
                                 if(x$bipartite){
+                                  x_sub_y[, 1] <- paste0(x_sub_y[,1],"fam_1")
+                                  x_sub_y[, 2] <- paste0(x_sub_y[,2],"fam_2")
                                   tmp_g <- igraph::make_empty_graph(directed = FALSE)
                                   tmp_g <- igraph::add_vertices(tmp_g,
                                                                 nv = length(unique(x_sub_y[,1])),
