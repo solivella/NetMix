@@ -13,7 +13,7 @@
 
 
 plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...){ # network graph showing B-matrix
-  if(type %in% c("blockmodel", "membership", "hmm", "block")){
+  if(type %in% c("blockmodel", "membership_1", "membership_2", "hmm", "block")){
     if (!requireNamespace("ggplot2", quietly = TRUE)) {
       stop("Package \"ggplot2\" needed to produce requested plot. Please install it.",
            call. = FALSE)
@@ -41,15 +41,34 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
     .bar.legend(colRamp, range(igraph::E(block.G)$weight))
   }
   
-  if(type=="membership"){
-    avgmems <- lapply(1:nrow(x$MixedMembership), function(x){
-      tapply(x$MixedMembership[x,], x$monadic.data[,"(tid)"], mean)})
-    avgmems <- as.data.frame(cbind(rep(unique(as.character(x$monadic.data[,"(tid)"])), nrow(x$MixedMembership)),unlist(avgmems),
-                                   rep(1:nrow(x$MixedMembership), each=length(unique(x$monadic.data[,"(tid)"])))))
+  if(type=="membership_1"){
+    mixedmember1 <- x$MixedMembership1
+    monad1 <- x$monadic.data[[1]]
+    avgmems <- lapply(1:nrow(mixedmember1), function(x){
+      tapply(mixedmember1[x,], monad1[,"(tid)"], mean)})
+    avgmems <- as.data.frame(cbind(rep(unique(as.character(x$monadic.data[[1]][,"(tid)"])), nrow(x$MixedMembership1)),unlist(avgmems),
+                                   rep(1:nrow(x$MixedMembership1), each=length(unique(x$monadic.data[[1]][,"(tid)"])))))
     colnames(avgmems) <- c("Time", "Avg.Membership", "Group")
     avgmems$Group <- factor(avgmems$Group, levels=length(unique(avgmems$Group)):1)
-    if(class(avgmems$Avg.Membership) == "factor"){avgmems$Avg.Membership <- as.numeric(as.character(avgmems$Avg.Membership))}
-    if(class(avgmems$Time) == "factor"){avgmems$Time <- as.numeric(as.character(avgmems$Time))}
+    if(class(avgmems$Avg.Membership) == "factor" | class(avgmems$Avg.Membership) == "character"){avgmems$Avg.Membership <- as.numeric(as.character(avgmems$Avg.Membership))}
+    if(class(avgmems$Time) == "factor" | class(avgmems$Time) == "character"){avgmems$Time <- as.numeric(as.character(avgmems$Time))}
+    return(ggplot2::ggplot() + 
+             ggplot2::geom_area(ggplot2::aes_string(y = "Avg.Membership", x = "Time", fill="Group"), data = avgmems,
+                                stat="identity", position="stack") + 
+             ggplot2::guides(fill=ggplot2::guide_legend(title="Group")))
+  }
+  
+  if(type=="membership_2"){
+    mixedmember2 <- x$MixedMembership2
+    monad2 <- x$monadic.data[[2]]
+    avgmems <- lapply(1:nrow(x$MixedMembership2), function(x){
+      tapply(mixedmember2[x,], monad2[,"(tid)"], mean)})
+    avgmems <- as.data.frame(cbind(rep(unique(as.character(x$monadic.data[[2]][,"(tid)"])), nrow(x$MixedMembership2)),unlist(avgmems),
+                                   rep(1:nrow(x$MixedMembership2), each=length(unique(x$monadic.data[[2]][,"(tid)"])))))
+    colnames(avgmems) <- c("Time", "Avg.Membership", "Group")
+    avgmems$Group <- factor(avgmems$Group, levels=length(unique(avgmems$Group)):1)
+    if(class(avgmems$Avg.Membership) == "factor" | class(avgmems$Avg.Membership) == "character"){avgmems$Avg.Membership <- as.numeric(as.character(avgmems$Avg.Membership))}
+    if(class(avgmems$Time) == "factor" | class(avgmems$Time) == "character"){avgmems$Time <- as.numeric(as.character(avgmems$Time))}
     return(ggplot2::ggplot() + 
              ggplot2::geom_area(ggplot2::aes_string(y = "Avg.Membership", x = "Time", fill="Group"), data = avgmems,
                                 stat="identity", position="stack") + 
@@ -138,11 +157,13 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
   }
   
   if(type=="hmm"){
-    hms <- as.data.frame(do.call(rbind, lapply(1:nrow(x$Kappa), function(x){
-      cbind(1:ncol(x$Kappa), x$Kappa[x,], x)
+    kappa <- x$Kappa
+    hms <- as.data.frame(do.call(rbind, lapply(1:nrow(kappa), function(x){
+      cbind(1:ncol(kappa), kappa[x,], x)
     })))
     colnames(hms) <- c("Time", "Kappa", "State")
     hms$State <- as.factor(hms$State)
+    hms$Time <- hms$Time + 1979
     return(ggplot2::ggplot() + 
              ggplot2::geom_area(ggplot2::aes_string(y = "Kappa", x = "Time", fill="State"), data = hms,
                                 stat="identity", position="stack") + 
