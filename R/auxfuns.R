@@ -188,9 +188,9 @@
   }
   if(length(orig) > 1){
     if(is_array){
-      tmp[rownames(orig),,] <- orig
+      tmp[rownames(tmp),,] <- orig
     } else {
-      tmp[names(orig)] <- orig
+      tmp[rownames(tmp)] <- orig
     }
   } else {
     non_miss <- !grepl("_missing", colnames(des.mat))
