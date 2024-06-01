@@ -223,7 +223,7 @@ mmsbm <- function(formula.dyad,
                mu_block = c(5.0, -5.0),
                var_block = c(5.0, 5.0),
                mu_beta = list(0.0, 0.0),
-               var_beta = list(5.0, 5.0),
+               var_beta = list(1.0, 2.0),
                mu_gamma = 0.0,
                var_gamma = 5.0,
                mm1_init_t = NULL,
@@ -272,31 +272,31 @@ mmsbm <- function(formula.dyad,
   }
   
   ## Add time variable if null or single period
- # if(is.null(timeID) || (length(unique(data.dyad[[timeID]])) == 1)){
-   # timeID <- "(tid)"
+  # if(is.null(timeID) || (length(unique(data.dyad[[timeID]])) == 1)){
+  # timeID <- "(tid)"
   #  data.dyad[timeID] <- 1
-#    if(!is.null(data.monad[[1]])) {
-#      data.monad[[1]][timeID] <- 1  
-#    }
- #   if(bipartite){
-#      if(!is.null(data.monad[[2]])) {
-#        data.monad[[2]][timeID] <- 1  
-#      }
-#    }
-#  }
+  #    if(!is.null(data.monad[[1]])) {
+  #      data.monad[[1]][timeID] <- 1  
+  #    }
+  #   if(bipartite){
+  #      if(!is.null(data.monad[[2]])) {
+  #        data.monad[[2]][timeID] <- 1  
+  #      }
+  #    }
+  #  }
   
   if(is.null(timeID)){
-     timeID <- "(tid)"
+    timeID <- "(tid)"
     data.dyad[timeID] <- 1
-        if(!is.null(data.monad[[1]])) {
-          data.monad[[1]][timeID] <- 1  
-        }
-       if(bipartite){
-          if(!is.null(data.monad[[2]])) {
-            data.monad[[2]][timeID] <- 1  
-          }
-        }
+    if(!is.null(data.monad[[1]])) {
+      data.monad[[1]][timeID] <- 1  
+    }
+    if(bipartite){
+      if(!is.null(data.monad[[2]])) {
+        data.monad[[2]][timeID] <- 1  
       }
+    }
+  }
   
   ## Address missing data 
   if(any(is.na(data.monad[[1]]))|any(is.na(data.monad[[2]]))|any(is.na(data.dyad))){
@@ -577,134 +577,31 @@ mmsbm <- function(formula.dyad,
   
   ##Initial mm 
   if(is.null(ctrl$mm_init_t1) & is.null(ctrl$mm_init_t2)){  
-  #cat("mm_init_t is NULL\n")
-  mm_init <- .initPi(soc_mats,
-                     bipartite,
-                     dyads,
-                     edges,
-                     nodes_pp,
-                     moretimes,
-                     fp5times,
-                     realign,
-                     dyads_pp,
-                     n.blocks, periods, directed, ctrl,netSim)
-init_lb<-mm_init[[2]]
-init_niter<-mm_init[[3]]
-
-
-mm_init<-mm_init[[1]]
-  ctrl$mm_init_t[[1]] <- mm_init[[1]]
-  if(bipartite){
+    #cat("mm_init_t is NULL\n")
+    mm_init <- .initPi(soc_mats,
+                       bipartite,
+                       dyads,
+                       edges,
+                       nodes_pp,
+                       moretimes,
+                       fp5times,
+                       realign,
+                       dyads_pp,
+                       n.blocks, periods, directed, ctrl,netSim)
+    init_lb<-mm_init[[2]]
+    init_niter<-mm_init[[3]]
+    
+    
+    mm_init<-mm_init[[1]]
+    ctrl$mm_init_t[[1]] <- mm_init[[1]]
+    if(bipartite){
+      ctrl$mm_init_t[[2]] <- mm_init[[2]]
+    }
+  
+    
+    # Feed back the switched mm   
+    ctrl$mm_init_t[[1]] <- mm_init[[1]]
     ctrl$mm_init_t[[2]] <- mm_init[[2]]
-  }
-#  mm_orig<-mm_init #keep the mm_init before switching and return for evaluation
-#distance_to_line <- function(point) {
-#    return(((point[2] - point[1])^2)/2)
-#  #return((abs(point[2] - point[1]))/sqrt(2))
-#}
-
-#Switching by hand
-#Bills    
-#mm_init[[2]] <-t(mm_init[[2]])
-#chunk_size <- 50
-
-# Initialize a list to store the results
-#result_matrices <- list()#
-
-# Number of chunks
-#num_chunks <- ceiling(nrow(mm_init[[2]]) / chunk_size)
-
-# Iterate over each chunk
-#for (chunk_index in 1:num_chunks) {
-#  # Calculate row indices for the current chunk
-#  start_row <- (chunk_index - 1) * chunk_size + 1
-#  end_row <- min(chunk_index * chunk_size, nrow(mm_init[[2]]))
-  
-  # Subset matrix and vector for the current chunk
-#  chunk_matrix <- mm_init[[2]][start_row:end_row, ]
-#  chunk_vector <- netSim$piB[,1][start_row:end_row]
-  
-  # Calculate distance for each point in both columns
-#  distance_col1 <- sapply(1:nrow(chunk_matrix), function(i) distance_to_line(c(chunk_vector[i], chunk_matrix[i, 1])))
-#  distance_col2 <- sapply(1:nrow(chunk_matrix), function(i) distance_to_line(c(chunk_vector[i], chunk_matrix[i, 2])))
-  
-  # Sum of distances
-#  sum_dist_col1 <- sum(distance_col1)
-#  sum_dist_col2 <- sum(distance_col2)
-  
-  # Switch columns if second column is closer
-#  if (sum_dist_col2 < sum_dist_col1) {
-#    chunk_matrix <- chunk_matrix[, 2:1]
- # }
-  
-  # Store the result
-#  result_matrices[[chunk_index]] <- chunk_matrix
-#}
-
-# Combine results back into a single matrix
-#final_matrix <- do.call(rbind, result_matrices)
-#final_matrix<-t(final_matrix)
-#mm_init[[2]]<-final_matrix
-  
-
-## Senators
-#mm_init[[1]] <-t(mm_init[[1]])
-
-#chunk_size <- 100
-
-# Initialize a list to store the results
-#result_matrice <- list()
-
-# Number of chunks
-#num_chunks <- ceiling(nrow(mm_init[[1]]) / chunk_size)
-
-# Iterate over each chunk
-#for (chunk_index in 1:num_chunks) {
-  # Calculate row indices for the current chunk
-#  start_row <- (chunk_index - 1) * chunk_size + 1
-#  end_row <- min(chunk_index * chunk_size, nrow(mm_init[[1]]))
-  
-  # Subset matrix and vector for the current chunk
-#  chunk_matrix <- mm_init[[1]][start_row:end_row, ]
-#  chunk_vector <- netSim$piS[,1][start_row:end_row]
-  
-  # Calculate distance for each point in both columns
-#  distance_col1 <- sapply(1:nrow(chunk_matrix), function(i) distance_to_line(c(chunk_vector[i], chunk_matrix[i, 1])))
-#  distance_col2 <- sapply(1:nrow(chunk_matrix), function(i) distance_to_line(c(chunk_vector[i], chunk_matrix[i, 2])))
-  
-  # Sum of distances
-#  sum_dist_col1 <- sum(distance_col1)
-#  sum_dist_col2 <- sum(distance_col2)
-  
-  # Switch columns if second column is closer
-  #if (sum_dist_col2 < sum_dist_col1) {
- #   chunk_matrix <- chunk_matrix[, 2:1]
- # }
-  
-  # Store the result
-#  result_matrices[[chunk_index]] <- chunk_matrix
-#}
-
-# Combine results back into a single matrix
-#final_matrix <- do.call(rbind, result_matrices)
-#final_matrix<-t(final_matrix)
-#mm_init[[1]]<-final_matrix
-
-#  mm_init[[2]][,1]<-ifelse(((1-mm_init[[2]][,1])-netSim$piB[,1])^2<= (mm_init[[2]][,1]-netSim$piB[,1])^2,1-mm_init[[2]][,1],mm_init[[2]][,1])#  mm_init[[2]][,2]<-1-mm_init[[2]][,1]
-#  mm_init[[2]][,2]<-1-mm_init[[2]][,1]
-  
-  
-#  mm_init[[1]] <-t(mm_init[[1]])
-#  mm_init[[1]][,1]<-ifelse(((1-mm_init[[1]][,1])-netSim$piS[,1])^2<= (mm_init[[1]][,1]-netSim$piS[,1])^2,1-mm_init[[1]][,1],mm_init[[1]][,1])
-#  mm_init[[1]][,2]<-1-mm_init[[1]][,1]
-  
-#  mm_init[[1]]<-t( mm_init[[1]])
-#  mm_init[[2]]<-t( mm_init[[2]])
-
-
-# Feed back the switched mm   
-ctrl$mm_init_t[[1]] <- mm_init[[1]]
-ctrl$mm_init_t[[2]] <- mm_init[[2]]
   }else{
     ctrl$mm_init_t[[1]]<-ctrl$mm_init_t1
     ctrl$mm_init_t[[2]]<-ctrl$mm_init_t2
@@ -712,10 +609,10 @@ ctrl$mm_init_t[[2]] <- mm_init[[2]]
     mm_init<-list()
     mm_init[[1]]<-ctrl$mm_init_t1
     mm_init[[2]]<-ctrl$mm_init_t2
-}
-
-
-##Initial gamma
+  }
+  
+  
+  ##Initial gamma
   if(is.null(ctrl$gamma_init)){
     if(n_dyad_pred > 0){
       ctrl$gamma_init <- rnorm(length(ctrl$mu_gamma), ctrl$mu_gamma, sqrt(ctrl$var_gamma))
@@ -735,11 +632,11 @@ ctrl$mm_init_t[[2]] <- mm_init[[2]]
     ctrl$block_init_t <- array(rnorm(mu_block, mu_block, sqrt(var_block)), c(n.blocks[2], n.blocks[1]))
   }
   
-
+  
   
   ##Initial Beta 1
   if(is.null(ctrl$beta1_init)){
-  #  print(paste0("this is year: ",unique(data.dyad[[timeID]])))
+    #  print(paste0("this is year: ",unique(data.dyad[[timeID]])))
     beta_easy = list(array(c(0.05, -0.75, ##Intercepts
                              0.75, -1.0), ## Predictor coefficients
                            c(2, 2)),
@@ -747,86 +644,86 @@ ctrl$mm_init_t[[2]] <- mm_init[[2]]
                              0.55, 0.75),
                            c(2, 2)))
     prot <- array(.1, dim(ctrl$mu_beta1)[-3], dimnames=dimnames(ctrl$mu_beta1)[-3])
-   # print(paste0("state when initializing beta 1: ",n.hmmstates))
+    # print(paste0("state when initializing beta 1: ",n.hmmstates))
     ctrl$beta1_init <- vapply(seq.int(n.hmmstates),
                               function(m){
                                 lm.fit(X1, t(ctrl$mm_init_t[[1]]))$coefficients
                               }, prot)
- #   ori_beta1<-ctrl$beta1_init
-#  if (length(unique(data.dyad[[timeID]]))==1){
-#    if (unique(data.dyad[[timeID]])<=25){#      #intercept_values <- beta_easy[[1]][1, ]
-#      #ctrl$beta1_init[1, , 1] <- intercept_values
- #     ctrl$beta1_init[, , 1] <- t(beta_easy[[1]])
-  #  }else{
-   #   #intercept_values <- beta_easy[[2]][1, ]
-  #    #ctrl$beta1_init[1, , 1] <- intercept_values
-   #   ctrl$beta1_init[, , 1] <- t(beta_easy[[2]])
-   # }
- # }else{
-  #  for(i in seq_along(beta_easy)) {
-  #            #intercept_values <- beta_easy[[i]][1, ]
-  #           ctrl$beta1_init[, , i] <- t(beta_easy[[i]])
-   #      }
-  #}
+    #   ori_beta1<-ctrl$beta1_init
+    #  if (length(unique(data.dyad[[timeID]]))==1){
+    #    if (unique(data.dyad[[timeID]])<=25){#      #intercept_values <- beta_easy[[1]][1, ]
+    #      #ctrl$beta1_init[1, , 1] <- intercept_values
+    #     ctrl$beta1_init[, , 1] <- t(beta_easy[[1]])
+    #  }else{
+    #   #intercept_values <- beta_easy[[2]][1, ]
+    #    #ctrl$beta1_init[1, , 1] <- intercept_values
+    #   ctrl$beta1_init[, , 1] <- t(beta_easy[[2]])
+    # }
+    # }else{
+    #  for(i in seq_along(beta_easy)) {
+    #            #intercept_values <- beta_easy[[i]][1, ]
+    #           ctrl$beta1_init[, , i] <- t(beta_easy[[i]])
+    #      }
+    #}
     
-
-   # new_beta1<-ctrl$beta1_init
+    
+    # new_beta1<-ctrl$beta1_init
   }
-
-#cat("ori_beta1\n")
-#print(ori_beta1)
-#cat("ctrl$beta1_init\n")
-#print(ctrl$beta1_init)
-
-
+  
+  #cat("ori_beta1\n")
+  #print(ori_beta1)
+  #cat("ctrl$beta1_init\n")
+  #print(ctrl$beta1_init)
+  
+  
   ##Initial Beta 2
   if(bipartite){
- #   beta_easy = list(array(c(0.05, -0.75, ##Intercepts
-#                             0.75, -1.0), ## Predictor coefficients
-#                           c(2, 2)),
-#                     array(c(-0.05, -0.75,
-#                             0.55, 0.75),
-#                           c(2, 2)))
+    #   beta_easy = list(array(c(0.05, -0.75, ##Intercepts
+    #                             0.75, -1.0), ## Predictor coefficients
+    #                           c(2, 2)),
+    #                     array(c(-0.05, -0.75,
+    #                             0.55, 0.75),
+    #                           c(2, 2)))
     
     if(is.null(ctrl$beta2_init)){
       prot <- array(.1, dim(ctrl$mu_beta2)[-3], dimnames=dimnames(ctrl$mu_beta2)[-3])
-#      print(paste0("state when initializing beta 2: ",n.hmmstates))
+      #      print(paste0("state when initializing beta 2: ",n.hmmstates))
       ctrl$beta2_init <- vapply(seq.int(n.hmmstates),
                                 function(m){
-                                 lm.fit(X2,t(ctrl$mm_init_t[[2]]))$coefficients
+                                  lm.fit(X2,t(ctrl$mm_init_t[[2]]))$coefficients
                                 }, prot)
-#      ori_beta2<-ctrl$beta2_init
+      #      ori_beta2<-ctrl$beta2_init
       
- #     if (length(unique(data.dyad[[timeID]]))==1){
-#        if (unique(data.dyad[[timeID]])<=25){
-#          #intercept_values <- beta_easy[[1]][1, ]
-#          #ctrl$beta2_init[1, , 1] <- intercept_values
-#          ctrl$beta2_init[, , 1] <- t(beta_easy[[1]])
-#        }else{
-#          #intercept_values <- beta_easy[[2]][1, ]
-#          #ctrl$beta2_init[1, , 1] <- intercept_values
-#          ctrl$beta2_init[, , 1] <- t(beta_easy[[2]])
-#        }
-#      }else{
-#        for(i in seq_along(beta_easy)) {
-#          #intercept_values <- beta_easy[[i]][1, ]
-#          ctrl$beta2_init[, , i] <- t(beta_easy[[i]])
- #       }
-      }
-      
-      new_beta2<-ctrl$beta2_init
-      }
+      #     if (length(unique(data.dyad[[timeID]]))==1){
+      #        if (unique(data.dyad[[timeID]])<=25){
+      #          #intercept_values <- beta_easy[[1]][1, ]
+      #          #ctrl$beta2_init[1, , 1] <- intercept_values
+      #          ctrl$beta2_init[, , 1] <- t(beta_easy[[1]])
+      #        }else{
+      #          #intercept_values <- beta_easy[[2]][1, ]
+      #          #ctrl$beta2_init[1, , 1] <- intercept_values
+      #          ctrl$beta2_init[, , 1] <- t(beta_easy[[2]])
+      #        }
+      #      }else{
+      #        for(i in seq_along(beta_easy)) {
+      #          #intercept_values <- beta_easy[[i]][1, ]
+      #          ctrl$beta2_init[, , i] <- t(beta_easy[[i]])
+      #       }
+    }
+    
+    new_beta2<-ctrl$beta2_init
+  }
   
-#cat("ori_beta2\n")
-#print(ori_beta2)
-#cat("ctrl$beta2_init\n")
-#print(ctrl$beta2_init)
-
-#ctrl$beta1_init[1, , 1] <- beta_easy[[1]][1, ]
-#ctrl$beta1_init[1, , 2] <- beta_easy[[2]][1, ]
-#ctrl$beta2_init[1, , 1] <- beta_easy[[1]][1, ]
-#ctrl$beta2_init[1, , 2] <- beta_easy[[2]][1, ]
-
+  #cat("ori_beta2\n")
+  #print(ori_beta2)
+  #cat("ctrl$beta2_init\n")
+  #print(ctrl$beta2_init)
+  
+  #ctrl$beta1_init[1, , 1] <- beta_easy[[1]][1, ]
+  #ctrl$beta1_init[1, , 2] <- beta_easy[[2]][1, ]
+  #ctrl$beta2_init[1, , 1] <- beta_easy[[1]][1, ]
+  #ctrl$beta2_init[1, , 2] <- beta_easy[[2]][1, ]
+  
   ## Create randomizer for order of updatePhis
   ctrl$phi_order <- rbinom(nrow(Z)[1],1,0.5) #ndyad
   #test print
@@ -1065,8 +962,8 @@ ctrl$mm_init_t[[2]] <- mm_init[[2]]
   
   # Add: return the mm_init
   fit$mm_init<-mm_init #after switching
- # fit$mm_orig<-mm_orig #before switching
- # fit$init_lb<- init_lb #lowerbound for each period initialization
+  # fit$mm_orig<-mm_orig #before switching
+  # fit$init_lb<- init_lb #lowerbound for each period initialization
   #fit$init_niter<-init_niter
   ##Assign class for methods
   if(fit$bipartite){
@@ -1076,4 +973,3 @@ ctrl$mm_init_t[[2]] <- mm_init[[2]]
   }
   return(fit)
 }
-
