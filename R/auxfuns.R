@@ -670,7 +670,7 @@
       #mm_init_t2 <- do.call(cbind,mapply(function(phi,perm){perm %*% phi },
       #                                  phis_temp, perms_temp2, SIMPLIFY = FALSE))
       mm_init_t2 <- do.call(cbind,mapply(function(phi,perm){t(t(phi) %*% perm ) },
-                                         phis_temp, (perms_temp1), SIMPLIFY = FALSE))
+                                         phis_temp, (perms_temp2), SIMPLIFY = FALSE))
       
       
       # cat("dimension of mm_init_t2",dim(mm_init_t2),"\n")
