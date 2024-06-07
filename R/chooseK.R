@@ -96,7 +96,7 @@ chooseK<-function(formula.dyad,
     }
     
     # Syntax (response, predictor):
-    model_auc[i]<-auc(test.data.dyad$Y, pred[[i]])
+    model_auc[i]<-auc(c(test.data.dyad$Y), c(pred[[i]]))
   }
   
   return(list(bestk=ktry[which.max(model_auc),],k=ktry, train_models=train_models, pred_response=pred, model_auc=model_auc ))

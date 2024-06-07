@@ -102,7 +102,7 @@ gof.mmsbm <- function(x,
   }
   if(x$bipartite & ("Incoming K-stars"%in%gof_stat)){
     warning("Incoming K-stars only defined for directed networks, and I can only handle undirected bipartite networks. Switching to k-stars by family.")
-    gof_stat <- c(gof_stat[-which(gof_stat=="Incoming K-stars")],"K-Stars Family 1","K-Stars Family 2")
+    gof_stat <- c(gof_stat[-which(gof_stat=="Incoming K-stars")],"K-stars Family 1","K-stars Family 2")
   }
   
   ## Define helper function
@@ -235,11 +235,11 @@ gof.mmsbm <- function(x,
                                   tmp_g <- igraph::add_vertices(tmp_g,
                                                                 nv = length(unique(x_sub_y[,1])),
                                                                 attr = list(name = unique(x_sub_y[,1]),
-                                                                            type = rep(0, length(unique(x_sub_y[,1])))))
+                                                                            type = rep(FALSE, length(unique(x_sub_y[,1])))))
                                   tmp_g <- igraph::add_vertices(tmp_g,
                                                                 nv = length(unique(x_sub_y[,2])),
                                                                 attr = list(name = unique(x_sub_y[,2]),
-                                                                            type = 1))
+                                                                            type = rep(TRUE, length(unique(x_sub_y[,2])))))
                                   tmp_g <- igraph::add_edges(tmp_g, as.vector(t(x_sub_y)))
                                   return(tmp_g)
                                 } else {
@@ -251,15 +251,17 @@ gof.mmsbm <- function(x,
   net_obs <- lapply(el_obs_list,
                     function(y){
                       if(x$bipartite){
+                        y[, 1] <- paste0(y[,1],"fam_1")
+                        y[, 2] <- paste0(y[,2],"fam_2")
                         tmp_g <- igraph::make_empty_graph(directed = FALSE)
                         tmp_g <- igraph::add_vertices(tmp_g,
                                                       nv = length(unique(y[,1])),
                                                       attr = list(name = unique(y[,1]),
-                                                                  type = rep(0, length(unique(y[,1])))))
+                                                                  type = rep(FALSE, length(unique(y[,1])))))
                         tmp_g <- igraph::add_vertices(tmp_g,
                                                       nv = length(unique(y[,2])),
                                                       attr = list(name = unique(y[,2]),
-                                                                  type = 1))
+                                                                  type = rep(TRUE, length(unique(y[,2])))))
                         tmp_g <- igraph::add_edges(tmp_g, as.vector(t(y[,c(1,2)])))
                         return(tmp_g)
                       } else {
@@ -278,7 +280,7 @@ gof.mmsbm <- function(x,
     res <- as.data.frame(t(apply(z, 1, quantile, probs = c(alpha, 0.5, level + alpha), na.rm=TRUE)))
     names(res) <- c("LB","Est","UB")
     res$GOF <- y
-    res$Val <- as.numeric(gsub(".*?([0-9]+).*", "\\1", rownames(res)))
+    res$Val <- as.numeric(gsub("^(b1|b2)?.*?([0-9]+).?", "\\2", rownames(res)))
     return(res)
   },
   sim_stats_l, gof_stat,
@@ -292,7 +294,7 @@ gof.mmsbm <- function(x,
     z[is.na(z)] <- 0
     res <- data.frame(Observed = apply(z, 1, median, na.rm=TRUE))
     res$GOF <- y
-    res$Val <- as.numeric(gsub(".*?([0-9]+).*", "\\1", rownames(res)))
+    res$Val <- as.numeric(gsub("^(b1|b2)?.*?([0-9]+).?", "\\2", rownames(res)))
     return(res)
   },
   Observed_l, gof_stat,

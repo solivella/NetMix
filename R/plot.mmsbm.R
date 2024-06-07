@@ -48,14 +48,31 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
            call. = FALSE)
     }
   }
-  
+  all_args <- list(...)
   if(type=="groups"){
     colRamp <- colorRamp(c("#DCDCDC","#808080","#000000"))
     g.mode <- ifelse(x$forms$directed, "directed", "undirected")
     adj_mat <- x$BlockModel
     dimnames(adj_mat) <- list(paste("G",1:nrow(adj_mat), sep=""),
                               paste("G", 1:ncol(adj_mat), sep=""))
-    block.G <- igraph::graph.adjacency(plogis(adj_mat), mode=g.mode, weighted=TRUE)
+    if(is.null(all_args$vertex.label)){
+      dimnames(adj_mat) <- list(paste("G",1:nrow(adj_mat), sep=""),
+                                paste("H", 1:ncol(adj_mat), sep=""))
+      vertex.label <- NULL
+    } else {
+      vertex.label <- all_args$vertex.label
+    }
+    if(is.null(all_args$vertex.color)){
+      vertex.color <- "white"
+    } else {
+      vertex.color <- all_args$vertex.color
+    }
+    if(is.null(all_args$label.dist)){
+      label.dist <- 1
+    } else {
+      label.dist <- all_args$label.dist
+    }
+    block.G <- igraph::graph_from_adjacency_matrix(plogis(adj_mat), mode=g.mode, weighted=TRUE)
     e.weight <- (1/diff(range(igraph::E(block.G)$weight))) * (igraph::E(block.G)$weight - max(igraph::E(block.G)$weight)) + 1
     e.cols <- rgb(colRamp(e.weight), maxColorValue = 255)
     times.arg <- if(g.mode == "directed") {
@@ -70,11 +87,23 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     }
     loop.rads <- radian.rescale(x=1:x$n_blocks1, direction=-1, start=0)
     loop.rads <- rep(loop.rads, times = times.arg)
+    text.rads <- radian.rescale(x=1:x$n_blocks1, direction=-1, start=-pi/2)
     igraph::plot.igraph(block.G, main = "",
-                        edge.width=4, edge.color=e.cols,  edge.curved = x$forms$directed, edge.arrow.size = 0.65,
+                        edge.width=4, 
+                        edge.color=e.cols,  
+                        edge.curved = x$forms$directed, 
+                        edge.arrow.size = 0.65,
                         edge.loop.angle = loop.rads,
-                        vertex.size=v.size, vertex.color="white", vertex.frame.color="black",
-                        vertex.label.font=2, vertex.label.cex=1, vertex.label.color="black",
+                        vertex.size=v.size,
+                        vertex.shape = "square",
+                        vertex.label = vertex.label,
+                        vertex.color=vertex.color, 
+                        vertex.frame.color="black",
+                        vertex.label.font=2,
+                        vertex.label.cex=1,
+                        vertex.label.color="black",
+                        vertex.label.degree = text.rads,
+                        vertex.label.dist=label.dist,
                         layout = igraph::layout_in_circle)
     .bar.legend(colRamp, range(igraph::E(block.G)$weight))
   }

@@ -11,12 +11,12 @@
 #' @example tests/Examples/cosponsorhip.rmd
 #' 
 #' 
-topmmB<-function(membership,n,names){
+topmm<-function(membership,n,names){
   group<-nrow(membership)
   res<-vector("list",length=group)
   for(i in 1:group){
     g<-membership[i,]
-    names(g)<-names
+    #names(g)<-names
     g<-sort(g,decreasing = TRUE)[1:n]
     res[[i]]<-data.frame(group=i,names=names(g),probability=g)
   }

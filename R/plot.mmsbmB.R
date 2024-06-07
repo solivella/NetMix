@@ -9,7 +9,9 @@
 #' of a shfit in monadic covariate values.
 #' @param FX with type = "effect"; a list resulting from a call to \code{covFXB}.
 #' @param family with type = "effect"; integer 1 or 2 for whether the effect is meant for Family 1 or Family 2 nodes.
-#' @param nodelabel with type = "effect"; list of node names for node-effect plot, must be same length as number of nodes and in the original order of nid passed to mmsbmB.
+#' @param nodelabel with type = "effect"; list of node names for node-effect plot, 
+#' must be same length as number of nodes and in the original order of nid passed to mmsbmB.
+#' @param blocklabel with type = "blockmodel"; list of block labels, with one character vector per family.
 
 
 plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...){ # network graph showing B-matrix
@@ -20,24 +22,39 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
     }
   }
   
+  all_args <- list(...)
+  
   if(type=="groups"){
     colRamp <- colorRamp(c("#DCDCDC","#808080","#000000"))
     g.mode<-"undirected"
     adj_mat <- x$BlockModel
+    if(is.null(all_args$vertex.label)){
     dimnames(adj_mat) <- list(paste("G",1:nrow(adj_mat), sep=""),
-                              paste("H", 1:ncol(adj_mat), sep=""))  
-    block.G <- igraph::graph.incidence(plogis(adj_mat), weighted=TRUE)
+                              paste("H", 1:ncol(adj_mat), sep=""))
+    vertex.label <- NULL
+    } else {
+      vertex.label <- all_args$vertex.label
+    }
+    if(is.null(all_args$vertex.color)){
+      vertex.color <- "white"
+    } else {
+      vertex.color <- all_args$vertex.color
+    }
+    block.G <- igraph::graph_from_biadjacency_matrix(plogis(adj_mat), weighted=TRUE)
     
     e.weight <- (1/diff(range(igraph::E(block.G)$weight))) * (igraph::E(block.G)$weight - max(igraph::E(block.G)$weight)) + 1
     e.cols <- rgb(colRamp(e.weight), maxColorValue = 255)
     v.size <- c(rowMeans(x$`MixedMembership1`)*100 + 25, rowMeans(x$`MixedMembership2`)*100 + 25)
     igraph::plot.igraph(block.G, main = "",
-                        edge.width=4, edge.color=e.cols,  edge.curved = F, 
+                        edge.width=4, edge.color=e.cols,  edge.curved = FALSE, 
                         edge.arrow.size = 0.65,
                         vertex.size=v.size, 
-                        vertex.color="white", vertex.frame.color="black",
+                        vertex.shape = "square",
+                        vertex.label = vertex.label,
+                        vertex.color = vertex.color,
+                        vertex.frame.color="black",
                         vertex.label.font=2, vertex.label.cex=1, vertex.label.color="black",
-                        layout = igraph::layout.bipartite)
+                        layout = igraph::layout.bipartite, ...)
     .bar.legend(colRamp, range(igraph::E(block.G)$weight))
   }
   

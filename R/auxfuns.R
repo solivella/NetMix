@@ -101,7 +101,7 @@
   match_ids <- ntid %in% dntid
   if(any(!match_ids)){
     if(verbose){
-      cat("\tSome nodes in one of the monadic datsets are not present in data.dyad; dropping them.\n")
+      cat("\tNode(s) in one of the monadic datasets not present in data.dyad; dropping now.\n")
     }
     mfm <- mfm[match_ids, ]
     ntid <- do.call(paste, c(mfm[c("(nid)","(tid)")], sep="@"))

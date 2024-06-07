@@ -184,6 +184,7 @@ mmsbm <- function(formula.dyad,
       stop("n.blocks must be an integer vector of length 2.")
     }
   } else{
+    formula.monad <- list(formula.monad, formula.monad)
     formula.monad[[2]] <- 0
     data.monad <- list(data.monad)
     data.monad[[2]] <- 0
@@ -220,8 +221,8 @@ mmsbm <- function(formula.dyad,
                var_beta = list(5.0, 5.0),
                mu_gamma = 0.0,
                var_gamma = 5.0,
-               mm1_init_t = NULL,
-               mm2_init_t = NULL,
+               mm_init_t1 = NULL,
+               mm_init_t2 = NULL,
                kappa_init_t = NULL,
                b_init_t = NULL,
                assortative = TRUE,
@@ -557,7 +558,9 @@ mmsbm <- function(formula.dyad,
   }, dyads, edges, MoreArgs = list(bipartite=bipartite))
   
   ##Initial mm 
-  mm_init <- .initPi(soc_mats,
+  ctrl$mm_init_t <- list(ctrl$mm_init_t1, ctrl$mm_init_t2)
+  if(is.null(ctrl$mm_init_t[[1]])){
+    mm_init <- .initPi(soc_mats,
                      bipartite,
                      dyads,
                      edges,
@@ -565,10 +568,10 @@ mmsbm <- function(formula.dyad,
                      dyads_pp,
                      n.blocks, periods, directed, ctrl)
   ctrl$mm_init_t[[1]] <- mm_init[[1]]
-  if(bipartite){
+  }
+  if(bipartite & is.null(ctrl$mm_init_t[[2]])){
     ctrl$mm_init_t[[2]] <- mm_init[[2]]
   }
-  
   
   
   ##Initial gamma
@@ -848,7 +851,7 @@ mmsbm <- function(formula.dyad,
   
   ##Assign class for methods
   if(fit$bipartite){
-    class(fit) <- c("mmsbmB", "mmsbm")
+    class(fit) <- c("mmsbm","mmsbmB")
   }else{
     class(fit) <- "mmsbm"
   }
