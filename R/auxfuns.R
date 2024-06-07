@@ -202,7 +202,7 @@
 
 ## Adapted from `fields`` package under GPL
 #' @rdname auxfuns
-.bar.legend <- function(colPalette, range){
+.bar.legend <- function(colPalette, range, legend.margin){
   col <- rgb(colPalette(seq(0,1, length.out = 100)), maxColorValue = 255)
   zlim <- c(0, 1)
   opar <- par(no.readonly = TRUE)
@@ -212,7 +212,11 @@
   midpoints <- seq(zlim[1], zlim[2], length.out=nlevel)
   delta <- (midpoints[2] - midpoints[1])/2
   breaks <- c(midpoints[1] - delta, midpoints + delta)
-  legend.mar <- 5.1
+  if(is.null(legend.margin)){
+  legend.mar <- 3.5
+  }else{
+    legend.mar<-legend.margin
+  }
   char.size <- par()$cin[1]/par()$din[1]
   offset <- char.size * par()$mar[4]
   legend.width <- char.size * 1.2
@@ -239,10 +243,10 @@
   iz <- matrix(midpoints, nrow = 1, ncol = length(midpoints))
   
   par(new = TRUE, pty = "m", plt = smallplot, err = -1)
-  graphics::image(ix, iy, iz, xaxt = "n", yaxt = "n", xlab = "", 
+  graphics::image(ix, iy, iz, xaxt = "n", yaxt = "n", xlab = "",
                   ylab = "", col = col, breaks = breaks)
   axis.args <- c(list(side =  4, at = seq(0,1, length.out = 10),
-                      labels = round(seq(range[1], range[2], length.out=10),2), 
+                      labels = round(seq(range[1], range[2], length.out=10),2),
                       cex.axis=0.75,
                       mgp = c(3, 1, 0), las = 2))
   
