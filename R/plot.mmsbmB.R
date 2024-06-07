@@ -55,7 +55,12 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
                         vertex.frame.color="black",
                         vertex.label.font=2, vertex.label.cex=1, vertex.label.color="black",
                         layout = igraph::layout.bipartite, ...)
-    .bar.legend(colRamp, range(igraph::E(block.G)$weight))
+    if(is.null(all_args$legend.margin)){
+        legend.margin <- 3.5
+    }else{
+    legend.margin <- all_args$legend.margin
+    }
+    .bar.legend(colRamp, range(igraph::E(block.G)$weight), legend.margin)
   }
   
   if(type=="membership"){
