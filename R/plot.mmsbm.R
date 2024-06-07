@@ -105,7 +105,12 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
                         vertex.label.degree = text.rads,
                         vertex.label.dist=label.dist,
                         layout = igraph::layout_in_circle)
-    .bar.legend(colRamp, range(igraph::E(block.G)$weight))
+    if(is.null(all_args$legend.range)){
+      legend.range <- range(igraph::E(block.G)$weight)
+    } else {
+      legend.range <- all_args$legend.range
+    }
+    .bar.legend(colRamp, legend.range)
   }
   
   if(type=="membership"){
