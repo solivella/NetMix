@@ -37,37 +37,10 @@ vertboot_matrix_rcpp2 <- function(m1, blist1, blist2) {
 }
 
 #' @name mmsbm_fit
-#' @title Fitter Function for dynamic MMSBM Model
-#' 
-#' @description This is the interface to the C++ fitter for the dynamic mixed-membership
-#' stochastic blockmodel for network regression.
-#' 
-#' @param z_t Numeric matrix; transpose of monadic design matrix. Should not include intercept row.
-#' @param x_t Numeric matrix; transpose of dyadic design matrix.
-#' @param y Numeric vector; vector of edge values. Must have same number of elements as \code{ncol(x_t)}
-#' @param time_id_dyad Integer vector; zero-based time-period identifier for each dyad.
-#' @param time_id_dyad Integer vector; zero-based time-period identifier for each node.
-#' @param nodes_per_period Integer vector; total number of unique nodes observed in each time period.
-#' @param node_id_dyad Integer matrix; zero-based sender and receiver identifier per dyad.
-#' @param mu_b Numeric matrix; matrix of prior means for elements in blockmodel matrix.
-#' @param var_b Numeric matrix; matrix of prior variances for elements in blockmodel matrix.
-#' @param pi_init Numeric matrix; matrix of initial mixed-memberships. Nodes along columns.
-#' @param kappa_init_t Numeric matrix; matrix of initial marginal HMM state probabilities. Time-periods along columns.
-#' @param b_init_t Numeric matrix; square matrix of initial values of blockmodel.
-#' @param beta_init Numeric vector; flat array (column-major order) of initial values of monadic coefficients.
-#' @param gamma_init Numeric vector; vector of initial values of dyadic coefficients
-#' @param control List; see the \code{mmsbm.control} argument of \code{\link{mmsbm}}
-#' 
-#' @return Unclassed list with named components; see \code{Value} of \code{\link{mmsbm}}
-#' @section Warning:
-#'          This function is for internal use only. End-users should always resort to \code{\link{mmsbm}}.
-#'          In particular, that interface post-processes the return value of this internal in important ways. 
-#'          
-#' @author Santiago Olivella (olivella@@unc.edu), Adeline Lo (adelinel@@princeton.edu), Tyler Pratt (tyler.pratt@@yale.edu), Kosuke Imai (imai@@harvard.edu)
 NULL
 
-mmsbm_fit <- function(z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, node_id_period, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, pi_init, kappa_init_t, b_init_t, beta_init_r, gamma_init_r, control) {
-    .Call(`_NetMix_mmsbm_fit`, z_t, x_t, y, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, node_id_period, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, pi_init, kappa_init_t, b_init_t, beta_init_r, gamma_init_r, control)
+mmsbm_fit <- function(z_t, x_t, y, n, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, node_id_period, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, pi_init, kappa_init_t, b_init_t, beta_init_r, gamma_init_r, control) {
+    .Call(`_NetMix_mmsbm_fit`, z_t, x_t, y, n, time_id_dyad, time_id_node, nodes_per_period, node_id_dyad, node_id_period, mu_b, var_b, mu_beta, var_beta, mu_gamma, var_gamma, pi_init, kappa_init_t, b_init_t, beta_init_r, gamma_init_r, control)
 }
 
 mmsbm_fitBi <- function(z_t, x1_t, x2_t, y, time_id_dyad, time_id_node1, time_id_node2, nodes_per_period, nodes_per_period1, nodes_per_period2, node_id_dyad, node_id_period1, node_id_period2, mu_b, var_b, mu_beta1, var_beta1, mu_beta2, var_beta2, mu_gamma, var_gamma, phi_init1, phi_init2, kappa_init_t, b_init_t, beta1_init, beta2_init, gamma_init, control) {

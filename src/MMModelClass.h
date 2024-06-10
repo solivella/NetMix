@@ -20,15 +20,13 @@ class MMModel
 {
 public:
   MMModel(const arma::mat& z_t,
-          //const arma::mat& z_t_ho,
           const arma::mat& x_t,
           const arma::vec& y,
-          //const arma::vec& y_ho,
+          const arma::vec& n,
           const arma::uvec& time_id_dyad,
           const arma::uvec& time_id_node,
           const arma::uvec& nodes_per_period,
           const arma::umat& node_id_dyad,
-          //const arma::umat& node_id_dyad_ho,
           const arma::field<arma::uvec>& node_id_period,
           const arma::mat& mu_b,
           const arma::mat& var_b,
@@ -41,7 +39,6 @@ public:
           arma::mat& b_init_t,
           arma::cube& beta_init_r,
           arma::vec& gamma_init_r,
-          //double sparsity,
           Rcpp::List& control
   );
   ~MMModel();
@@ -122,7 +119,7 @@ private:
   bool verbose,
   directed;
   
-  const arma::vec y;// y_ho;
+  const arma::vec y, n;
   
   const arma::uvec time_id_dyad,
   time_id_node,

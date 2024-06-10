@@ -157,6 +157,7 @@ mmsbm <- function(formula.dyad,
                   bipartite = FALSE,
                   senderID, 
                   receiverID,
+                  trialsID = NULL,
                   nodeID = NULL,
                   timeID = NULL,
                   data.dyad,
@@ -280,6 +281,12 @@ mmsbm <- function(formula.dyad,
     }
   }
   
+  ## Add dyadic trials if null
+  if(is.null(trialsID)){
+    trialsID <- "(trials)"
+    data.dyad[trialsID] <- 1.0
+  }
+  
   ## Address missing data 
   if(any(is.na(data.monad[[1]]))|any(is.na(data.monad[[2]]))|any(is.na(data.dyad))){
     new_dat_dyad <- .missHandle(formula.dyad, data.dyad, ctrl$missing)
@@ -331,7 +338,8 @@ mmsbm <- function(formula.dyad,
                                    drop.unused.levels = TRUE,
                                    tid = as.name(timeID),
                                    sid = as.name(senderID),
-                                   rid = as.name(receiverID))) #ok for differential names
+                                   rid = as.name(receiverID),
+                                   trialid = as.name(trialsID))) #ok for differential names
   if(anyDuplicated(mfd[,c("(tid)","(sid)","(rid)")])){
     stop("timeID, senderID, and receiverID do not uniquely identify observations in data.dyad.")
   }
@@ -401,6 +409,7 @@ mmsbm <- function(formula.dyad,
   
   
   Y <- stats::model.response(mfd)
+  ntrials <- mfd[["(trials)"]]
   
   X1 <- .scaleVars(mfm1)
   X1_mean <-attr(X1, "scaled:center")
@@ -670,6 +679,7 @@ mmsbm <- function(formula.dyad,
     fit <- mmsbm_fit(Z_t,
                      X1_t,
                      Y,
+                     ntrials,
                      t_id_d,
                      t_id_n1,
                      nodes_pp1,
