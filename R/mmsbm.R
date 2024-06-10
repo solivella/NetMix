@@ -283,7 +283,7 @@ mmsbm <- function(formula.dyad,
   
   ## Add dyadic trials if null
   if(is.null(trialsID)){
-    trialsID <- "(trials)"
+    trialsID <- "(trialid)"
     data.dyad[trialsID] <- 1.0
   }
   
@@ -409,7 +409,7 @@ mmsbm <- function(formula.dyad,
   
   
   Y <- stats::model.response(mfd)
-  ntrials <- mfd[["(trials)"]]
+  ntrials <- mfd[["(trialid)"]]
   
   X1 <- .scaleVars(mfm1)
   X1_mean <-attr(X1, "scaled:center")
