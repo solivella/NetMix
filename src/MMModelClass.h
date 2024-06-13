@@ -22,7 +22,7 @@ public:
   MMModel(const arma::mat& z_t,
           const arma::mat& x_t,
           const arma::vec& y,
-          const arma::vec& n,
+          const arma::vec& trials,
           const arma::uvec& time_id_dyad,
           const arma::uvec& time_id_node,
           const arma::uvec& nodes_per_period,
@@ -119,7 +119,7 @@ private:
   bool verbose,
   directed;
   
-  const arma::vec y, n;
+  const arma::vec y, trials;
   
   const arma::uvec time_id_dyad,
   time_id_node,
@@ -183,11 +183,12 @@ private:
   void thetaGr(int, double*);
   static void thetaGrW(int, double*, double*, void*);
   
-  void updatePhiInternal(arma::uword, arma::uword,
-                         double*,
-                         double* ,
-                         double*,
-                         arma::uword* );
+  void updatePhiInternal(arma::uword, 
+                         arma::uword,
+                         arma::vec,
+                         arma::vec,
+                         arma::vec,
+                         arma::uword*);
   
 };
 
