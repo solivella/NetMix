@@ -20,6 +20,11 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
       stop("Package \"ggplot2\" needed to produce requested plot. Please install it.",
            call. = FALSE)
     }
+  if(type %in% c("blockmodel")){
+    if (!requireNamespace("ggnetwork", quietly = TRUE)) {
+      stop("Package \"ggnetwork\" needed to produce requested plot. Please install it.",
+           call. = FALSE)
+    }
   }
   
   all_args <- list(...)
