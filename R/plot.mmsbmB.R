@@ -57,7 +57,7 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
       ggnewscale::new_scale_color() + 
       ggnetwork::geom_nodes(shape="square",aes(size=MM,fill=vertex.label,color=vertex.label),show.legend = F) +
       ggplot2::scale_size_area(max_size = 40,guide="none") +
-      ggrepel::geom_nodetext_repel(aes(label = vertex.label),fontface = "bold", size=4) +
+      ggnetwork::geom_nodetext_repel(aes(label = vertex.label),fontface = "bold", size=4) +
       ggplot2::scale_fill_manual(values = vertex.color) + 
       ggplot2::scale_colour_manual(values = vertex.color) + 
       ggplot2::theme_blank())
