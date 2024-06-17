@@ -52,10 +52,10 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
     
     return(ggnetwork(block.G, layout = igraph::as_bipartite()) %>% 
       ggplot2::ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-      ggplot2::geom_edges(aes(color = weight), linewidth=1.5) +
+      ggnetwork::geom_edges(aes(color = weight), linewidth=1.5) +
       ggplot2::scale_colour_gradient("Edge\n Probability",low = "gray90", high = "gray10", limits=c(0,1)) +
       ggnewscale::new_scale_color() + 
-      ggplot2::geom_nodes(shape="square",aes(size=MM,fill=vertex.label,color=vertex.label),show.legend = F) +
+      ggnetwork::geom_nodes(shape="square",aes(size=MM,fill=vertex.label,color=vertex.label),show.legend = F) +
       ggplot2::scale_size_area(max_size = 40,guide="none") +
       ggrepel::geom_nodetext_repel(aes(label = vertex.label),fontface = "bold", size=4) +
       ggplot2::scale_fill_manual(values = vertex.color) + 
