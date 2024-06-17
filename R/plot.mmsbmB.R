@@ -29,9 +29,9 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
     g.mode<-"undirected"
     adj_mat <- x$BlockModel
     if(is.null(all_args$vertex.label)){
-    dimnames(adj_mat) <- list(paste("G",1:nrow(adj_mat), sep=""),
-                              paste("H", 1:ncol(adj_mat), sep=""))
-    vertex.label <- NULL
+      dimnames(adj_mat) <- list(paste("G",1:nrow(adj_mat), sep=""),
+                                paste("H", 1:ncol(adj_mat), sep=""))
+      vertex.label <- NULL
     } else {
       vertex.label <- all_args$vertex.label
     }
@@ -41,26 +41,22 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
       vertex.color <- all_args$vertex.color
     }
     block.G <- igraph::graph_from_biadjacency_matrix(plogis(adj_mat), weighted=TRUE)
+    block.G <- block.G %>% set_vertex_attr("MM",value=c(rowMeans(x$`MixedMembership1`)*100, rowMeans(x$`MixedMembership2`)*100))
+    block.G <- block.G %>% set_vertex_attr("vertex.label",value=vertex.label)
     
-    e.weight <- (1/diff(range(igraph::E(block.G)$weight))) * (igraph::E(block.G)$weight - max(igraph::E(block.G)$weight)) + 1
-    e.cols <- rgb(colRamp(e.weight), maxColorValue = 255)
-    v.size <- c(rowMeans(x$`MixedMembership1`)*100 + 25, rowMeans(x$`MixedMembership2`)*100 + 25)
-    igraph::plot.igraph(block.G, main = "",
-                        edge.width=4, edge.color=e.cols,  edge.curved = FALSE, 
-                        edge.arrow.size = 0.65,
-                        vertex.size=v.size, 
-                        vertex.shape = "square",
-                        vertex.label = vertex.label,
-                        vertex.color = vertex.color,
-                        vertex.frame.color="black",
-                        vertex.label.font=2, vertex.label.cex=1, vertex.label.color="black",
-                        layout = igraph::layout.bipartite, ...)
-    if(is.null(all_args$legend.margin)){
-        legend.margin <- 3.5
-    }else{
-    legend.margin <- all_args$legend.margin
-    }
-    .bar.legend(colRamp, range(igraph::E(block.G)$weight), legend.margin)
+    block_plot <- ggnetwork(block.G, layout = igraph::as_bipartite()) %>% 
+      ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+      geom_edges(aes(color = weight)) +
+      scale_colour_gradient("Edge\n Probability",low = "gray90", high = "gray10", limits=c(0,1)) +
+      new_scale_color() + 
+      geom_nodes(shape="square",aes(size=MM,fill=vertex.label,color=vertex.label),show.legend = F) +
+      scale_size_area(max_size = 40,guide="none") +
+      geom_nodetext_repel(aes(label = vertex.label),fontface = "bold", size=4) +
+      scale_fill_manual(values = vertex.color) + 
+      scale_colour_manual(values = vertex.color) + 
+      theme_blank()
+    print(block_plot)
+    ##
   }
   
   if(type=="membership"){
@@ -83,30 +79,30 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
     cov <- strsplit(names(FX)[1], " ")[[1]][5]
     ymax <- max(hist(FX[[5]])[["counts"]])
     #hist(FX[[5]], main=paste("Distribution of Marginal Effects:", strsplit(names(FX)[1], " ")[[1]][5]),
-         #xlab=paste("Effect of", cov, "on Pr(Edge Formation)"))
+    #xlab=paste("Effect of", cov, "on Pr(Edge Formation)"))
     #plot(unique(x$dyadic.data[,x$forms$timeID]), tapply(FX[[5]], x$dyadic.data[,x$forms$timeID], mean), type="o",
-         #xlab="Time", ylab=paste("Effect of", cov, "on Pr(Edge Formation)"), main="Marginal Effect over Time")
+    #xlab="Time", ylab=paste("Effect of", cov, "on Pr(Edge Formation)"), main="Marginal Effect over Time")
     
     if(family==1){ 
       monadic.data<- x$monadic.data[[1]]
       nid <- x$forms$senderID
       if(!nid%in%names(monadic.data)){nid<-"(nid1)"}
     } else{ 
-        monadic.data <- x$monadic.data[[2]]
-        nid <- x$forms$receiverID
-        if(!nid%in%names(monadic.data)){nid<-"(nid2)"}
+      monadic.data <- x$monadic.data[[2]]
+      nid <- x$forms$receiverID
+      if(!nid%in%names(monadic.data)){nid<-"(nid2)"}
     }
     
-  ##set up alternative labels for nodes -- these need to be in the same starting order as nid in monadic.data
+    ##set up alternative labels for nodes -- these need to be in the same starting order as nid in monadic.data
     if(!is.null(nodelabel)){
       tmp_labels<-data.frame(nodelabel=nodelabel,nodenames=monadic.data[,nid])
     }
     nodenames <- names(sort(table(monadic.data[,nid]), decreasing=TRUE))
     nodes <- sort(FX[[3]])[names(sort(FX[[3]])) %in% nodenames]
     if(!is.null(nodelabel)){
-    nodes_labels<- tmp_labels$nodelabel[match(names(nodes),tmp_labels$nodenames)]
+      nodes_labels<- tmp_labels$nodelabel[match(names(nodes),tmp_labels$nodenames)]
     }else{
-    nodes_labels<-names(nodes)
+      nodes_labels<-names(nodes)
     }
     plot(1, type="n", xlab="Node-Level Estimated Effect", ylab="", 
          xlim=c(min(nodes), max(nodes) + 0.001),
