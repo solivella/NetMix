@@ -60,7 +60,7 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
       ggnetwork::geom_nodetext_repel(aes(label = vertex.label),fontface = "bold", size=4) +
       ggplot2::scale_fill_manual(values = vertex.color) + 
       ggplot2::scale_colour_manual(values = vertex.color) + 
-      ggplot2::theme_blank())
+      ggnetwork::theme_blank())
     ##
   }
   
