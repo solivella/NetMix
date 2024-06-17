@@ -61,7 +61,7 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
       scale_fill_manual(values = vertex.color) + 
       scale_colour_manual(values = vertex.color) + 
       theme_blank()
-    print(block_plot)
+    block_plot
     ##
   }
   
