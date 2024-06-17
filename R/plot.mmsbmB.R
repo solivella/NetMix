@@ -52,7 +52,7 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
     
     block_plot <- ggnetwork(block.G, layout = igraph::as_bipartite()) %>% 
       ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-      geom_edges(aes(color = weight)) +
+      geom_edges(aes(color = weight), linewidth=1.5) +
       scale_colour_gradient("Edge\n Probability",low = "gray90", high = "gray10", limits=c(0,1)) +
       new_scale_color() + 
       geom_nodes(shape="square",aes(size=MM,fill=vertex.label,color=vertex.label),show.legend = F) +
