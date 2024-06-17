@@ -15,12 +15,13 @@
 
 
 plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...){ # network graph showing B-matrix
-  if(type %in% c("blockmodel", "membership", "hmm", "block")){
+  if(type %in% c("groups", "membership", "hmm", "block")){
     if (!requireNamespace("ggplot2", quietly = TRUE)) {
       stop("Package \"ggplot2\" needed to produce requested plot. Please install it.",
            call. = FALSE)
     }
-  if(type %in% c("blockmodel")){
+  }
+  if(type %in% c("groups")){
     if (!requireNamespace("ggnetwork", quietly = TRUE)) {
       stop("Package \"ggnetwork\" needed to produce requested plot. Please install it.",
            call. = FALSE)
