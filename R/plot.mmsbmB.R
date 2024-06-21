@@ -31,36 +31,58 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
   all_args <- list(...)
   
   if(type=="groups"){
-    colRamp <- colorRamp(c("#DCDCDC","#808080","#000000"))
-    g.mode<-"undirected"
+    require(igraph, quietly = TRUE)
+    require(ggraph, quietly = TRUE)
     adj_mat <- x$BlockModel
+    n_vertex <- ifelse(x$bipartite, sum(dim(adj_mat)), nrow(adj_mat))
+    n_edge <- prod(dim(adj_mat))
     if(is.null(all_args$vertex.label)){
+      col_prefix <- ifelse(x$bipartite, "H", "G")
       dimnames(adj_mat) <- list(paste("G",1:nrow(adj_mat), sep=""),
-                                paste("H", 1:ncol(adj_mat), sep=""))
-      vertex.label <- NULL
+                                paste(col_prefix,1:nrow(adj_mat), sep=""))
+      vertex.label <- rownames(adj_mat)
     } else {
       vertex.label <- all_args$vertex.label
     }
     if(is.null(all_args$vertex.color)){
-      vertex.color <- "white"
+      vertex.color <- rep("gray50", n_vertex)
     } else {
       vertex.color <- all_args$vertex.color
     }
-    block.G <- igraph::graph_from_biadjacency_matrix(plogis(adj_mat), weighted=TRUE)
-    block.G <- block.G %>% set_vertex_attr("MM",value=c(rowMeans(x$`MixedMembership1`)*100, rowMeans(x$`MixedMembership2`)*100))
-    block.G <- block.G %>% set_vertex_attr("vertex.label",value=vertex.label)
+    if(x$bipartite){
+      sizes <- c(rowMeans(x$`MixedMembership1`)*100, rowMeans(x$`MixedMembership2`)*100)
+      dir <- 45
+    } else {
+      sizes <- rowMeans(x$`MixedMembership1`)*100
+      dir <- seq(30, 330, length.out = n_edge)
+    }
+    graph_fun <- ifelse(x$bipartite, igraph::graph_from_biadjacency_matrix, igraph::graph_from_adjacency_matrix)
+    block.G <- graph_fun(plogis(adj_mat), weighted=TRUE) %>% 
+      set_vertex_attr("vertex.label",value = vertex.label) %>% 
+      set_vertex_attr("vertex.color",value = vertex.color) %>% 
+      set_vertex_attr("MM", value = sizes) %>% 
+      set_edge_attr("direction", value = dir)
     
-    return(ggnetwork(block.G, layout = igraph::as_bipartite()) %>% 
-      ggplot2::ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-      ggnetwork::geom_edges(aes(color = weight), linewidth=1.5) +
-      ggplot2::scale_colour_gradient("Edge\n Probability",low = "gray90", high = "gray10", limits=c(0,1)) +
-      ggnewscale::new_scale_color() + 
-      ggnetwork::geom_nodes(shape="square",aes(size=MM,fill=vertex.label,color=vertex.label),show.legend = F) +
-      ggplot2::scale_size_area(max_size = 40,guide="none") +
-      ggnetwork::geom_nodetext_repel(aes(label = vertex.label),fontface = "bold", size=4) +
-      ggplot2::scale_fill_manual(values = vertex.color) + 
-      ggplot2::scale_colour_manual(values = vertex.color) + 
-      ggnetwork::theme_blank())
+    return(ggraph(block.G, layout = "igraph", algorithm=ifelse(x$bipartite, "bipartite","circle")) +
+             geom_edge_link(aes(color = weight), linewidth=1.5) +
+             geom_edge_loop(aes(color = weight,
+                                direction = dir),
+                            linewidth=1.5) +
+             geom_node_point(aes(size=MM, fill=vertex.label, color=vertex.label),
+                             show.legend = FALSE) +
+             scale_edge_color_gradient("Edge\nProbability",
+                                       low = "gray90", high = "black", 
+                                       limits=c(0,1)) +
+             
+             scale_size_area(max_size = 10, guide="none") +
+             geom_node_label(aes(label = vertex.label), 
+                             fontface = "bold",
+                             repel = TRUE,
+                             size=4,
+                             alpha=0.5) +
+             scale_fill_manual(values = vertex.color) + 
+             scale_colour_manual(values = vertex.color) + 
+             theme_blank())
     ##
   }
   

@@ -50,73 +50,58 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     }
     all_args <- list(...)
     if(type=="groups"){
-      colRamp <- colorRamp(c("#DCDCDC","#808080","#000000"))
-      g.mode <- ifelse(x$forms$directed, "directed", "undirected")
+      require(igraph, quietly = TRUE)
+      require(ggraph, quietly = TRUE)
       adj_mat <- x$BlockModel
-      dimnames(adj_mat) <- list(paste("G",1:nrow(adj_mat), sep=""),
-                                paste("G", 1:ncol(adj_mat), sep=""))
+      n_vertex <- ifelse(x$bipartite, sum(dim(adj_mat)), nrow(adj_mat))
+      n_edge <- prod(dim(adj_mat))
       if(is.null(all_args$vertex.label)){
+        col_prefix <- ifelse(x$bipartite, "H", "G")
         dimnames(adj_mat) <- list(paste("G",1:nrow(adj_mat), sep=""),
-                                  paste("H", 1:ncol(adj_mat), sep=""))
-        vertex.label <- NULL
+                                  paste(col_prefix,1:nrow(adj_mat), sep=""))
+        vertex.label <- rownames(adj_mat)
       } else {
         vertex.label <- all_args$vertex.label
       }
       if(is.null(all_args$vertex.color)){
-        vertex.color <- "white"
+        vertex.color <- rep("gray50", n_vertex)
       } else {
         vertex.color <- all_args$vertex.color
       }
-      if(is.null(all_args$label.dist)){
-        label.dist <- 1
+      if(x$bipartite){
+        sizes <- c(rowMeans(x$`MixedMembership1`)*100, rowMeans(x$`MixedMembership2`)*100)
+        dir <- 45
       } else {
-        label.dist <- all_args$label.dist
+        sizes <- rowMeans(x$`MixedMembership1`)*100
+        dir <- seq(30, 330, length.out = n_edge)
       }
-      block.G <- igraph::graph_from_adjacency_matrix(plogis(adj_mat), mode=g.mode, weighted=TRUE)
-      e.weight <- (1/diff(range(igraph::E(block.G)$weight))) * (igraph::E(block.G)$weight - max(igraph::E(block.G)$weight)) + 1
-      e.cols <- rgb(colRamp(e.weight), maxColorValue = 255)
-      times.arg <- if(g.mode == "directed") {
-        x$n_blocks1
-      } else {
-        rev(seq_len(x$n_blocks1))
-      }
-      v.size <- rowMeans(x$MixedMembership1)*100 + 20
-      radian.rescale <- function(x, start=0, direction=1) {
-        c.rotate <- function(x) (x + start) %% (2 * pi) * direction
-        c.rotate(scales::rescale(x, c(0, 2 * pi), range(x)))
-      }
-      loop.rads <- radian.rescale(x=1:x$n_blocks1, direction=-1, start=0)
-      loop.rads <- rep(loop.rads, times = times.arg)
-      text.rads <- radian.rescale(x=1:x$n_blocks1, direction=-1, start=-pi/2)
-      igraph::plot.igraph(block.G, main = "",
-                          edge.width=4,
-                          edge.color=e.cols,
-                          edge.curved = x$forms$directed,
-                          edge.arrow.size = 0.65,
-                          edge.loop.angle = loop.rads,
-                          vertex.size=v.size,
-                          vertex.shape = "square",
-                          vertex.label = vertex.label,
-                          vertex.color=vertex.color,
-                          vertex.frame.color="black",
-                          vertex.label.font=2,
-                          vertex.label.cex=1,
-                          vertex.label.color="black",
-                          vertex.label.degree = text.rads,
-                          vertex.label.dist=label.dist,
-                          layout = igraph::layout_in_circle)
-      if(is.null(all_args$legend.range)){
-        legend.range <- range(igraph::E(block.G)$weight)
-      } else {
-        legend.range <- all_args$legend.range
-      }
-      if(is.null(all_args$legend.margin)){
-        legend.margin <- 3.5
-      }else{
-        legend.margin <- all_args$legend.margin
-      }
-      .bar.legend(colRamp, legend.range, legend.margin)
+      graph_fun <- ifelse(x$bipartite, igraph::graph_from_biadjacency_matrix, igraph::graph_from_adjacency_matrix)
+      block.G <- graph_fun(plogis(adj_mat), weighted=TRUE) %>% 
+        set_vertex_attr("vertex.label",value = vertex.label) %>% 
+        set_vertex_attr("vertex.color",value = vertex.color) %>% 
+        set_vertex_attr("MM", value = sizes) %>% 
+        set_edge_attr("direction", value = dir)
       
+      return(ggraph(block.G, layout = "igraph", algorithm=ifelse(x$bipartite, "bipartite","circle")) +
+               geom_edge_link(aes(color = weight), linewidth=1.5) +
+               geom_edge_loop(aes(color = weight,
+                                  direction = dir),
+                              linewidth=1.5) +
+               geom_node_point(aes(size=MM, fill=vertex.label, color=vertex.label),
+                               show.legend = FALSE) +
+               scale_edge_color_gradient("Edge\nProbability",
+                                         low = "gray90", high = "black", 
+                                         limits=c(0,1)) +
+               
+               scale_size_area(max_size = 10, guide="none") +
+               geom_node_label(aes(label = vertex.label), 
+                               fontface = "bold",
+                               repel = TRUE,
+                               size=4,
+                               alpha=0.5) +
+               scale_fill_manual(values = vertex.color) + 
+               scale_colour_manual(values = vertex.color) + 
+               theme_blank())
     }
     
     if(type=="membership"){
