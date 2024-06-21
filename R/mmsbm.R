@@ -547,9 +547,9 @@ mmsbm <- function(formula.dyad,
                                       nodes2))
     indeces <- as.matrix(dyad_mat[,c("(sid)","(rid)")])
     index <- cbind(match(indeces[,1],rownames(adj_mat)),match(indeces[,2],colnames(adj_mat)))
-    adj_mat[index] <- dyad_mat[,y_var] 
+    adj_mat[index] <- dyad_mat[,y_var] > mean(dyad_mat[,y_var])
     if(!directed){
-      adj_mat[index[,c(2,1)]] <- dyad_mat[,y_var]
+      adj_mat[index[,c(2,1)]] <- dyad_mat[,y_var] > mean(dyad_mat[,y_var])
     }
     obs_prop <- mean(adj_mat, na.rm = TRUE)
     if(anyNA(adj_mat)){
