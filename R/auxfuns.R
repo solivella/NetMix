@@ -525,13 +525,16 @@
                                           hessian = FALSE,
                                           seed=s))
           cat("Seed:", s, "\n")
-          cat("BM original",i, m$BlockModel, "\n")
+         cat("BM original",i, m_s$BlockModel, "\n")
+         cat("Current LB",i, m_s$LowerBound, "\n")
           if (m_s$LowerBound > best_lower_bound) {
             best_lower_bound <- m_s$LowerBound
             best_model <- m_s
           }
         }
         m<-best_model
+         cat("BM original (best)",i, m$BlockModel, "\n")
+         cat("Best LB",i, m$LowerBound, "\n")
         init_lb <- c(init_lb, best_lower_bound)
         init_niter<-c(init_niter,m$niter)
         #PredS = matrix(c(t(m$MixedMembership1)),nrow=2,byrow=T)
