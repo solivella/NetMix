@@ -394,8 +394,8 @@
   init_lb<-c()
   init_niter<-c()
   realign<-TRUE #manual
-  moretimes<-TRUE
-  fp5times<-TRUE
+  moretimes<-FALSE
+  fp5times<-FALSE
   if(bipartite){
     if (periods==1){
       phi_init_temp <- lapply(soc_mats, function(mat){
