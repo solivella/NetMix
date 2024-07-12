@@ -590,7 +590,12 @@ mmsbm <- function(formula.dyad,
                        n.blocks, periods, directed, ctrl,netSim)
     init_lb<-mm_init[[2]]
     init_niter<-mm_init[[3]]
-    
+    init_lb_best<-mm_init[[4]]
+    init_niter_best<-mm_init[[5]]
+    init_bm<-mm_init[[6]]
+    init_bm_best<-mm_init[[7]]
+    init_seed<-mm_init[[8]]
+    init_seed_best<-mm_init[[9]]
     
     mm_init<-mm_init[[1]]
     ctrl$mm_init_t[[1]] <- mm_init[[1]]
@@ -963,8 +968,17 @@ mmsbm <- function(formula.dyad,
   # Add: return the mm_init
   fit$mm_init<-mm_init #after switching
   # fit$mm_orig<-mm_orig #before switching
-  # fit$init_lb<- init_lb #lowerbound for each period initialization
-  #fit$init_niter<-init_niter
+  fit$init_lb<- init_lb #lowerbound for each period initialization
+  fit$init_niter<-init_niter
+  fit$init_lb_best<-init_lb_best
+  fit$init_niter_best<-init_niter_best
+  fit$init_bm<-init_bm
+  fit$init_bm_best<-init_bm_best
+  fit$init_seed<-init_seed
+  fit$init_seed_best<-init_seed_best
+
+
+
   ##Assign class for methods
   if(fit$bipartite){
     class(fit) <- c("mmsbmB", "mmsbm")

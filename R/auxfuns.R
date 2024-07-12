@@ -391,8 +391,15 @@
                     dyads_pp,
                     n.blocks, periods, directed, ctrl,netSim){
   res <- vector("list", 2L)
-  init_lb<-c()
-  init_niter<-c()
+  init_lb<-list()
+  init_niter<-list()
+  init_lb_best<-list()
+  init_niter_best<-list()
+  init_bm<-list()
+  init_bm_best<-list()
+  init_seed<-list()
+  init_seed_best<-list()
+ 
   realign<-TRUE #manual
   moretimes<-TRUE
   fp5times<-TRUE
@@ -430,9 +437,9 @@
         sdf<-netSim[["df_monad_S"]]%>%filter(year==i)
         bdf<-netSim[["df_monad_B"]]%>%filter(year==i)
         
-        seeds<-c(sample(100:9999, 1)) #run 3 times
+        seeds<-c(sample(100:9999, 1)) #run 10 times
         if(fp5times){
-          seeds<-c(sample(100:9999, 3))
+          seeds<-c(sample(100:9999, 10))
         }
         else{
           seeds<-c(sample(100:9999, 1))
@@ -441,6 +448,13 @@
         
         best_model <- NULL
         best_lower_bound <- -Inf
+
+        init_lb_i<-c()
+        init_niter_i<-c()
+        init_bm_i<-list()
+        init_seed_i<-seeds 
+
+
         for (s in seeds){
           m_s<-mmsbm(formula.dyad = Y~var1,
                      formula.monad = list(~VarS1, ~VarB1),
@@ -457,7 +471,7 @@
                                           svi = TRUE,
                                           vi_iter = 10000,
                                        #   batch_size = 1.0,
-                                          conv_tol = 1e-4,
+                                          conv_tol = 1e-3,
                                           mu_gamma = ctrl[["mu_gamma"]],
                                           var_gamma = ctrl[["var_gamma"]],
                                           var_beta=list(ctrl[["var_beta"]][[1]][,,1],
@@ -465,7 +479,11 @@
                                           hessian = FALSE,
                                           seed=s))
           cat("Seed:", s, "\n")
-          
+           init_lb_i<-c(init_lb_i,m_s$LowerBound)
+        init_niter_i<-c(init_niter_i,m_s$niter)
+        init_bm_i<-append(init_bm_i,list(m_s$BlockModel))
+
+
           if (m_s$LowerBound > best_lower_bound) {
             best_lower_bound <- m_s$LowerBound
             best_model <- m_s
@@ -473,8 +491,17 @@
         }
         m<-best_model
         cat("BM1:", m$BlockModel, "\n")
-        init_lb <- c(init_lb, best_lower_bound)
-        init_niter<-c(init_niter,m$niter)
+        init_lb_best<- append(init_lb,best_lower_bound)
+        init_niter_best<-append(init_niter,m$niter)
+        init_bm_best<-append(init_bm_best,m$BlockModel)
+        init_seed_best<-append(init_bm_best,m$seed)
+
+        init_lb<- append(init_lb,init_lb_i)
+        init_niter<-append(init_niter,init_niter_i)
+        init_bm<-append(init_bm,init_bm_i)
+        init_seed<-append(init_seed,init_seed_i)
+
+
         #PredS = matrix(c(t(m$MixedMembership1)),nrow=2,byrow=T)
         #PredB = matrix(c(t(m$MixedMembership2)),nrow=2,byrow = T)
         PredS =m$MixedMembership1
@@ -493,7 +520,7 @@
         sdf<-netSim[["df_monad_S"]]%>%filter(year==i)
         bdf<-netSim[["df_monad_B"]]%>%filter(year==i)
         if (moretimes){
-          seeds<-c(sample(100:9999, 3))} #run 3 times
+          seeds<-c(sample(100:9999, 10))} #run 10 times
         else{
           seeds<-c(sample(100:9999, 1))
         }
@@ -501,6 +528,12 @@
         
         best_model <- NULL
         best_lower_bound <- -Inf
+
+        init_lb_i<-c()
+        init_niter_i<-c()
+        init_bm_i<-list()
+        init_seed_i<-seeds 
+
         for (s in seeds){
           m_s<-mmsbm(formula.dyad = Y~var1,
                      formula.monad = list(~VarS1, ~VarB1),
@@ -517,7 +550,7 @@
                                           svi = TRUE,
                                           vi_iter = 10000,
                                         #  batch_size = 1.0,
-                                          conv_tol = 1e-4,
+                                          conv_tol = 1e-3,
                                           mu_gamma = ctrl[["mu_gamma"]],
                                           var_gamma = ctrl[["var_gamma"]],
                                           var_beta=list(ctrl[["var_beta"]][[1]][,,1],
@@ -527,6 +560,12 @@
           cat("Seed:", s, "\n")
          cat("BM original",i, m_s$BlockModel, "\n")
          cat("Current LB",i, m_s$LowerBound, "\n")
+         
+
+        init_lb_i<-c(init_lb_i,m_s$LowerBound)
+        init_niter_i<-c(init_niter_i,m_s$niter)
+        init_bm_i<-append(init_bm_i,list(m_s$BlockModel))
+
           if (m_s$LowerBound > best_lower_bound) {
             best_lower_bound <- m_s$LowerBound
             best_model <- m_s
@@ -535,8 +574,16 @@
         m<-best_model
          cat("BM original (best)",i, m$BlockModel, "\n")
          cat("Best LB",i, m$LowerBound, "\n")
-        init_lb <- c(init_lb, best_lower_bound)
-        init_niter<-c(init_niter,m$niter)
+        init_lb_best<- append(init_lb,best_lower_bound)
+        init_niter_best<-append(init_niter,m$niter)
+        init_bm_best<-append(init_bm_best,m$BlockModel)
+        init_seed_best<-append(init_bm_best,m$seed)
+
+        init_lb<- append(init_lb,init_lb_i)
+        init_niter<-append(init_niter,init_niter_i)
+        init_bm<-append(init_bm,init_bm_i)
+        init_seed<-append(init_seed,init_seed_i)
+
         #PredS = matrix(c(t(m$MixedMembership1)),nrow=2,byrow=T)
         #PredB = matrix(c(t(m$MixedMembership2)),nrow=2,byrow = T)
         PredS =m$MixedMembership1
@@ -634,6 +681,7 @@
         perms_temp<-perms_temp_store[[perms_temp_id]]
         
         cat("Permutation id",perms_temp_id,"\n")
+        
         # cat("BM original",i, m$BlockModel, "\n")
         return(perms_temp)
       }
@@ -782,9 +830,10 @@
     rownames(mm_init_t) <- 1:n.blocks[1]
     res[[1]] <- mm_init_t 
   }
-  return(list(res,init_lb,init_niter))
+  return(list(res,init_lb,init_niter,init_lb_best,init_niter_best,init_bm,init_bm_best,init_seed,init_seed_best))
   # return(res)
 } 
+
 
 
 #' @rdname auxfuns
