@@ -494,7 +494,7 @@
         init_lb_best<- append(init_lb,list(best_lower_bound))
         init_niter_best<-append(init_niter,list(m$niter))
         init_bm_best<-append(init_bm_best,list(m$BlockModel))
-        init_seed_best<-append(init_bm_best,list(m$seed))
+        init_seed_best<-append(init_seed_best,list(m$seed))
 
         init_lb<- append(init_lb,list(init_lb_i))
         init_niter<-append(init_niter,list(init_niter_i))
