@@ -596,6 +596,8 @@ mmsbm <- function(formula.dyad,
     init_bm_best<-mm_init[[7]]
     init_seed<-mm_init[[8]]
     init_seed_best<-mm_init[[9]]
+    init_distance<-mm_init[[10]]
+    init_distance_best<-mm_init[[11]]
     
     mm_init<-mm_init[[1]]
     ctrl$mm_init_t[[1]] <- mm_init[[1]]
@@ -976,6 +978,8 @@ mmsbm <- function(formula.dyad,
   fit$init_bm_best<-init_bm_best
   fit$init_seed<-init_seed
   fit$init_seed_best<-init_seed_best
+  fit$init_distance_best<-init_distance_best
+  fit$init_distance<-init_distance
 
 
 
