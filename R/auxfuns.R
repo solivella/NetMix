@@ -394,8 +394,8 @@
   init_lb<-c()
   init_niter<-c()
   realign<-TRUE #manual
-  moretimes<-FALSE
-  fp5times<-FALSE
+  moretimes<-TRUE
+  fp5times<-TRUE
   if(bipartite){
     if (periods==1){
       phi_init_temp <- lapply(soc_mats, function(mat){
@@ -430,9 +430,9 @@
         sdf<-netSim[["df_monad_S"]]%>%filter(year==i)
         bdf<-netSim[["df_monad_B"]]%>%filter(year==i)
         
-        seeds<-c(sample(100:9999, 1)) #run 5 times
+        seeds<-c(sample(100:9999, 1)) #run 3 times
         if(fp5times){
-          seeds<-c(sample(100:9999, 5))
+          seeds<-c(sample(100:9999, 3))
         }
         else{
           seeds<-c(sample(100:9999, 1))
@@ -455,9 +455,9 @@
                      mmsbm.control = list(verbose = TRUE,
                                           threads=1,
                                           svi = TRUE,
-                                          vi_iter = 5000,
+                                          vi_iter = 10000,
                                           batch_size = 1.0,
-                                          conv_tol = 1e-3,
+                                          conv_tol = 1e-4,
                                           mu_gamma = ctrl[["mu_gamma"]],
                                           var_gamma = ctrl[["var_gamma"]],
                                           var_beta=list(ctrl[["var_beta"]][[1]][,,1],
@@ -493,7 +493,7 @@
         sdf<-netSim[["df_monad_S"]]%>%filter(year==i)
         bdf<-netSim[["df_monad_B"]]%>%filter(year==i)
         if (moretimes){
-          seeds<-c(sample(100:9999, 5))} #run 5 times
+          seeds<-c(sample(100:9999, 3))} #run 3 times
         else{
           seeds<-c(sample(100:9999, 1))
         }
@@ -515,9 +515,9 @@
                      mmsbm.control = list(verbose = TRUE,
                                           threads=1,
                                           svi = TRUE,
-                                          vi_iter = 5000,
+                                          vi_iter = 10000,
                                           batch_size = 1.0,
-                                          conv_tol = 1e-3,
+                                          conv_tol = 1e-4,
                                           mu_gamma = ctrl[["mu_gamma"]],
                                           var_gamma = ctrl[["var_gamma"]],
                                           var_beta=list(ctrl[["var_beta"]][[1]][,,1],
