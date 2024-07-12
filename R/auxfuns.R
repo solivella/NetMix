@@ -491,15 +491,15 @@
         }
         m<-best_model
         cat("BM1:", m$BlockModel, "\n")
-        init_lb_best<- append(init_lb,best_lower_bound)
-        init_niter_best<-append(init_niter,m$niter)
-        init_bm_best<-append(init_bm_best,m$BlockModel)
-        init_seed_best<-append(init_bm_best,m$seed)
+        init_lb_best<- append(init_lb,list(best_lower_bound))
+        init_niter_best<-append(init_niter,list(m$niter))
+        init_bm_best<-append(init_bm_best,list(m$BlockModel))
+        init_seed_best<-append(init_bm_best,list(m$seed))
 
-        init_lb<- append(init_lb,init_lb_i)
-        init_niter<-append(init_niter,init_niter_i)
-        init_bm<-append(init_bm,init_bm_i)
-        init_seed<-append(init_seed,init_seed_i)
+        init_lb<- append(init_lb,list(init_lb_i))
+        init_niter<-append(init_niter,list(init_niter_i))
+        init_bm<-append(init_bm,list(init_bm_i))
+        init_seed<-append(init_seed,list(init_seed_i))
 
 
         #PredS = matrix(c(t(m$MixedMembership1)),nrow=2,byrow=T)
@@ -574,15 +574,15 @@
         m<-best_model
          cat("BM original (best)",i, m$BlockModel, "\n")
          cat("Best LB",i, m$LowerBound, "\n")
-        init_lb_best<- append(init_lb,best_lower_bound)
-        init_niter_best<-append(init_niter,m$niter)
-        init_bm_best<-append(init_bm_best,m$BlockModel)
-        init_seed_best<-append(init_bm_best,m$seed)
+        init_lb_best<- append(init_lb,list(best_lower_bound))
+        init_niter_best<-append(init_niter,list(m$niter))
+        init_bm_best<-append(init_bm_best,list(m$BlockModel))
+        init_seed_best<-append(init_bm_best,list(m$seed))
 
-        init_lb<- append(init_lb,init_lb_i)
-        init_niter<-append(init_niter,init_niter_i)
-        init_bm<-append(init_bm,init_bm_i)
-        init_seed<-append(init_seed,init_seed_i)
+        init_lb<- append(init_lb,list(init_lb_i))
+        init_niter<-append(init_niter,list(init_niter_i))
+        init_bm<-append(init_bm,list(init_bm_i))
+        init_seed<-append(init_seed,list(init_seed_i))
 
         #PredS = matrix(c(t(m$MixedMembership1)),nrow=2,byrow=T)
         #PredB = matrix(c(t(m$MixedMembership2)),nrow=2,byrow = T)
