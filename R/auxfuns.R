@@ -439,9 +439,9 @@
         sdf<-netSim[["df_monad_S"]]%>%filter(year==i)
         bdf<-netSim[["df_monad_B"]]%>%filter(year==i)
         
-        seeds<-c(sample(100:9999, 1)) #run 3 times
+        seeds<-c(sample(100:9999, 1)) #run 5 times
         if(fp5times){
-          seeds<-c(sample(100:9999,3))
+          seeds<-c(sample(100:9999,5))
         }
         else{
           seeds<-c(sample(100:9999, 1))
@@ -523,7 +523,7 @@
         sdf<-netSim[["df_monad_S"]]%>%filter(year==i)
         bdf<-netSim[["df_monad_B"]]%>%filter(year==i)
         if (moretimes){
-          seeds<-c(sample(100:9999, 3))} #run 3 times
+          seeds<-c(sample(100:9999, 5))} #run 5 times
         else{
           seeds<-c(sample(100:9999, 1))
         }
