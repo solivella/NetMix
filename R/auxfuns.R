@@ -491,7 +491,7 @@
           }
         }
         m<-best_model
-        bm_year1<-m
+        bm_year1<-m$BlockModel
         cat("BM1:", m$BlockModel, "\n")
         init_lb_best<- append(init_lb,list(best_lower_bound))
         init_niter_best<-append(init_niter,list(m$niter))
