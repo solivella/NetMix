@@ -676,7 +676,7 @@ find_best_init<-function(init_out){
 }
 
 #        m<-best_model
-          out3<-find_best_init(init_bm_i[[i]])
+          out3<-find_best_init(init_bm_i)
           bestid<-out3[[3]]
           m<-m_s_list[[bestid]] #best init bm (before realignment)
 
