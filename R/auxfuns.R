@@ -439,9 +439,9 @@
         sdf<-netSim[["df_monad_S"]]%>%filter(year==i)
         bdf<-netSim[["df_monad_B"]]%>%filter(year==i)
         
-        seeds<-c(sample(100:9999, 1)) #run 10 times
+        seeds<-c(sample(100:9999, 1)) #run 3 times
         if(fp5times){
-          seeds<-c(sample(100:9999, 5))
+          seeds<-c(sample(100:9999,3))
         }
         else{
           seeds<-c(sample(100:9999, 1))
@@ -470,7 +470,7 @@
                      mmsbm.control = list(verbose = TRUE,
                                           threads=1,
                                           svi = TRUE,
-                                          vi_iter = 10000,
+                                          vi_iter = 5000,
                                        #   batch_size = 1.0,
                                           conv_tol = 1e-3,
                                           mu_gamma = ctrl[["mu_gamma"]],
@@ -523,7 +523,7 @@
         sdf<-netSim[["df_monad_S"]]%>%filter(year==i)
         bdf<-netSim[["df_monad_B"]]%>%filter(year==i)
         if (moretimes){
-          seeds<-c(sample(100:9999, 5))} #run 10 times
+          seeds<-c(sample(100:9999, 3))} #run 3 times
         else{
           seeds<-c(sample(100:9999, 1))
         }
@@ -552,7 +552,7 @@
                      mmsbm.control = list(verbose = TRUE,
                                           threads=1,
                                           svi = TRUE,
-                                          vi_iter = 10000,
+                                          vi_iter = 5000,
                                         #  batch_size = 1.0,
                                           conv_tol = 1e-3,
                                           mu_gamma = ctrl[["mu_gamma"]],
@@ -569,7 +569,7 @@
         init_lb_i<-c(init_lb_i,m_s$LowerBound)
         init_niter_i<-c(init_niter_i,m_s$niter)
         init_bm_i<-append(init_bm_i,list(m_s$BlockModel))
-        m_s_list<-append(m_s_list,m_s)
+        m_s_list<-append(m_s_list,list(m_s))
               #    if (m_s$LowerBound > best_lower_bound) {
       #      best_lower_bound <- m_s$LowerBound
       #      best_model <- m_s
@@ -583,13 +583,22 @@ find_best_init<-function(init_out){
       # perms_temp <- .findPerm(block_models, target_mat = block_models[[target_ind]], use_perms = ctrl$permute)
       bm1<-block_models #original bm
       bm1<-lapply(bm1,plogis)
-      
+    #  print(bm1)
+   #   print(class(bm1))
+    #  print(bm1[[1]])
+     # print(unlist(bm1))
+     # print(length(bm1))
+     
+     bm<-bm1[1:length(seeds)]
       permute_matrix <- function(mat) {
         index <- 1
         perms_temp_store<-list()
         permuted_matrices<-list()
+    #   print(mat)
         m<-nrow(mat)
         n<-ncol(mat)
+     #   print(m)
+      #  print(n)
         all_row_perms <- gtools::permutations(m, m, v=1:m)
         all_col_perms <- gtools::permutations(n, n, v=1:n)
         for (i in 1:nrow(all_row_perms)) {
@@ -609,9 +618,14 @@ find_best_init<-function(init_out){
         
         return(permuted_matrices)
       }
-      bm2<-lapply(bm1, permute_matrix)
-      
-      
+     # bm2<-lapply(bm1, permute_matrix)
+      bm2<-list()
+   #   print(length(seeds))
+      for (i in 1:length(seeds)){
+        bm2[[i]]<-permute_matrix(bm1[[i]])
+      }
+   #   print("finished bm2 step")
+   #   print(bm2)
       
       bm_base<-plogis(bm_year1)
       #bm_base<-matrix((c(0.9, 0.2, 0.05, 0.35)), ncol = 2) #if want to use the truth
@@ -627,7 +641,7 @@ find_best_init<-function(init_out){
       all_col_perms <- gtools::permutations(n, n, v=1:n)
       
       find_closest_matrix <- function(m, t_mat) {
-        permuted_matrix_list <- permute_matrix(m)
+        permuted_matrix_list <- m
         smallest_norm <- Inf
         perms_temp <- NULL
      #   cat("length(permuted_matrix_list)",length(permuted_matrix_list),"\n")
@@ -658,15 +672,22 @@ find_best_init<-function(init_out){
             index <- index + 1
           }
         }
-        perms_temp<-perms_temp_store[[perms_temp_id]]
+        perms_temp<-permuted_matrix_list[[perms_temp_id]]
         
       #  cat("Permutation id",perms_temp_id,"\n")
         
         # cat("BM original",i, m$BlockModel, "\n")
         return(perms_temp)
       }
-      perms_temp <- find_closest_matrix(bm1,t_mat = bm_base)  
-      dist<-lapply(calculate_norm,perms_temp,matrix2=bm_base)
+      
+    #  print("start line 683")
+      perms_temp <- list()
+      for (j in 1:length(seeds)){
+        perms_temp[[j]]<-find_closest_matrix(bm2[[j]],t_mat=bm_base)
+      }
+    #  print("finished line 683")
+    # print(perms_temp)
+      dist<-lapply(perms_temp,calculate_norm,matrix2=bm_base)
       best_init_id<-which.min(dist)
       best_init_bm<-bm1[[best_init_id]]
        #cat("all distance",i, dist, "\n")
@@ -677,8 +698,13 @@ find_best_init<-function(init_out){
 
 #        m<-best_model
           out3<-find_best_init(init_bm_i)
+        #  print("out3:")
+         # print(out3)
           bestid<-out3[[3]]
-          m<-m_s_list[[bestid]] #best init bm (before realignment)
+          m<-m_s_list[bestid] #best init model (before realignment)
+        #  print(bestid)
+          m<-m[[1]] #now a list object
+        # print(m$niter)
 
      #    cat("BM original (best)",i, m$BlockModel, "\n")
        #  cat("Best LB",i, m$LowerBound, "\n")
@@ -693,7 +719,7 @@ find_best_init<-function(init_out){
         init_seed<-append(init_seed,list(init_seed_i))
 
         init_distance<-append(init_distance,list(out3[[2]]))
-        init_distance_best<-append(init_distance,list(out3[[3]]))
+        init_distance_best<-append(init_distance_best,list(out3[[3]]))
 
         #PredS = matrix(c(t(m$MixedMembership1)),nrow=2,byrow=T)
         #PredB = matrix(c(t(m$MixedMembership2)),nrow=2,byrow = T)
@@ -740,8 +766,12 @@ find_best_init<-function(init_out){
         
         return(permuted_matrices)
       }
-      bm2<-lapply(bm1, permute_matrix)
-      
+   #   bm2<-lapply(bm1, permute_matrix)
+    bm2<-list()
+   #   print(length(seeds))
+      for (i in 1:length(seeds)){
+        bm2[[i]]<-permute_matrix(bm1[[i]])
+      }  
       
       
       bm_base<-plogis(block_models[[1]])
