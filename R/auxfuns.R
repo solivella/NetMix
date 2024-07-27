@@ -621,9 +621,13 @@ find_best_init<-function(init_out){
      # bm2<-lapply(bm1, permute_matrix)
       bm2<-list()
    #   print(length(seeds))
+ #  print("starting problematic chunck")
+ #  print(length(seeds))
+ #  print(length(bm1))
       for (i in 1:length(seeds)){
         bm2[[i]]<-permute_matrix(bm1[[i]])
       }
+   #   print("end problematic chunck")
    #   print("finished bm2 step")
    #   print(bm2)
       
@@ -769,10 +773,13 @@ find_best_init<-function(init_out){
    #   bm2<-lapply(bm1, permute_matrix)
     bm2<-list()
    #   print(length(seeds))
-      for (i in 1:length(seeds)){
+   #print("starting second problematic chunck")
+  # print(length(seeds))
+  # print(length(bm1))
+      for (i in 1:periods){
         bm2[[i]]<-permute_matrix(bm1[[i]])
       }  
-      
+   #   print("end second problematic chunck")
       
       bm_base<-plogis(block_models[[1]])
       #bm_base<-matrix((c(0.9, 0.2, 0.05, 0.35)), ncol = 2) #if want to use the truth
