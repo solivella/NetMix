@@ -549,11 +549,13 @@ mmsbm <- function(formula.dyad,
       nodes1 <- nodes2 <- unique(unlist(dyad_mat[,c("(sid)","(rid)")]))
       nnode1 <- nnode2 <- length(nodes1)
     }
+    print("starting mmsbm line 552")
     adj_mat <- matrix(NA,
                       nnode1,
                       nnode2,
                       dimnames = list(nodes1,
                                       nodes2))
+     print("end mmsbm line 552")
     indeces <- as.matrix(dyad_mat[,c("(sid)","(rid)")])
     index <- cbind(match(indeces[,1],rownames(adj_mat)),match(indeces[,2],colnames(adj_mat)))
     adj_mat[index] <- dyad_mat[,y_var] 
@@ -882,6 +884,7 @@ mmsbm <- function(formula.dyad,
     ## for monadic coefficients
     # kappa_mat1 <- t(fit[["Kappa"]][,t_id_n1+1, drop=FALSE])
     # all_phi1 <- (fit[["CountMatrix1"]])
+    print("start vcov_monad1")
     fit$vcov_monad1 <- .vcovBeta(fit[["MonadCoef1"]],
                                  tot_nodes = fit[["TotNodes1"]],
                                  c_t=t(fit[["CountMatrix1"]]),
@@ -890,7 +893,7 @@ mmsbm <- function(formula.dyad,
                                  t_id=t_id_n1,
                                  var_beta=ctrl$var_beta1,
                                  mu_beta=ctrl$mu_beta1)
-    
+    print("finished vcov_monad1")
     if(bipartite){
       # kappa_mat2 <- t(fit[["Kappa"]][,t_id_n2+1, drop=FALSE])
       # all_phi2 <- (fit[["CountMatrix2"]])
