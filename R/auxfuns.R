@@ -556,7 +556,7 @@
         m_s_list<-list()
 
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = Y~1 #var1,
+          m_s<-mmsbm(formula.dyad = Y~1, #var1,
                      formula.monad = list(~VarS1+ VarS2 + VarS3 + VarS4 + VarS5 + VarS6 + 
                      VarS7 + VarS8+VarS9+VarS10,
                       ~VarB1+VarB2 + VarB3 + VarB4 + VarB5 + VarB6),
