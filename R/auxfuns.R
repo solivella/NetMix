@@ -473,7 +473,7 @@
         
         for (s in seeds){
           m_s<-mmsbm(formula.dyad = Y~ 1,#var1,
-                     formula.monad = list(~VarS1+ VarS2 + VarS3 + VarS4 + VarS5 + VarS6 ,
+                     formula.monad = list(~VarS1+ VarS2 + VarS3 + VarS4 + VarS5 + VarS6 +VarS7+VarS8+VarS10,
                       ~VarB1+VarB2 + VarB3 + VarB4 + VarB5 + VarB6),
                      timeID="year",
                      senderID = "id1",
@@ -486,7 +486,7 @@
                      mmsbm.control = list(verbose = TRUE,
                                           threads=1,
                                           svi = TRUE,
-                                          vi_iter = 5000,
+                                          vi_iter = 10000,
                                        #   batch_size = 1.0,
                                           conv_tol = 1e-3,
                                           mu_gamma = ctrl[["mu_gamma"]],
@@ -556,7 +556,7 @@
 
         for (s in seeds){
           m_s<-mmsbm(formula.dyad = Y~1, #var1,
-                     formula.monad = list(~VarS1+ VarS2 + VarS3 + VarS4 + VarS5 + VarS6 ,
+                     formula.monad = list(~VarS1+ VarS2 + VarS3 + VarS4 + VarS5 + VarS6 +VarS7+VarS8+VarS10,
                       ~VarB1+VarB2 + VarB3 + VarB4 + VarB5 + VarB6),
                      timeID="year",
                      senderID = "id1",
@@ -569,7 +569,7 @@
                      mmsbm.control = list(verbose = TRUE,
                                           threads=1,
                                           svi = TRUE,
-                                          vi_iter = 5000,
+                                          vi_iter = 10000,
                                         #  batch_size = 1.0,
                                           conv_tol = 1e-3,
                                           mu_gamma = ctrl[["mu_gamma"]],
