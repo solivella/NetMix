@@ -474,7 +474,7 @@
         for (s in seeds){
           m_s<-mmsbm(formula.dyad = Y~ 1,#var1,
                      formula.monad = list(~VarS1+ VarS2 + VarS3 + VarS4+ VarS5 + VarS6 +VarS7+VarS8,
-                      ~VarB1+VarB2 + VarB3 + VarB4 + VarB5 + VarB6),
+                      ~VarB1+VarB2 + VarB3 + VarB4 + VarB5 + VarB6+VarB7),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
@@ -557,7 +557,7 @@
         for (s in seeds){
           m_s<-mmsbm(formula.dyad = Y~1, #var1,
                      formula.monad = list(~VarS1+ VarS2 + VarS3 + VarS4+ VarS5 + VarS6 +VarS7+VarS8,
-                      ~VarB1+VarB2 + VarB3 + VarB4 + VarB5 + VarB6),
+                      ~VarB1+VarB2 + VarB3 + VarB4 + VarB5 + VarB6+VarB7),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
