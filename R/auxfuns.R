@@ -322,36 +322,106 @@
 }
 
 #' @rdname auxfuns
-.vcovBeta <- function(beta_coef,tot_nodes, c_t, x_t,s_mat,t_id,var_beta,mu_beta){
-  print("start tmp in line 326 auxfuns")
-  tmp <- alphaLBound(c(beta_coef),
-                     tot_nodes,
-                     c_t,
-                     x_t,
-                     s_mat,
-                     t_id,
-                     var_beta,
-                     mu_beta)
-  print("end tmp in line 326 auxfuns")
-  vcov_monad <- as.matrix(Matrix::nearPD(solve(-attr(tmp, "hessian")))$mat)
-  print("start colnames(vcov_monad)")
-   cat("ncol (cov_monad)", ncol(vcov_monad), "\n")
-   cat("nrow (cov_monad)", nrow(vcov_monad), "\n")
-   cat("cov_monad", vcov_monad, "\n")
-   cat("dim(beta_coef)",dim(beta_coef),"\n")
-   cat("(beta_coef)",beta_coef,"\n")
-   names_344<-paste(rep(paste("State",1:dim(beta_coef)[3]), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
-                                                        rep(colnames(beta_coef), each = nrow(beta_coef), times = dim(beta_coef)[3]),#beta_coef used to be fbeta_coef??
-                                                        rep(rownames(beta_coef), times = prod(dim(beta_coef)[2:3])),
+#.vcovBeta <- function(beta_coef,tot_nodes, c_t, x_t,s_mat,t_id,var_beta,mu_beta){
+ # print("start tmp in line 326 auxfuns")
+ # tmp <- alphaLBound(c(beta_coef),
+ #                    tot_nodes,
+ #                    c_t,
+ #                    x_t,
+ #                    s_mat,
+ #                    t_id,
+ #                    var_beta,
+#                     mu_beta)
+#  print("end tmp in line 326 auxfuns")
+ # cat("tmp:", attr(tmp, "hessian"), "\n")
+ # cat("dim tmp:", dim(attr(tmp, "hessian")), "\n")
+ # vcov_monad <- as.matrix(Matrix::nearPD(solve(-attr(tmp, "hessian")))$mat)
+ # print("start colnames(vcov_monad)")
+ #  cat("ncol (cov_monad)", ncol(vcov_monad), "\n")
+ #  cat("nrow (cov_monad)", nrow(vcov_monad), "\n")
+ #  cat("cov_monad", vcov_monad, "\n")
+ #  cat("dim(beta_coef)",dim(beta_coef),"\n")
+ #  cat("(beta_coef)",beta_coef,"\n")
+ #  names_344<-paste(rep(paste("State",1:dim(beta_coef)[3]), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
+ #                                                       rep(colnames(beta_coef), each = nrow(beta_coef), times = dim(beta_coef)[3]),#beta_coef used to be fbeta_coef??
+ #                                                       rep(rownames(beta_coef), times = prod(dim(beta_coef)[2:3])),
+ #                                                       sep=":")
+ # cat("names_344",names_344,"\n")
+ # colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:dim(beta_coef)[3]), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
+#                                                        rep(colnames(beta_coef), each = nrow(beta_coef), times = dim(beta_coef)[3]),#beta_coef used to be fbeta_coef??
+ #                                                       rep(rownames(beta_coef), times = prod(dim(beta_coef)[2:3])),
+ #                                                       sep=":")
+# print("end colnames(vcov_monad)")
+ # return(as.matrix(vcov_monad))
+#}
+
+.vcovBeta <- function(all_phi, beta_coef, n.sim, n.blk, n.hmm, n.nodes, n.periods,
+                      mu.beta, var.beta, est_kappa, t_id_n, X){
+  sampleC_perm <- do.call(rbind,
+                          lapply(all_phi,
+                         function(mat){
+                           apply(mat, 2, function(vec)poisbinom::rpoisbinom(n.sim, vec))
+                         })) 
+  print("finished sampleC_perm")
+  C_samples <- split.data.frame(sampleC_perm, rep(1:n.sim, times = length(all_phi)))
+  print("finished C_samples")
+  S_samples <- replicate(n.sim, apply(est_kappa, 2, function(x)sample(1:n.hmm, 1, prob = x)), simplify = FALSE)
+  print("finished S_samples")
+  hessBeta_list <- mapply(
+    function(C_samp, S_samp, tidn, X_i, Nvec, beta_vec, vbeta, mbeta, periods)
+    {
+      if(n.hmm > 1) {
+        s_matrix <- t(model.matrix(~factor(S_samp, 1:n.hmm) - 1))
+      } else {
+        s_matrix <- matrix(1, ncol=periods)
+      }
+      print("finished S_matrix")
+      tot_in_state <- rowSums(s_matrix)
+      cat("tot_in_state: ",tot_in_state,"\n")
+      if(any(tot_in_state == 0.0)){
+        which_empty_s <- which(tot_in_state < 1.0)
+        
+        warning("Some HMM states are empty; no standard errors will be returned for coefficients associated with them.")
+      }  
+       print("start running  hess_tmp")
+      hess_tmp <- optimHess(c(beta_vec),alphaLBound,alphaGrad,
+                            tot_nodes = Nvec,
+                            c_t = t(C_samp),
+                            x_t = t(X_i),
+                            s_mat = s_matrix,
+                            t_id = tidn,
+                            var_beta = vbeta,
+                            mu_beta = mbeta)
+      print("finished hess_tmp")
+      vc_tmp <- Matrix::forceSymmetric(solve(hess_tmp))
+      print("finished vc_tmp")
+      ev <- eigen(vc_tmp)$value
+      print("finished ev")
+      if(any(ev<0)){
+        vc_tmp <- vc_tmp - diag(min(ev)-1e-4, ncol(vc_tmp))
+      }
+      ch_vc <- chol(vc_tmp)
+      print("finished ch_vc")
+      return(t(ch_vc) %*% ch_vc)
+    },
+    C_samples, S_samples,
+    MoreArgs = list(tidn = t_id_n,
+                    X_i = X,
+                    Nvec = n.nodes,
+                    beta_vec = beta_coef, 
+                    vbeta = var.beta, 
+                    mbeta = mu.beta,
+                    periods = n.periods),
+    SIMPLIFY=FALSE)
+  vcov_monad <- Reduce("+", hessBeta_list)/n.sim
+  
+  colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:n.hmm), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
+                                                        rep(colnames(beta_coef), each = nrow(beta_coef), times = n.hmm),#beta_coef used to be fbeta_coef??
+                                                        rep(rownames(beta_coef), times = n.blk*n.hmm),
                                                         sep=":")
-  cat("names_344",names_344,"\n")
-  colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:dim(beta_coef)[3]), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
-                                                        rep(colnames(beta_coef), each = nrow(beta_coef), times = dim(beta_coef)[3]),#beta_coef used to be fbeta_coef??
-                                                        rep(rownames(beta_coef), times = prod(dim(beta_coef)[2:3])),
-                                                        sep=":")
- print("end colnames(vcov_monad)")
-  return(as.matrix(vcov_monad))
+  return(vcov_monad)
 }
+
 
 
 #' @rdname auxfuns
@@ -472,9 +542,8 @@
         init_seed_i<-seeds 
         
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = Y~ 1,#var1,
-                     formula.monad = list(~VarS1+ VarS2 + VarS3 + VarS4+ VarS5 + VarS6 +VarS7+VarS8,
-                      ~VarB1+VarB2 + VarB3 + VarB4 + VarB5 + VarB6+VarB7),
+          m_s<-mmsbm(formula.dyad = Y~ var1,
+                     formula.monad = list(~VarS1, ~VarB1),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
@@ -555,9 +624,9 @@
         m_s_list<-list()
 
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = Y~1, #var1,
-                     formula.monad = list(~VarS1+ VarS2 + VarS3 + VarS4+ VarS5 + VarS6 +VarS7+VarS8,
-                      ~VarB1+VarB2 + VarB3 + VarB4 + VarB5 + VarB6+VarB7),
+          m_s<-mmsbm(formula.dyad = Y~var1,
+                     formula.monad = list(~VarS1,
+                      ~VarB1),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
@@ -716,12 +785,16 @@ find_best_init<-function(init_out){
 
              return(list(best_init_bm,dist,best_init_id))
 }
-
+        if(moretimes==TRUE){
 #        m<-best_model
           out3<-find_best_init(init_bm_i)
         #  print("out3:")
          # print(out3)
-          bestid<-out3[[3]]
+          bestid<-out3[[3]]}
+          else{
+            bestid<-1
+          }
+
           m<-m_s_list[bestid] #best init model (before realignment)
         #  print(bestid)
           m<-m[[1]] #now a list object
@@ -738,9 +811,9 @@ find_best_init<-function(init_out){
         init_niter<-append(init_niter,list(init_niter_i))
         init_bm<-append(init_bm,list(init_bm_i))
         init_seed<-append(init_seed,list(init_seed_i))
-
+       if(moretimes==TRUE){
         init_distance<-append(init_distance,list(out3[[2]]))
-        init_distance_best<-append(init_distance_best,list(out3[[3]]))
+        init_distance_best<-append(init_distance_best,list(out3[[3]]))}
 
         #PredS = matrix(c(t(m$MixedMembership1)),nrow=2,byrow=T)
         #PredB = matrix(c(t(m$MixedMembership2)),nrow=2,byrow = T)

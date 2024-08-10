@@ -885,27 +885,42 @@ mmsbm <- function(formula.dyad,
     # kappa_mat1 <- t(fit[["Kappa"]][,t_id_n1+1, drop=FALSE])
     # all_phi1 <- (fit[["CountMatrix1"]])
     print("start vcov_monad1")
-    fit$vcov_monad1 <- .vcovBeta(fit[["MonadCoef1"]],
-                                 tot_nodes = fit[["TotNodes1"]],
-                                 c_t=t(fit[["CountMatrix1"]]),
-                                 x_t=t(X1),
-                                 s_mat=fit[["Kappa"]],
-                                 t_id=t_id_n1,
-                                 var_beta=ctrl$var_beta1,
-                                 mu_beta=ctrl$mu_beta1)
+   # fit$vcov_monad1 <- .vcovBeta(fit[["MonadCoef1"]],
+   #                              tot_nodes = fit[["TotNodes1"]],
+    #                             c_t=t(fit[["CountMatrix1"]]),
+    #                             x_t=t(X1),
+    #                             s_mat=fit[["Kappa"]],
+    #                             t_id=t_id_n1,
+    #                             var_beta=ctrl$var_beta1,
+    #                             mu_beta=ctrl$mu_beta1)
+
+   ## Compute approximate standard errors
+    ## for monadic coefficients
+    all_phi <- split.data.frame(rbind(t(fit[["SenderPhi"]]),
+                                         t(fit[["ReceiverPhi"]])),
+                                   c(nt_id))
+    print("finished calculating all_phi")
+    fit$vcov_monad1 <- .vcovBeta(all_phi, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1],
+                                 n.hmmstates, fit[["TotNodes1"]], periods,
+                                 ctrl$mu_beta1, ctrl$var_beta1, fit[["Kappa"]], t_id_n1, X1) 
     print("finished vcov_monad1")
     if(bipartite){
       # kappa_mat2 <- t(fit[["Kappa"]][,t_id_n2+1, drop=FALSE])
       # all_phi2 <- (fit[["CountMatrix2"]])
-      fit$vcov_monad2 <- .vcovBeta(fit[["MonadCoef2"]],
-                                   tot_nodes = fit[["TotNodes2"]],
-                                   c_t=t(fit[["CountMatrix2"]]),
-                                   x_t=t(X2),
-                                   s_mat=fit[["Kappa"]],
-                                   t_id=t_id_n2,
-                                   var_beta=ctrl$var_beta2,
-                                   mu_beta=ctrl$mu_beta2)
-      
+    
+    #  fit$vcov_monad2 <- .vcovBeta(fit[["MonadCoef2"]],
+    #                               tot_nodes = fit[["TotNodes2"]],
+    #                               c_t=t(fit[["CountMatrix2"]]),
+    #                               x_t=t(X2),
+    #                               s_mat=fit[["Kappa"]],
+    #                               t_id=t_id_n2,
+    #                               var_beta=ctrl$var_beta2,
+    #                               mu_beta=ctrl$mu_beta2)
+
+     fit$vcov_monad2 <- .vcovBeta(all_phi, fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
+                                 n.hmmstates, fit[["TotNodes2"]], periods,
+                                 ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n1, X2) 
+      print("finished vcov_monad2")
     } 
     
     ## and for dyadic coefficients
@@ -916,12 +931,15 @@ mmsbm <- function(formula.dyad,
       if(bipartite){
         w_map <- apply(fit[["MixedMembership2"]], 2, which.max)
       }
+      cat("w_map:",w_map,"\n")
       hessTheta_list <- lapply(1,
                                function(i, eta, z, w, B, ind){
                                  offset_bm <- B[cbind(z_map[ind[,1]], w_map[ind[,2]])]
                                  pred_edges <- plogis(offset_bm + eta)
                                  return(vcovGamma_ext(Z, pred_edges, c(ctrl$var_gamma)))
                                }, eta = edge_eta, z=z_samples, w=w_samples, B=fit[["BlockModel"]], ind = as.matrix(mfd[,c("(sid)","(rid)")]))
+                              
+      print(hessTheta_list)
       fit$vcov_dyad <- as.matrix(hessTheta_list[[1]])
       colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
     }
