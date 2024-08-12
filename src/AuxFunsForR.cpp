@@ -66,12 +66,19 @@ arma::mat vcovGamma_ext(const arma::mat& X,
   arma::uword N_PRED = X.n_cols;
   arma::mat hess(N_PRED, N_PRED, arma::fill::zeros);
   arma::vec d_elem = probs % (1.0 - probs);
+ // Rcpp::Rcout << "start running loop dc/dr,N_PRED=" << N_PRED <<  std::endl;
   for(arma::uword dc = 0; dc < N_PRED; ++dc){
     for(arma::uword dr = dc; dr < N_PRED; ++dr){
       hess(dr, dc) = -arma::dot(X.col(dr),(d_elem % X.col(dc)));
       hess(dc, dr) = hess(dr, dc);
+   //   Rcpp::Rcout << "dr=" << dr <<  std::endl;
+  //    Rcpp::Rcout << "dc=" << dc <<  std::endl;
+  //    Rcpp::Rcout << "X.col(dc)=" << X.col(dc) <<  std::endl;
+  //    Rcpp::Rcout << "X.col(dr)=" << X.col(dr) <<  std::endl;
+  //    Rcpp::Rcout << "d_elem=" << d_elem <<  std::endl;
     }
   }
+//  Rcpp::Rcout << "finished running loop dc/dr,hess=" << hess <<  std::endl;
   hess.diag() -= (1.0) / pen;
   return (-hess).i();
 }

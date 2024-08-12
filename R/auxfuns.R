@@ -362,11 +362,11 @@
                          function(mat){
                            apply(mat, 2, function(vec)poisbinom::rpoisbinom(n.sim, vec))
                          })) 
-  print("finished sampleC_perm")
+ # print("finished sampleC_perm")
   C_samples <- split.data.frame(sampleC_perm, rep(1:n.sim, times = length(all_phi)))
-  print("finished C_samples")
+ # print("finished C_samples")
   S_samples <- replicate(n.sim, apply(est_kappa, 2, function(x)sample(1:n.hmm, 1, prob = x)), simplify = FALSE)
-  print("finished S_samples")
+ # print("finished S_samples")
   hessBeta_list <- mapply(
     function(C_samp, S_samp, tidn, X_i, Nvec, beta_vec, vbeta, mbeta, periods)
     {
@@ -377,13 +377,13 @@
       }
       print("finished S_matrix")
       tot_in_state <- rowSums(s_matrix)
-      cat("tot_in_state: ",tot_in_state,"\n")
+     # cat("tot_in_state: ",tot_in_state,"\n")
       if(any(tot_in_state == 0.0)){
         which_empty_s <- which(tot_in_state < 1.0)
         
         warning("Some HMM states are empty; no standard errors will be returned for coefficients associated with them.")
       }  
-       print("start running  hess_tmp")
+    #   print("start running  hess_tmp")
       hess_tmp <- optimHess(c(beta_vec),alphaLBound,alphaGrad,
                             tot_nodes = Nvec,
                             c_t = t(C_samp),
@@ -392,16 +392,16 @@
                             t_id = tidn,
                             var_beta = vbeta,
                             mu_beta = mbeta)
-      print("finished hess_tmp")
+    #  print("finished hess_tmp")
       vc_tmp <- Matrix::forceSymmetric(solve(hess_tmp))
-      print("finished vc_tmp")
+    #  print("finished vc_tmp")
       ev <- eigen(vc_tmp)$value
-      print("finished ev")
+    #  print("finished ev")
       if(any(ev<0)){
         vc_tmp <- vc_tmp - diag(min(ev)-1e-4, ncol(vc_tmp))
       }
       ch_vc <- chol(vc_tmp)
-      print("finished ch_vc")
+    #  print("finished ch_vc")
       return(t(ch_vc) %*% ch_vc)
     },
     C_samples, S_samples,
