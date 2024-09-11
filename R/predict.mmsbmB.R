@@ -172,6 +172,7 @@ predict.mmsbmB <- function(object,
   #Produce p1, p2
   
   if(forecast){
+    if(!(tid %in% colnames(monad1))){tid <- "(tid)"}
     ts1 <- unique(monad1[,tid])
     ts2 <- unique(monad2[,tid])
     new_kappa <- as.matrix(object$Kappa[,ncol(object$Kappa)] %*% .mpower(object$TransitionKernel, forecast))
@@ -187,15 +188,15 @@ predict.mmsbmB <- function(object,
     p1 <- .e.pi(alpha1, new_kappa1, C_mat1)
     p2 <- .e.pi(alpha2, new_kappa2, C_mat2)
   } else {
-    #if(!(tid %in% colnames(monad1))){tid <- "(tid)"}
+    if(!(tid %in% colnames(monad1))){tid <- "(tid)"}
     p1 <- vapply(seq.int(length(alpha1)),
                  function(x){
-                   .e.pi(alpha1[[1]], object$Kappa[,as.character(monad1[,tid])], C_mat1)
+                   .e.pi(alpha1[[1]], object$Kappa[,unlist(as.vector(monad1[,tid]))], C_mat1)
                  },
                  array(0, dim(alpha1[[1]][[1]]), dimnames = dimnames(alpha1[[1]][[1]])))
     p2 <- vapply(seq.int(length(alpha2)),
                  function(x){
-                   .e.pi(alpha2[[1]], object$Kappa[,as.character(monad2[,tid])], C_mat2)
+                   .e.pi(alpha2[[1]], object$Kappa[,unlist(as.vector(monad2[,tid]))], C_mat2)
                  },
                  array(0, dim(alpha2[[1]][[1]]), dimnames = dimnames(alpha2[[1]][[1]])))
   }
@@ -214,6 +215,7 @@ predict.mmsbmB <- function(object,
     s_ind <- match(paste(dyad[,tmp_sid],dyad[,tmp_tid],sep="@"), 
                    paste(monad1[,nid1],monad1[,temp_tid],sep="@"))
   }else{
+    monad1 <- as.data.frame(monad1)
     s_ind <- match(paste(dyad[,tmp_sid],dyad[,tmp_tid],sep="@"), 
                    paste(monad1[,nid1],monad1[,tid1],sep="@"))
   }
@@ -223,6 +225,7 @@ predict.mmsbmB <- function(object,
     r_ind <- match(paste(dyad[,tmp_rid],dyad[,tmp_tid],sep="@"), 
                    paste(monad2[,nid2],monad2[,temp_tid],sep="@"))
   }else{
+    monad2 <- as.data.frame(monad2)
     r_ind <- match(paste(dyad[,tmp_rid],dyad[,tmp_tid],sep="@"), 
                    paste(monad2[,nid2],monad2[,tid2],sep="@"))
   }
