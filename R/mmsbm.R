@@ -620,6 +620,10 @@ mmsbm <- function(formula.dyad,
     mm_init[[2]]<-ctrl$mm_init_t2
   }
   
+  ## Initizalize beta with dirichlet regression
+  library(DirichletReg)
+  
+
   
   ##Initial gamma
   if(is.null(ctrl$gamma_init)){
@@ -644,6 +648,7 @@ mmsbm <- function(formula.dyad,
   
   
   ##Initial Beta 1
+  if(periods==1){
   if(is.null(ctrl$beta1_init)){
     #  print(paste0("this is year: ",unique(data.dyad[[timeID]])))
     beta_easy = list(array(c(0.05, -0.75, ##Intercepts
@@ -677,6 +682,43 @@ mmsbm <- function(formula.dyad,
     
     
     # new_beta1<-ctrl$beta1_init
+  }}else{
+  # Senators
+  # State 1
+  mm_S<-t(mm_init[[1]])
+  monad_S<-netSim[["df_monad_S"]]
+  df_S<-cbind(mm_S,monad_S)
+  df_S<-df_S%>%select(1,2,VarS1)
+  df_S<-df_S%>%rename(prop1=1,prop2=2)%>%
+  mutate(Intercept=1)
+  df_S_1<-df_S[1:2500,]
+  #df_S_1<-df_S[c(1:400,501:2200,2301:2500),] #out3 adjusted
+
+  df_S_1$composition <- DR_data(df_S_1[, c("prop1", "prop2")])
+  model_S1 <- DirichReg(composition ~VarS1, data = df_S_1)
+  coef_s1_g1<-coef(model_S1)[1]
+  coef_s1_g2<-coef(model_S1)[2]
+
+  # State 2
+  df_S_2<-df_S[2501:5000,]
+  #df_S_1<-df_S[c(1:400,501:2200,2301:2500),] #out3 adjusted
+
+  df_S_2$composition <- DR_data(df_S_2[, c("prop1", "prop2")])
+  model_S2 <- DirichReg(composition ~VarS1, data = df_S_2)
+  coef_s2_g1<-coef(model_S2)[1]
+  coef_s2_g2<-coef(model_S2)[2]
+
+beta_init_S<-array(c(coef_s1_g1[[1]][1], coef_s1_g1[[1]][2], ##Intercepts
+                       
+                         coef_s1_g2[[1]][1], coef_s1_g2[[1]][2],
+
+                        coef_s2_g1[[1]][1], coef_s2_g1[[1]][2], ##Intercepts
+                       
+                         coef_s2_g2[[1]][1], coef_s2_g2[[1]][2]), ## Predictor coefficients
+                      c(2, 2, 2)
+)
+
+ctrl$beta1_init<-beta_init_S
   }
   
   #cat("ori_beta1\n")
@@ -686,6 +728,7 @@ mmsbm <- function(formula.dyad,
   
   
   ##Initial Beta 2
+  if(periods==1){
   if(bipartite){
     #   beta_easy = list(array(c(0.05, -0.75, ##Intercepts
     #                             0.75, -1.0), ## Predictor coefficients
@@ -721,6 +764,46 @@ mmsbm <- function(formula.dyad,
     }
     
     new_beta2<-ctrl$beta2_init
+  }}else{
+
+  
+
+# Bills
+  # State 1
+  mm_B<-t(mm_init[[2]])
+  monad_B<-netSim[["df_monad_B"]]
+  df_B<-cbind(mm_B,monad_B)
+  df_B<-df_B%>%select(1,2,VarB1)
+  df_B<-df_B%>%rename(prop1=1,prop2=2)%>%
+  mutate(Intercept=1)
+  df_B_1<-df_B[1:2500,]
+  #df_S_1<-df_S[c(1:400,501:2200,2301:2500),] #out3 adjusted
+
+  df_B_1$composition <- DR_data(df_B_1[, c("prop1", "prop2")])
+  model_B1 <- DirichReg(composition ~VarB1, data = df_B_1)
+  coef_b1_g1<-coef(model_B1)[1]
+  coef_b1_g2<-coef(model_B1)[2]
+
+  # State 2
+  df_B_2<-df_B[2501:5000,]
+  #df_S_1<-df_S[c(1:400,501:2200,2301:2500),] #out3 adjusted
+
+  df_B_2$composition <- DR_data(df_B_2[, c("prop1", "prop2")])
+  model_B2 <- DirichReg(composition ~VarB1, data = df_B_2)
+  coef_b2_g1<-coef(model_B2)[1]
+  coef_b2_g2<-coef(model_B2)[2]
+
+beta_init_B<-array(c(coef_b1_g1[[1]][1], coef_b1_g1[[1]][2], ##Intercepts
+                       
+                         coef_b1_g2[[1]][1], coef_b1_g2[[1]][2],
+
+                        coef_b2_g1[[1]][1], coef_b2_g1[[1]][2], ##Intercepts
+                       
+                         coef_b2_g2[[1]][1], coef_b2_g2[[1]][2]), ## Predictor coefficients
+                      c(2, 2, 2)
+)
+  
+    ctrl$beta2_init<-beta_init_B
   }
   
   #cat("ori_beta2\n")
