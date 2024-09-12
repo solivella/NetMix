@@ -1099,6 +1099,8 @@ beta_init_B<-array(c(coef_b1_g1[[1]][1], coef_b1_g1[[1]][2], ##Intercepts
   fit$init_seed_best<-init_seed_best
   fit$init_distance_best<-init_distance_best
   fit$init_distance<-init_distance
+  fit$beta1_init<-ctrl$beta1_init
+  fit$beta2_init<-ctrl$beta2_init
 
 
 
