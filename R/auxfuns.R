@@ -474,7 +474,7 @@
                     moretimes,
                     fp5times,
                     dyads_pp,
-                    n.blocks, periods, directed, ctrl,netSim){
+                    n.blocks, periods, directed, ctrl,data.dyad,data.monad){
   res <- vector("list", 2L)
   init_lb<-list()
   init_niter<-list()
@@ -520,9 +520,10 @@
       out2<-vector("list",length=periods)
       for (i in c(1)){
         cat("Now running year:", i, "\n")
-        dy<-netSim[["df_dyad_1"]]%>%filter(year==i)
-        sdf<-netSim[["df_monad_S"]]%>%filter(year==i)
-        bdf<-netSim[["df_monad_B"]]%>%filter(year==i)
+       # dy<-netSim[["df_dyad_1"]]%>%filter(year==i)
+       dy<-data.dyad%>%filter(year==i)
+        sdf<-data.monad[[1]]%>%filter(year==i)
+        bdf<-data.monad[[2]]>%filter(year==i)
         
         seeds<-c(sample(100:9999, 1)) #run 5 times
         if(fp5times){
@@ -543,7 +544,8 @@
         
         for (s in seeds){
           m_s<-mmsbm(formula.dyad = Y~ var1,
-                     formula.monad = list(~VarS1, ~VarB1),
+                     formula.monad = list(~VarS1, 
+                     ~VarB1),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
@@ -604,9 +606,9 @@
       
       for (i in 2:periods){
         cat("Now running year:", i, "\n")
-        dy<-netSim[["df_dyad_1"]]%>%filter(year==i)
-        sdf<-netSim[["df_monad_S"]]%>%filter(year==i)
-        bdf<-netSim[["df_monad_B"]]%>%filter(year==i)
+        dy<-data.dyad%>%filter(year==i)
+        sdf<-data.monad[[1]]%>%filter(year==i)
+        bdf<-data.monad[[2]]>%filter(year==i)
         if (moretimes){
           seeds<-c(sample(100:9999, 5))} #run 5 times
         else{
@@ -625,8 +627,8 @@
 
         for (s in seeds){
           m_s<-mmsbm(formula.dyad = Y~var1,
-                     formula.monad = list(~VarS1,
-                      ~VarB1),
+                     formula.monad = list(~VarS1, 
+                     ~VarB1),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",

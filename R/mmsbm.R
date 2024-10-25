@@ -589,7 +589,7 @@ mmsbm <- function(formula.dyad,
                        fp5times,
                        realign,
                        dyads_pp,
-                       n.blocks, periods, directed, ctrl,netSim)
+                       n.blocks, periods, directed, ctrl,data.dyad,data.monad)
     init_lb<-mm_init[[2]]
     init_niter<-mm_init[[3]]
     init_lb_best<-mm_init[[4]]
