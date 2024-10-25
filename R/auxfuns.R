@@ -523,7 +523,7 @@
        # dy<-netSim[["df_dyad_1"]]%>%filter(year==i)
        dy<-data.dyad%>%filter(year==i)
         sdf<-data.monad[[1]]%>%filter(year==i)
-        bdf<-data.monad[[2]]>%filter(year==i)
+        bdf<-data.monad[[2]]%>%filter(year==i)
         
         seeds<-c(sample(100:9999, 1)) #run 5 times
         if(fp5times){
@@ -608,7 +608,7 @@
         cat("Now running year:", i, "\n")
         dy<-data.dyad%>%filter(year==i)
         sdf<-data.monad[[1]]%>%filter(year==i)
-        bdf<-data.monad[[2]]>%filter(year==i)
+        bdf<-data.monad[[2]]%>%filter(year==i)
         if (moretimes){
           seeds<-c(sample(100:9999, 5))} #run 5 times
         else{
