@@ -136,13 +136,17 @@ predict.mmsbmB <- function(object,
                      paste(c("~ .", rownames(object$MonadCoef2)[grep("missing", rownames(object$MonadCoef2))]), collapse=" + "))
   }
   if(is.null(mform1)){
+    monad1 <- monad1 %>% mutate_all(~replace(., is.na(.), 0)) 
     X1_m <- model.matrix(~ 1, data = monad1)
   } else {
+    monad1 <- monad1 %>% mutate_all(~replace(., is.na(.), 0)) #make sure eval do not make X1_m shorter
     X1_m <- model.matrix(eval(mform1), monad1)
   }
   if(is.null(mform2)){
+    monad2 <- monad2 %>% mutate_all(~replace(., is.na(.), 0))
     X2_m <- model.matrix(~ 1, data = monad2)
   } else {
+    monad2 <- monad2 %>% mutate_all(~replace(., is.na(.), 0)) #make sure eval do not make X2_m shorter
     X2_m <- model.matrix(eval(mform2), monad2)
   }
   if(samples==1){
@@ -172,13 +176,17 @@ predict.mmsbmB <- function(object,
   #Produce p1, p2
   
   if(forecast){
+    if(!(tid %in% colnames(monad1))){tid <- "(tid)"}
     ts1 <- unique(monad1[,tid])
     ts2 <- unique(monad2[,tid])
     new_kappa <- as.matrix(object$Kappa[,ncol(object$Kappa)] %*% .mpower(object$TransitionKernel, forecast))
     new_kappa1 <- matrix(new_kappa, nrow=ncol(new_kappa), ncol=nrow(monad1[monad1[,tid]==ts1[1],]),byrow=FALSE)
     new_kappa2 <- matrix(new_kappa, nrow=ncol(new_kappa), ncol=nrow(monad2[monad2[,tid]==ts2[1],]),byrow=FALSE)
-    if(length(ts) > 1){
-      for(t in 2:length(ts)){
+    if(length(ts1) > 1 | length(ts2) > 1){
+      if(length(ts1) != length(ts2)){
+        stop("nodes in family 1 and family 2 do not have the same time period(s)")
+      }
+      for(t in 2:length(ts1)){
         new_kappa <- rbind(new_kappa, new_kappa[t-1,] %*% .mpower(object$TransitionKernel, forecast))
         new_kappa1 <- cbind(new_kappa1, matrix(new_kappa[t,], nrow=ncol(new_kappa), ncol=nrow(monad1[monad1[,tid]==ts1[t],]),byrow=FALSE))
         new_kappa2 <- cbind(new_kappa2, matrix(new_kappa[t,], nrow=ncol(new_kappa), ncol=nrow(monad2[monad2[,tid]==ts2[t],]),byrow=FALSE))
@@ -186,16 +194,19 @@ predict.mmsbmB <- function(object,
     }
     p1 <- .e.pi(alpha1, new_kappa1, C_mat1)
     p2 <- .e.pi(alpha2, new_kappa2, C_mat2)
+
+    p1 <- array(as.numeric(unlist(p1)), dim = c(n_blk1, ncol(p1), 1))
+    p2 <- array(as.numeric(unlist(p2)), dim = c(n_blk2, ncol(p2), 1))
   } else {
     #if(!(tid %in% colnames(monad1))){tid <- "(tid)"}
     p1 <- vapply(seq.int(length(alpha1)),
            function(x){
-             .e.pi(alpha1[[1]], object$Kappa[,as.character(monad1[,tid])], C_mat1)
+             .e.pi(alpha1[[1]], object$Kappa[,unlist(as.vector(monad1[,tid]))], C_mat1)
            },
            array(0, dim(alpha1[[1]][[1]]), dimnames = dimnames(alpha1[[1]][[1]])))
     p2 <- vapply(seq.int(length(alpha2)),
                  function(x){
-                   .e.pi(alpha2[[1]], object$Kappa[,as.character(monad2[,tid])], C_mat2)
+                   .e.pi(alpha2[[1]], object$Kappa[,unlist(as.vector(monad2[,tid]))], C_mat2)
                  },
                  array(0, dim(alpha2[[1]][[1]]), dimnames = dimnames(alpha2[[1]][[1]])))
   }
@@ -214,6 +225,7 @@ predict.mmsbmB <- function(object,
     s_ind <- match(paste(dyad[,tmp_sid],dyad[,tmp_tid],sep="@"), 
                    paste(monad1[,nid1],monad1[,temp_tid],sep="@"))
   }else{
+    monad1 <- as.data.frame(monad1)
     s_ind <- match(paste(dyad[,tmp_sid],dyad[,tmp_tid],sep="@"), 
                    paste(monad1[,nid1],monad1[,tid1],sep="@"))
   }
@@ -223,6 +235,7 @@ predict.mmsbmB <- function(object,
     r_ind <- match(paste(dyad[,tmp_rid],dyad[,tmp_tid],sep="@"), 
                    paste(monad2[,nid2],monad2[,temp_tid],sep="@"))
   }else{
+  monad2 <- as.data.frame(monad2)
   r_ind <- match(paste(dyad[,tmp_rid],dyad[,tmp_tid],sep="@"), 
                  paste(monad2[,nid2],monad2[,tid2],sep="@"))
   }
