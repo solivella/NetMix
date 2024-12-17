@@ -95,6 +95,7 @@ arma::mat vcovBeta_ext(const arma::mat& X,
                    bool vcov = true) {
   arma::uword N_PRED = X.n_cols;
   arma::uword N_BLK = alpha.n_cols;
+  //arma::uword N_TIME = kappa.n_elem; //number of periods
   arma::mat hess(N_PRED*N_BLK, N_PRED*N_BLK, arma::fill::zeros);
   arma::mat di_alpha = alpha, tri_alpha = alpha;
   arma::mat di_alpha_c = alpha + c_mat, tri_alpha_c = alpha + c_mat;
@@ -110,6 +111,7 @@ arma::mat vcovBeta_ext(const arma::mat& X,
   tri_alpha_sum_n.for_each([](arma::vec::elem_type& val){ val=R::trigamma(val);});
   //arma::mat l_pi = log(pi_mat + 1e-6);
   arma::uword ind = 0;
+ // for (arma::uword time=0;time < N_TIME; ++time){
   for(arma::uword blkc = 0; blkc < N_BLK; ++blkc){
     for(arma::uword blkr = 0; blkr < N_BLK; ++blkr){
       for(arma::uword dc = 0; dc < N_PRED; ++dc){
@@ -128,6 +130,7 @@ arma::mat vcovBeta_ext(const arma::mat& X,
       } 
     }
   }
+  //}
   //hess = arma::symmatl(hess);
   hess.diag() -= (1.0) / pen;
   if(vcov){
@@ -200,6 +203,7 @@ Rcpp::NumericVector alphaLBound(arma::vec par,
   
   //Compute hess (only works for one hmm state for now)
   arma::vec allones(N_NODE, arma::fill::ones);
+  arma::uword N_TIME = t_id.n_elem;
   arma::mat hess = vcovBeta_ext(x_t.t(),
                                 c_t.t(),
                                 (alpha.slice(0)).t(),
@@ -207,6 +211,7 @@ Rcpp::NumericVector alphaLBound(arma::vec par,
                                 allones,
                                 arma::vectorise(var_beta.slice(0)),
                                 tot_nodes,
+                            //    N_time,
                                 false);
   
   Rcpp::NumericVector ret_obj(1);
@@ -233,7 +238,6 @@ arma::vec alphaGrad(arma::vec par,
     N_MONAD_PRED = x_t.n_rows,  N_STATE = s_mat.n_rows;
   double res=0.0, prior_gr=0.0, linpred = 0.0;
   arma::uword U_NPAR = par.n_elem;
-  
   arma::vec gr(U_NPAR, arma::fill::zeros);
   
   arma::cube alpha (N_BLK, N_NODE, N_STATE, arma::fill::zeros);

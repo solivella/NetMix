@@ -1002,7 +1002,7 @@ mmsbm <- function(formula.dyad,
 
      fit$vcov_monad2 <- .vcovBeta(all_phi, fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
                                  n.hmmstates, fit[["TotNodes2"]], periods,
-                                 ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n1, X2) 
+                                 ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2) 
    #   print("finished vcov_monad2")
     } 
     
