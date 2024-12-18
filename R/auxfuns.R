@@ -564,6 +564,8 @@
                                           var_gamma = ctrl[["var_gamma"]],
                                           var_beta=list(ctrl[["var_beta"]][[1]][,,1],
                                                         ctrl[["var_beta"]][[2]][,,1]),
+                                       mu_beta=list(ctrl[["mu_beta"]][[1]][,,1],
+                                                     ctrl[["mu_beta"]][[2]][,,1]),
                                           hessian = FALSE,
                                           seed=s))
           cat("Seed:", s, "\n")
@@ -624,6 +626,7 @@
         init_bm_i<-list()
         init_seed_i<-seeds 
         m_s_list<-list()
+        state_current<-ifelse(i<=25,1,2)
 
         for (s in seeds){
           m_s<-mmsbm(formula.dyad = Y~var1,
@@ -647,6 +650,8 @@
                                           var_gamma = ctrl[["var_gamma"]],
                                           var_beta=list(ctrl[["var_beta"]][[1]][,,1],
                                                         ctrl[["var_beta"]][[2]][,,1]),
+                                          mu_beta=list(ctrl[["mu_beta"]][[1]][,,state_current],
+                                                     ctrl[["mu_beta"]][[2]][,,state_current]),
                                           hessian = FALSE,
                                           seed=s))
           cat("Seed:", s, "\n")
