@@ -657,7 +657,7 @@ mmsbm <- function(formula.dyad,
                      array(c(-0.05, -0.75,
                              0.55, 0.75),
                            c(2, 2)))
-    prot <- array(.1, dim(ctrl$mu_beta1)[-3], dimnames=dimnames(ctrl$mu_beta1)[-3])
+    prot <- array(.1, dim(ctrl$mu_beta1), dimnames=dimnames(ctrl$mu_beta1))
     # print(paste0("state when initializing beta 1: ",n.hmmstates))
     ctrl$beta1_init <- vapply(seq.int(n.hmmstates),
                               function(m){
@@ -738,7 +738,7 @@ mmsbm <- function(formula.dyad,
     #                           c(2, 2)))
     
     if(is.null(ctrl$beta2_init)){
-      prot <- array(.1, dim(ctrl$mu_beta2)[-3], dimnames=dimnames(ctrl$mu_beta2)[-3])
+      prot <- array(.1, dim(ctrl$mu_beta2), dimnames=dimnames(ctrl$mu_beta2))
       #      print(paste0("state when initializing beta 2: ",n.hmmstates))
       ctrl$beta2_init <- vapply(seq.int(n.hmmstates),
                                 function(m){
