@@ -564,8 +564,8 @@
                                           var_gamma = ctrl[["var_gamma"]],
                                           var_beta=list(ctrl[["var_beta"]][[1]][,,1],
                                                         ctrl[["var_beta"]][[2]][,,1]),
-                                       mu_beta=list(ctrl[["mu_beta"]][[1]][,,1],
-                                                     ctrl[["mu_beta"]][[2]][,,1]),
+                                   #    mu_beta=list(ctrl[["mu_beta"]][[1]][,,1],
+                                            #         ctrl[["mu_beta"]][[2]][,,1]),
                                           hessian = FALSE,
                                           seed=s))
           cat("Seed:", s, "\n")
@@ -650,8 +650,8 @@
                                           var_gamma = ctrl[["var_gamma"]],
                                           var_beta=list(ctrl[["var_beta"]][[1]][,,1],
                                                         ctrl[["var_beta"]][[2]][,,1]),
-                                          mu_beta=list(ctrl[["mu_beta"]][[1]][,,state_current],
-                                                     ctrl[["mu_beta"]][[2]][,,state_current]),
+                                        #  mu_beta=list(ctrl[["mu_beta"]][[1]][,,state_current],
+                                           #          ctrl[["mu_beta"]][[2]][,,state_current]),
                                           hessian = FALSE,
                                           seed=s))
           cat("Seed:", s, "\n")
