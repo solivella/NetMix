@@ -29,7 +29,6 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
   }
   
   all_args <- list(...)
-  
   if(type=="groups"){
     require(igraph, quietly = TRUE)
     require(ggraph, quietly = TRUE)
@@ -52,39 +51,53 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
     if(x$bipartite){
       sizes <- c(rowMeans(x$`MixedMembership1`)*100, rowMeans(x$`MixedMembership2`)*100)
       dir <- 45
+      layout_name <- "bipartite"
     } else {
       sizes <- rowMeans(x$`MixedMembership1`)*100
-      dir <- seq(30, 330, length.out = n_edge)
+      dir <- seq(45, 360, length.out = n_edge)
+      layout_name <- "circle"
     }
     graph_fun <- ifelse(x$bipartite, igraph::graph_from_biadjacency_matrix, igraph::graph_from_adjacency_matrix)
     block.G <- graph_fun(plogis(adj_mat), weighted=TRUE) %>% 
-      set_vertex_attr("vertex.label",value = vertex.label) %>% 
-      set_vertex_attr("vertex.color",value = vertex.color) %>% 
-      set_vertex_attr("MM", value = sizes) %>% 
-      set_edge_attr("direction", value = dir)
+      set_vertex_attr("v.lab",value = vertex.label) %>% 
+      set_vertex_attr("v.col",value = vertex.color) %>% 
+      set_vertex_attr("MM",value = sizes)
     
-    return(ggraph(block.G, layout = "igraph", algorithm=ifelse(x$bipartite, "bipartite","circle")) +
+    
+    bm_lo <- create_layout(block.G,  layout = "igraph", algorithm=layout_name)
+    if(x$bipartite){
+      adj_x <- 0
+      adj_y <- ifelse(V(block.G)$type, -0.17, 0.17)
+    } else {
+      adj_x <- bm_lo$x *0.25
+      adj_y <- bm_lo$y *0.25
+    }
+    return(ggraph(bm_lo) +
              geom_edge_link(aes(color = weight), linewidth=1.5) +
              geom_edge_loop(aes(color = weight,
-                                direction = dir),
+                                direction = dir,
+                                span = 60,
+                                strength=0.4),
                             linewidth=1.5) +
-             geom_node_point(aes(size=MM, fill=vertex.label, color=vertex.label),
+             geom_node_point(aes(size=MM, fill=v.col, color=v.col),
                              show.legend = FALSE) +
              scale_edge_color_gradient("Edge\nProbability",
                                        low = "gray90", high = "black", 
                                        limits=c(0,1)) +
-             
-             scale_size_area(max_size = 10, guide="none") +
-             geom_node_label(aes(label = vertex.label), 
-                             fontface = "bold",
-                             repel = TRUE,
-                             size=4,
-                             alpha=0.5) +
+             scale_size_area(max_size = 15, guide="none") +
+             geom_node_text(aes(label = v.lab),
+                            fontface = "bold",
+                            size = 5,
+                            nudge_x = adj_x,
+                            nudge_y = adj_y) +
              scale_fill_manual(values = vertex.color) + 
              scale_colour_manual(values = vertex.color) + 
-             theme_blank())
-    ##
+             theme_void() +
+             theme(legend.justification = ifelse(x$bipartite, "center","bottom"),
+                   legend.title = element_text(size=12)) +
+             coord_cartesian(clip="off"))
   }
+  
   
   if(type=="membership"){
     avgmems <- lapply(1:nrow(x$MixedMembership), function(x){

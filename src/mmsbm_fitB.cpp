@@ -148,7 +148,7 @@ Rcpp::List mmsbm_fitBi(const arma::mat& z_t,
     ++iter;
   }
   if(verbose){
-    Rprintf("Final LB: %f.                     \n", iter+1, newLL);
+    Rprintf("Final LB: %f.                     \n", newLL);
   }
   //Form return objects: 
   arma::mat C_res1 = ModelB.getC(false).t();//**

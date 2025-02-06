@@ -548,7 +548,7 @@ mmsbm <- function(formula.dyad,
     indeces <- as.matrix(dyad_mat[,c("(sid)","(rid)")])
     index <- cbind(match(indeces[,1],rownames(adj_mat)),match(indeces[,2],colnames(adj_mat)))
     adj_mat[index] <- dyad_mat[,y_var] > mean(dyad_mat[,y_var])
-    if(!directed){
+    if(!ctrl$directed){
       adj_mat[index[,c(2,1)]] <- dyad_mat[,y_var] > mean(dyad_mat[,y_var])
     }
     obs_prop <- mean(adj_mat, na.rm = TRUE)
@@ -559,7 +559,7 @@ mmsbm <- function(formula.dyad,
       adj_mat[is.na(adj_mat)] <- rbinom(sum(is.na(adj_mat)), 1, obs_prop)
     }
     diag(adj_mat) <- 0
-    if(!directed){
+    if(!ctrl$directed){
       mat_ind <- which(upper.tri(adj_mat), arr.ind = TRUE)
       adj_mat[mat_ind[,c(2,1)]] <- adj_mat[upper.tri(adj_mat)]
     }
@@ -575,7 +575,7 @@ mmsbm <- function(formula.dyad,
                      edges,
                      nodes_pp,
                      dyads_pp,
-                     n.blocks, periods, directed, ctrl)
+                     n.blocks, periods, ctrl$directed, ctrl)
   ctrl$mm_init_t[[1]] <- mm_init[[1]]
   }
   if(bipartite & is.null(ctrl$mm_init_t[[2]])){
@@ -840,7 +840,7 @@ mmsbm <- function(formula.dyad,
   fit$NodeIndex <- nt_id
   
   ## Include a few formals needed by other methods
-  fit$forms <- list(directed = directed,
+  fit$forms <- list(directed = ctrl$directed,
                     senderID = senderID,
                     receiverID = receiverID,
                     timeID = timeID,

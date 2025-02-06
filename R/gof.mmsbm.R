@@ -196,19 +196,20 @@ gof.mmsbm <- function(x,
   # Get networks
   if(x$bipartite){
   el <- NetMix::simulate.mmsbmB(x, samples, seed=seed,
-                                new.data.dyad,
-                                new.data.monad)
+                                new.data.dyad = new.data.dyad,
+                                new.data.monad1 = new.data.monad[[1]],
+                                new.data.monad2 = new.data.monad[[2]])
   } else {
     el <- NetMix::simulate.mmsbm(x, samples, seed=seed,
-                                  new.data.dyad,
-                                  new.data.monad)
+                                 new.data.dyad= new.data.dyad,
+                                 new.data.monad = new.data.monad)
   }
   if(!is.null(new.data.dyad)){
     if(is.null(x$forms$timeID)){
       tid <- "(tid)"
       new.data.dyad[,tid] <- 1
     } else {
-      tid <- x$forms$t_id_d
+      tid <- x$forms$timeID
     }
     var_names <- c(with(x$forms, c(senderID, receiverID)), tid)
     new_y <- new.data.dyad[, all.vars(x$forms$formula.dyad)[1]]
