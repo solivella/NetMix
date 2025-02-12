@@ -1,0 +1,487 @@
+\documentclass{article}
+
+%% === margins ===
+\addtolength{\hoffset}{-0.75in} \addtolength{\voffset}{-0.75in}
+\addtolength{\textwidth}{1.5in} \addtolength{\textheight}{1in}
+
+
+\usepackage[utf8]{inputenc}
+\usepackage{latexsym}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[compact]{titlesec}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{tabularx}
+\usepackage{lscape}
+\usepackage{stackengine}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{xcolor}
+
+\newcommand{\ex}[1]{\mathbb{E}\left[#1\right]}
+
+
+%% === set up hyperlink style for reference ===
+\hypersetup{backref=true,       
+    pagebackref=true,               
+    hyperindex=true,                
+    colorlinks=true,                
+    breaklinks=true,                
+    urlcolor= black,                
+    linkcolor= blue,                
+    bookmarks=true,                 
+    bookmarksopen=false,
+    filecolor=black,
+    citecolor=blue,
+    linkbordercolor=blue
+}
+
+%Import the natbib package and sets a bibliography  and citation styles
+\usepackage{natbib}
+\bibliographystyle{abbrvnat}
+\setcitestyle{authoryear,open={(},close={)}} %Citation-related commands
+\setlength{\bibsep}{0pt plus 0.2ex}
+
+
+\title{Dynamic Bipartite Network: Mathematical Derivations}
+\author{Ruofan Ma and Qi Liu}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Setup}
+
+Let $G_t = (V_{1,t}, V_{2,t}, E_t)$ represent a dynamic bipartite graph observed at time $t$, where $V_{1 \cdot}$ and $V_{2 \cdot}$ denote two disjoint families of nodes and $E_{\cdot}$ represents the set of undirected edges between two nodes of different families. Suppose that (at $t$) family 1 has $N_{1,t} = |V_{1,t}|$ nodes whereas the number of nodes in family 2 is $N_{2,t} = |V_{2 ,t}|$. For a pair of nodes $p,q$, let $z_{pq,t} \in \{1, \dots, K_{1}\}$ denote the latent group that node $p \in V_{1,t}$ of family 1 instantiates when interacting with node $q \in V_{2,t}$ whose latent group membership is denoted by $u_{pqt} \in \{1, \dots, K_{2}\}$. Further, let $y_{pqt} = 1$ if there exists a directed edge from node $p$ to $q$ for $(p,q) \in E_t$, and $y_{pqt} = 0$ otherwise. \par
+
+Assume further that the network at time $t$ is in one of $M$ latent states, and that a Markov process governs transitions from one state to the next. We then assume the mixed-membership vectors are generated according to Markov-dependent mixtures with Dirichlet distributions whose concentration parameters are functions of node covariates:
+
+$$
+\boldsymbol{\pi}_{pt} \mid \boldsymbol{\beta}_{1} \sim \sum_{m=1}^M \mathbb{P}\left(S_t = m |  S_{t-1}\right) \times \mathrm{Dirichlet}\left( \left\{ \exp \left( \mathbf{x}^\top_{pt} \boldsymbol{\beta}_{1gm} \right)  \right\}_{g=1}^{K_1} \right)
+$$
+
+$$
+\boldsymbol{\psi}_{qt} \mid \boldsymbol{\beta}_{2} \sim \sum_{m=1}^M \mathbb{P}\left(S_t = m |  S_{t-1}\right) \times \mathrm{Dirichlet}\left( \left\{ \exp \left( \mathbf{x}^\top_{qt} \boldsymbol{\beta}_{2hm} \right)  \right\}_{h=1}^{K_2} \right)
+$$
+, where the vector of predictors $\boldsymbol{x}_{it}$ is allowed to vary over time, vectors $\boldsymbol{\beta}_{1gm}$ and $\boldsymbol{\beta}_{2hm}$, indexed by state $m$ in the Markov process, contain regression coefficients associated with the $g$th and $h$th groups of vertex families 1 and 2. Further, the random states are generated according to:
+$$
+S_t \mid S_{t-1} \sim \mathrm{Categorical}(\mathrm{A}_n)
+$$
+, where $\mathrm{A}$ is the transition matrix. We define a uniform prior over the initial state $S_1$ and independent symmetric Dirichlet prior distribution for the rows of $\mathrm{A}$. Then, as common in mixed-membership SBMs, we define a categorical sampling model for the dyad-state specific group memberships, $z_{pq,t}$ and $u_{pq,t}$ as:
+$$
+z_{pq,t} \mid \boldsymbol{\pi}_{pt} \sim \mathrm{Categorical}(\boldsymbol{\pi}_{pt}),  \; \; u_{pq,t} \mid \boldsymbol{\psi}_{qt} \sim \mathrm{Categorical}(\boldsymbol{\psi}_{qt})
+$$
+
+The model is then completed by defining a $K_1 \times K_2$ blockmodel $\mathrm{B}$, with its $B_{gh}$ element giving the log odds of forming an edge between any two latent group members. Therefore:
+$$
+y_{pqt} \mid z_{pqt}, u_{pqt}, \mathbf{B}, \boldsymbol{\gamma} \stackrel{\mathrm{indep.}}{\sim} \mathrm{Bernoulli}\left( \mathrm{logit}^{-1}(B_{z_{pqt}, u_{pqt}} + \mathbf{d}_{pqt}^\top \gamma) \right)
+$$
+In sum, the data-generating process can be described as follows:
+\begin{enumerate}
+    \item For each time period $t > 1$, draw a historical state $S_t \mid S_{t-1} = n \sim \mathrm{Categorical}(\mathbf{A}_n)$
+    \item For each node $p \in V_1$ and $q \in V_2$ at time $t$, draw state-dependent mixed-membership vectors $\boldsymbol{\pi}_{pt} \mid \boldsymbol{\beta}_1, S_t = m \sim \mathrm{Dirichlet}\left( \left\{ \exp(\mathbf{x}_{pt}^\top \boldsymbol{\beta}_{1gm}) \right\}_{g=1}^{K_1}\right)$ and $\boldsymbol{\psi}_{qt} \mid \boldsymbol{\beta}_2, S_t = m \sim \mathrm{Dirichlet}\left( \left\{ \exp(\mathbf{x}_{qt}^\top \boldsymbol{\beta}_{2hm}) \right\}_{h=1}^{K_2}\right)$
+    \item For each pair of nodes $(p,q) \in E_t$ at time $t$,
+        \begin{itemize}
+            \item Sample a group indicator  $z_{pq,t} \mid \boldsymbol{\pi}_{pt} \sim \mathrm{Categorical}(\boldsymbol{\pi}_{pt})$
+            \item Sample a group indicator $u_{pq,t} \mid \boldsymbol{\psi}_{qt} \sim \mathrm{Categorical}(\boldsymbol{\psi}_{qt})$
+            \item Sample a link between them $y_{pqt} \mid z_{pqt}, u_{pqt}, \mathbf{B}, \boldsymbol{\gamma} \stackrel{\mathrm{indep.}}{\sim} \mathrm{Bernoulli}\left( \mathrm{logit}^{-1}(B_{z_{pqt}, u_{pqt}} + \mathbf{d}_{pqt}^\top \gamma) \right)$
+        \end{itemize}
+\end{enumerate}
+
+Therefore, the DGP gives the full joint distribution of data and latent variables in the model given a set of global hyper-parameters $(\boldsymbol{\beta, \gamma}, \mathbf{B})$ and covariates $(\mathbf{D,X})$ as: 
+
+\begin{equation} \label{eq1}
+\begin{aligned} f(\mathbf{Y}, \mathbf{Z}, \mathbf{U}, \boldsymbol{\Pi}, \boldsymbol{\Psi}, \textcolor{blue}{\mathbf{A}} \mid \mathbf{B}, \boldsymbol{\beta}, \boldsymbol{\gamma} &)= P(S_1) \left[\prod_{t=2}^T P(S_t \mid S_{t-1}, \mathbf{A})\right]\prod_{m=1}^M P(\mathbf{A}_m) \\
+& \times \prod_{t=1}^T \prod_{p \in V_{1t}} f\left(\boldsymbol{\pi}_{pt} \mid \mathbf{X}_1, \boldsymbol{\beta}_{1}, S_t \right) \prod_{q \in V_{2t}} f\left(\boldsymbol{\psi}_{qt} \mid \mathbf{X}_2, \boldsymbol{\beta}_{2}, S_t \right) 
+\\
+& \times \prod_{t=1}^T \prod_{p, q \in V_{1t} \times V_{2t}} f\left(y_{p q t} \mid z_{p q t}, u_{p q t}, \mathbf{B}, \mathbf{D}, \boldsymbol{\gamma} \right) f\left(z_{p q t} \mid \boldsymbol{\pi}_{pt}\right) f\left(u_{p q t} \mid \boldsymbol{\psi}_{qt}\right) 
+\end{aligned}
+\end{equation}
+
+\section{Marginalization}
+
+\subsection{Marginalizing $\boldsymbol{\Pi}$}
+
+Collect and integrate all terms that contain $\pi$:
+
+$$
+\int \cdots \int \prod_{t=1}^T  \prod_{p \in V_{1t}}\biggl[P\left(\boldsymbol{\pi}_{pt} \mid \mathbf{X}, \boldsymbol{\beta}_1, S_t\right)\biggr] \prod_{qt \in V_{2t}} P\left(\mathbf{z}_{pqt} \mid \boldsymbol{\pi}_{pt}\right)  \mathrm{d} \boldsymbol{\pi}_{1t} \ldots \mathrm{d} \boldsymbol{\pi}_{N_{1t}}
+$$
+
+Denote $\alpha_{ptgm} = \exp \left(\mathbf{x}_{pt}^{\top}\boldsymbol{\beta}_{1gm} \right)$, and $\xi_{ptm} = \sum_{g=1}^{K_1} \alpha_{pgm}$, then $\boldsymbol{\pi}_{pt} \mid \xi_{ptm} \sim \text{Dir}(\xi_{ptm})$. Therefore, plugging in the PDF for Dirichlet yields: 
+
+$$\prod_{t=1}^{T} \prod_{p \in V_{1t}} \int \prod_{m=1}^{M}\left[\frac{\Gamma\left(\xi_{p t m}\right)}{\prod_{g=1}^{K_1} \Gamma\left(\alpha_{p t g m}\right)} \prod_{g=1}^{K_1} \pi_{p t g}^{\alpha_{p t g m}-1}\right]^{s_{tm}} \prod_{q \in V_{2t}} \prod_{g=1}^{K_1} \pi_{p t g}^{z_{pqt, g}}  \mathrm{~d} \boldsymbol{\pi}_{p t}$$
+
+, where $z_{pqt,g} = \mathbb{I}(z_{pqt} = g)$. Define $C_{ptg} = \sum_{q \in V_{2t}} z_{pqt,g}$, applying the trick that for indicator function $s_{tm} = \mathbb{I}(S_t = m)$, $\sum_m s_{tm}x = \prod_m x^{s_{tm}}$ and taking the constant terms out of the integral: 
+
+$$\prod_{t=1}^{T} \prod_{p \in V_{1t}}  \prod_{m=1}^{M}\left[\frac{\Gamma\left(\xi_{p t m}\right)}{\prod_{g=1}^{K_1} \Gamma\left(\alpha_{p t g m}\right)}\right]^{s_{tm}} \int \prod_{g=1}^{K_1} \pi_{p t g}^{\sum_{m=1}^M s_{tm} \alpha_{p t g m}+C_{p t g}-1} \mathrm{~d} \boldsymbol{\pi}_{p t} $$
+
+The integrand can be recognized as the kernel of a Dirichlet distribution. As the integral is over the entire support of this Dirichlet and must integrate to one, we can compute it as the inverse of the corresponding normalizing constant:
+
+$$
+\prod_{t=1}^T \prod_{p \in V_{1t}} \prod_{m=1}^M \left[ \frac{\Gamma\left(\xi_{ptm}\right)}{\prod_{g=1}^{K_1} \Gamma\left(\alpha_{ptgm}\right)} \right]^{s_{tm}} \frac{\prod_{g=1}^{K_1} \Gamma\left( \sum_{m=1}^M s_{tm}\alpha_{ptgm} + C_{ptg} \right)}{\Gamma \left(\sum_{m=1}^{M} s_{tm}\xi_{ptm} + N_{2t} \right)}
+$$
+, where $N_{2t}$ is the number of nodes in family 2 at time $t$. Apply the indicator trick again and rearranging the factorals:
+
+\begin{equation} \label{eq2}
+\prod_{t=1}^T \prod_{p \in V_{1t}} \prod_{m=1}^M \left[ \frac{\Gamma\left(\xi_{ptm}\right)}{\Gamma \left( \xi_{ptm} + N_{2t} \right)}\prod_{g=1}^{K_1}\frac{ \Gamma\left( \alpha_{ptgm} + C_{ptg} \right)}{\Gamma\left(\alpha_{ptgm}\right)}  \right]^{s_{tm}}  
+\end{equation}
+
+\subsection{Marginalizing \boldsymbol{\Psi}}
+
+Collect and integrate all terms that contain $\psi$:
+
+$$
+\int \cdots \int \prod_{t=1}^T  \prod_{q \in V_{2t}}\biggl[P\left(\boldsymbol{\psi}_{\textcolor{blue}{qt}} \mid \mathbf{X}, \boldsymbol{\beta}_2, S_t\right)\biggr] \prod_{pt \in V_{1t}} P\left(\mathbf{u}_{pqt} \mid \boldsymbol{\psi}_{qt}\right)  \mathrm{d} \boldsymbol{\psi}_{1t} \ldots \mathrm{d} \boldsymbol{\psi}_{N_{2t}}
+$$
+Following a similar strategy as 2.1 yields:
+
+\begin{equation} \label{eq3}
+\prod_{t=1}^T \prod_{q \in V_{2t}} \prod_{m=1}^M \left[ \frac{\Gamma\left(\xi_{qtm}\right)}{\Gamma \left( \xi_{qtm} + N_{1t} \right)}\prod_{h=1}^{K_2}\frac{ \Gamma\left( \alpha_{qthm} + C_{qth} \right)}{\Gamma\left(\alpha_{qthm}\right)}  \right]^{s_{tm}}  
+\end{equation}
+, where $C_{qth} = \sum_{p \in V_{1t}} \mathbb{I}(u_{qp,t} = h)$, $\alpha_{qthm} = \exp \left(\mathbf{x}_{qt}^{\top}\boldsymbol{\beta}_{2hm} \right)$, and $\xi_{qtm} = \sum_{h=1}^{K_2} \alpha_{qhm}$.
+
+\subsection{Marginalizing A}
+
+Since the transition probabilities have independent Dirichlet priors, and they are conjugate to
+the multinomial distribution over states at any given time, we can follow a similar strategy when
+collapsing the rows of \(\mathbf{A}\). More specifically, and focusing on the portion of the joint distribution
+that involves \(\mathbf{A}\), we have
+
+\begin{equation} \label{eq4}
+    \begin{aligned}
+    \int \cdots \int \prod_{t=2}^{T} P\left(s_{t} \mid s_{t-1},  \mathbf{A}\right) & \prod_{m} P\left(\mathbf{A}_{m}\right) \mathrm{d} \mathbf{A}_{1} \cdots \mathrm{d} \mathbf{A}_{M} = \\
+    & \int \cdots \int \prod_{t=2}^{T} \prod_{m} \prod_{n} A_{m, n}^{s_{t, n} \times s_{t-1, m}} \prod_{m} \frac{\Gamma(M \eta)}{\prod_{n} \Gamma(\eta)} \prod_{n} A_{m, n}^{\eta-1} \mathrm{~d} \mathbf{A}_{1} \cdots \mathrm{d} \mathbf{A}_{M} \\
+    &= \prod_{m} \frac{\Gamma(M \eta)}{\Gamma\left(M \eta+U_{m \cdot}\right)} \prod_{n} \frac{\Gamma\left(\eta+U_{m, n}\right)}{\Gamma(\eta)}
+    \end{aligned}
+\end{equation}
+
+, where \(U_{m, n}=\sum_{t=2}^{T} s_{t, n} s_{t-1, m}\) is the number of times the Markov chain transitions from state \(m\) to
+state \(n\), and \(U_{m \cdot}=\sum_{t=2}^{T} \sum_{n} s_{t, n} s_{t-1, m}\) is the total number of times the Markov chain transitions
+from \(m\) (potentially to stay at \(m\)). \(\eta\) is the hyperprior concentration parameter of a symmetric Dirichlet distribution.
+
+\subsection{Marginalized Joint Distribution}
+
+Plugging \Crefrange{eq2}{eq4} back into \Cref{eq1}, we can get the joint distribution collapsed over the mixed-membership vectors and the transition matrix.
+
+\begin{equation} \label{eq5}
+\begin{aligned} 
+f(\mathbf{Y}, \mathbf{Z},  \mathbf{U} \mid \mathbf{B}, \boldsymbol{\beta}, \gamma) & = \iiint f(\mathbf{Y}, \mathbf{Z}, \mathbf{U}, \boldsymbol{\Pi}, \boldsymbol{\Psi}, \mid \mathbf{B}, \boldsymbol{\beta}, \gamma) d \boldsymbol{\Pi} d \boldsymbol{\Psi}d \mathbf{A} \\
+&= P(s_1) \left[ \prod_{m=1}^M \frac{\Gamma(M \eta)}{\Gamma\left(M \eta+U_{m \cdot}\right)} \prod_{n=1}^M \frac{\Gamma\left(\eta+U_{m, n}\right)}{\Gamma(\eta)} \right]\\
+& \times \prod_{t=2}^T \prod_{m=1}^M \prod_{p \in V_{1t}} \left[ \frac{\Gamma\left(\xi_{ptm}\right)}{\Gamma \left( \xi_{ptm} + N_{2t} \right)}\prod_{g=1}^{K_1}\frac{ \Gamma\left( \alpha_{ptgm} + C_{ptg} \right)}{\Gamma\left(\alpha_{ptgm}\right)}  \right]^{s_{tm}} \\
+&\times \prod_{q \in V_{2t}}  \left[ \frac{\Gamma\left(\xi_{qtm}\right)}{\Gamma \left( \xi_{qtm} + N_{1t} \right)}\prod_{h=1}^{K_2}\frac{ \Gamma\left( \alpha_{qthm} + C_{qth} \right)}{\Gamma\left(\alpha_{qthm}\right)}  \right]^{s_{tm}}    \\
+& \times  \prod_{p, q \in V_{1t} \times V_{2t}}\left[ \prod_{g=1}^{K_1} \prod_{h=1}^{K_2} \left(\theta_{p q t, z_{p q t}, u_{p q t}}^{y_{p q t}}\left(1-\theta_{p q t, z_{p q t}, u_{p q t}}\right)^{1-y_{p q t}} \right)^{z_{pqt,g} \times u_{qpt,h}}\right. \\ 
+\end{aligned}
+\end{equation}
+
+, where $\theta_{pqt, z_{pqt}, u_{qpt}} = \mathrm{logit}^{-1} (B_{z_{pqt},u_{pqt}} + \mathbf{d}_{pq}^\top \boldsymbol{\gamma})$ is the probability of a tie formation between $p$ in family 1 and $q$ in family 2 at time $t$ 
+
+\section{Estimation via Variational EM}
+Define a factorized distribution over the latent variables $\mathbf{L} := \{\mathbf{Z}, \mathbf{U}, \mathbf{S}\}$:
+
+\begin{equation}
+    \tilde{Q}(\mathbf{L} \mid \boldsymbol{\Phi}, \boldsymbol{\Lambda}, \boldsymbol{\Delta}) = \prod_{t=1}^T Q_1(\mathbf{s}_t \mid \boldsymbol{\phi}_t) \prod_{p,q \in V_{1t} \times V_{2t}} Q_2(\mathbf{z}_{pq,t} \mid \boldsymbol{\lambda}_{pq,t}) Q_2(\mathbf{u}_{qp,t} \mid \boldsymbol{\delta}_{qp,t})
+\end{equation}
+, where $\boldsymbol{\phi}_t$, $\boldsymbol{\lambda}_{pq,t}$, and $\boldsymbol{\delta}_{qp.t}$ are variational parameters. We can then find the lower bound for the log marginal probability of the network data $\mathbf{Y}$ by applying Jensen's inequality:
+
+\begin{equation}
+    P(\mathbf{Y} \mid \boldsymbol{\beta}, \boldsymbol{\gamma}, \mathbf{B}) \geq \mathcal{L} := \mathbb{E}_{\widetilde{Q}}\left[ \log P \left( \mathbf{Y}, \mathbf{L} \mid \boldsymbol{\beta}, \boldsymbol{\gamma}, \mathbf{B} \right) \right] - \mathbb{E}_{\widetilde{Q}}\left[ \log \widetilde{Q}(\mathbf{L} \mid \boldsymbol{\Phi}, \boldsymbol{\Lambda}, \boldsymbol{\Delta}) \right]
+\end{equation}
+
+To approximate the true posterior over the latent variables, we optimize this lower bound by iterating between finding an optimal $\widetilde{Q}$ (the E-step) and optimizing the corresponding lower bound with respect to the hyper-parameters $\mathbf{B}, \boldsymbol{\beta}, \boldsymbol{\gamma}$ (the M-step).
+
+\subsection{The E-Steps}
+
+\subsubsection{E step 1: Z and U}
+
+Variational parameters $\lambda_{pqt}$ and $\delta_{pqt}$ are updated by restricting \cref{eq5} to the terms that only contain $\mathbf{z}_{pqt}$ and $\mathbf{u}_{pqt}$ and taking the logarithm of the resulting expression. First, consider $\mathbf{z}_{pqt}$:
+
+\begin{equation*}
+\begin{aligned} 
+ \log & P\left(\mathbf{Y}, \mathbf{L} \mid \mathbf{B}, \boldsymbol{\beta}_{1}, \boldsymbol{\beta}_{2}, \boldsymbol{\gamma}, \mathbf{X}_{1}, \mathbf{X}_{2}, \mathbf{D}\right) \\
+ &= z_{p q g t} \sum_{h=1}^{K_{2}} u_{p q h t}\left\{Y_{p q t} \log \left(\theta_{p q g h t}\right)+\left(1 - Y_{p q t}\right) \log \left(1-\theta_{p q g h t}\right)\right\} \\
+ &+ \sum_{m=1}^M s_{tm} \log \Gamma\left(\alpha_{p g t m}+C_{p g t}\right)+\text { const. } \end{aligned}
+\end{equation*}
+
+Note that \(C_{p g t}=C_{p g t}^{\prime}+z_{p q t g}\) and that, for \(x \in\{0,1\}, \Gamma(y+x)=y^{x} \Gamma(y)\). Since
+the \(z_{p q t g} \in\{0,1\}\), we can re-express \(\log \Gamma\left(\alpha_{p t m g}+C_{p t g}\right)=z_{p q t k} \log \left(\alpha_{p t m g}+C_{p t g}^{\prime}\right)+\)
+\(\log \Gamma\left(\alpha_{p t m g}+C_{p t g}^{\prime}\right)\) and thus simplify the expression to
+
+\begin{equation*}
+\begin{aligned} 
+ \log & P\left(\mathbf{Y}, \mathbf{L} \mid \mathbf{B}, \boldsymbol{\beta}_{1}, \boldsymbol{\beta}_{2}, \boldsymbol{\gamma}, \mathbf{X}_{1}, \mathbf{X}_{2}, \mathbf{D}\right) \\
+ &= z_{p q g t} \sum_{h=1}^{K_{2}} u_{p q h t}\left\{Y_{p q t} \log \left(\theta_{p q g h t}\right)+\left(1 - Y_{p q t}\right) \log \left(1-\theta_{p q g h t}\right)\right\} \\
+ &+ z_{p q g t} \sum_{m=1}^M s_{tm} \log \Gamma\left(\alpha_{p g t m}+C'_{p g t}\right)+\text { const. } \end{aligned}
+\end{equation*}
+
+We proceed by taking the expectation \textcolor{blue}{of $\tilde{Q}(-z)$} under the variational distribution $\tilde{Q}$:
+
+\begin{equation*}
+\begin{aligned} 
+\mathbb{E}_{\tilde{Q}} \left[\log & P\left(\mathbf{Y}, \mathbf{L} \mid \mathbf{B}, \boldsymbol{\beta}_{1}, \boldsymbol{\beta}_{2}, \boldsymbol{\gamma}, \mathbf{X}_{1}, \mathbf{X}_{2}, \mathbf{D}\right) \right] \\
+ &= z_{p q g t} \sum_{h=1}^{K_{2}} \mathbb{E}_{\tilde{Q}_2} (u_{p q h t})\left\{Y_{p q t} \log \left(\theta_{p q g h t}\right)+\left(1 - Y_{p q t}\right) \log \left(1-\theta_{p q g h t}\right)\right\} \\
+ &+ z_{p q g t} \sum_{m=1}^M \mathbb{E}_{\tilde{Q}_1} (s_{tm}) \log \Gamma\left(\alpha_{p g t m}+C'_{p g t}\right)+\text { const. } 
+ \end{aligned}
+\end{equation*}
+
+The exponential of this expression corresponds to the (unnormalized) parameter vector of a multinomial distribution $\tilde{Q}_2$:
+
+\begin{equation*}
+\begin{aligned}
+\hat \lambda_{pqtg} & \propto \exp \left[z_{p q g t} \sum_{h=1}^{K_{2}} \mathbb{E}_{\tilde{Q}_2} (u_{p q h t})\left\{Y_{p q t} \log \left(\theta_{p q g h t}\right)+\left(1 - Y_{p q t}\right) \log \left(1-\theta_{p q g h t}\right)\right\}  \right] \\
+& \times \exp \left[ z_{p q g t} \sum_{m=1}^M \mathbb{E}_{\tilde{Q}_1} (s_{tm}) \log \Gamma\left(\alpha_{p g t m}+C'_{p g t}\right)\right]
+\end{aligned}
+\end{equation*}
+
+Analogously, the update for $\mathbf{u}_{qp}$ is similarly derived:
+
+\begin{equation*}
+\begin{aligned} 
+\mathbb{E}_{\tilde{Q}} \log & P\left(\mathbf{Y}, \mathbf{L} \mid \mathbf{B}, \boldsymbol{\beta}_{1}, \boldsymbol{\beta}_{2}, \boldsymbol{\gamma}, \mathbf{X}_{1}, \mathbf{X}_{2}, \mathbf{D}\right)  \\
+ &= u_{p q h t} \sum_{g=1}^{K_{1}} \mathbb{E}_{\tilde{Q}_2} (z_{p q g t})\left\{Y_{p q t} \log \left(\theta_{p q g h t}\right)+\left(1 - Y_{p q t}\right) \log \left(1-\theta_{p q g h t}\right)\right\} \\
+ &+ \textcolor{blue}{u_{p q h t}} \sum_{m=1}^M \mathbb{E}_{\tilde{Q}_1} (s_{tm}) \log \Gamma\left(\textcolor{blue}{\alpha_{q h t m}+C'_{q h t}}\right)+\text { const. } 
+ \end{aligned}
+\end{equation*}
+
+The exponential of this expression corresponds to the (unnormalized) parameter vector of a multinomial distribution $\tilde{Q}_2$:
+
+\begin{equation*}
+\begin{aligned}
+\hat \delta_{pqth} & \propto \exp \left[u_{p q h t} \sum_{g=1}^{K_{1}} \mathbb{E}_{\tilde{Q}_2} (z_{p q g t})\left\{Y_{p q t} \log \left(\theta_{p q g h t}\right)+\left(1 - Y_{p q t}\right) \log \left(1-\theta_{p q g h t}\right)\right\} \right] \\
+& \times \exp \left[ \textcolor{blue}{u_{p q h t}} \sum_{m=1}^M \mathbb{E}_{\tilde{Q}_1} (s_{tm}) \log \Gamma\left(\textcolor{blue}{\alpha_{q h t m}+C'_{q h t}}\right)\right]
+\end{aligned}
+\end{equation*}
+
+\subsubsection{E step 2: S}
+
+Similar to the last section, collection all terms in \cref{eq5} that contain $s_{tm}$ for a specific $t>1$ and $m$:
+
+\begin{equation*}
+    \begin{aligned}
+P(\mathbf{Y}, \mathbf{L} \mid \mathbf{B}, \boldsymbol{\beta}, \boldsymbol{\gamma})&=\Gamma\left(M \eta+U_{m}\right)^{-1} \prod_{m=1}^{M} \prod_{n=1}^{M} \Gamma\left(\eta+U_{m n}\right)  \\
+& \times \prod_{p \in V_{1t}} \left[ \frac{\Gamma\left(\xi_{ptm}\right)}{\Gamma \left( \xi_{ptm} + N_{2t} \right)}\prod_{g=1}^{K_1}\frac{ \Gamma\left( \alpha_{ptgm} + C_{ptg} \right)}{\Gamma\left(\alpha_{ptgm}\right)}  \right]^{s_{tm}} \\
+&\times \prod_{q \in V_{2t}}  \left[ \frac{\Gamma\left(\xi_{qtm}\right)}{\Gamma \left( \xi_{qtm} + N_{1t} \right)}\prod_{h=1}^{K_2}\frac{ \Gamma\left( \alpha_{qthm} + C_{qth} \right)}{\Gamma\left(\alpha_{qthm}\right)}  \right]^{s_{tm}}+\text { const. } 
+    \end{aligned}
+\end{equation*}
+
+
+Isolating \textcolor{blue}{terms that depend on $s_{tm} (n \neq m)$}, define
+$$
+\begin{aligned} U_{m}^{\prime} &=U_{m}-s_{t m} \\ U_{m m}^{\prime} &=U_{m m}-s_{t-1, m} s_{t m}-s_{t m} s_{t+1, m} \\ U_{n m}^{\prime} &=U_{n m}-\textcolor{blue}{s_{t-1, n}} s_{t m} \\ U_{m n}^{\prime} &=U_{m n}-s_{t m} s_{t+1, n} \end{aligned}
+$$
+So that $U'_{ab}, a, b \in \left\{m,n \right\}$ counts the number of times the hidden Markov process transitions from $a$ to $b$ except for when the transition happens into or out of time $t$. Therefore, separating the case where $m = n$ and $m \neq n$, the first two terms on the right hand side can be written as:
+
+$$
+\begin{array}{l}\Gamma\left(M \eta+s_{t m}+U_{m}^{\prime}\right)^{-1} \Gamma\left(\eta+s_{t+1, m} s_{t m}+s_{t-1, m} s_{t m}+U_{m m}^{\prime}\right) \\ \quad \times \prod_{n \neq m}^{M} \Gamma\left(\eta+s_{t+1, n} s_{t m}+U_{m n}^{\prime}\right) \Gamma\left(\eta+s_{t m} s_{t-1, n}+U_{n m}^{\prime}\right)\end{array}
+$$
+Recall that for Gamma function, $\Gamma(y+x) = y^x\Gamma(y)$, for $x \in \left\{ 0,1\right\} $, therefore this expression becomes
+
+$$
+\begin{array}{l}\left(M \eta+U_{m}^{\prime}\right)^{-s_{t m}} \Gamma\left(M \eta+U_{m}^{\prime}\right)^{-1}\left\{\left(\eta+U_{m m}^{\prime}+1\right)^{s_{t+1, m} s_{t-1, m}}\left(\eta+U_{m m}^{\prime}\right)^{s_{t-1, m}-s_{t-1, m} s_{t+1, m}+s_{t+1, m}}\right\}^{s_{t m}} \\ \quad \times \Gamma\left(\eta+U_{m m}^{\prime}\right) \prod_{n \neq m}^{M}\left(\eta+U_{m n}^{\prime}\right)^{s_{t+1, n} s_{t m}} \Gamma\left(\eta+U_{m n}^{\prime}\right) \prod_{n \neq m}^{M}\left(\eta+U_{n m}^{\prime}\right)^{s_{t m} s_{t-1, n}} \Gamma\left(\eta+U_{n m}^{\prime}\right)\end{array}
+$$
+
+\color{red} 
+\noindent To see why 
+\begin{multline*}
+  \Gamma\left(\eta+s_{t+1, m} s_{t m}+s_{t-1, m} s_{t m}+U_{m m}^{\prime}\right) = \\ \left\{\left(\eta+U_{m m}^{\prime}+1\right)^{s_{t+1, m} s_{t-1, m}}\left(\eta+U_{m m}^{\prime}\right)^{s_{t-1, m}-s_{t-1, m} s_{t+1, m}+s_{t+1, m}}\right\}^{s_{t m}} \Gamma(\eta + U'_{mm}) \tag{*}
+\end{multline*}
+Recall that $s_{tm} = \mathbb{I}(s_t = m) \in \{0,1\}$, and consider in turn the following cases:
+
+\begin{enumerate}
+    \item[1)] When $s_{tm} = 0$, equation (*) simplifies to $\Gamma(\eta + U'_{mm}) = 1 \times \Gamma(\eta + U'_{mm})$, for any values of $s_{t-1,m} $and $s_{t+1,m}$
+    \item[2)] When $s_{tm} = 1$,
+    \begin{enumerate}
+        \item[i)] $s_{t-1,m} = 0$ and $s_{t+1, m} = 0$, equation (*) simplifies to: $\Gamma(\eta + U'_{mm}) = (1 \times 1)^1 \Gamma(\eta + U'_{mm})$
+        \item[ii)] $s_{t-1, m} = 1$ and $s_{t+1, m} = 0$, equation (*) becomes (recall the recursive property of the Gamma function):
+        $$\Gamma(\eta +  U'_{mm} + 1) = \left(1 \times (\eta +  U'_{mm} + 1) \right)^1\Gamma(\eta + U'_{mm})$$
+        \item[iii)] $s_{t-1, m} = 1$ and $s_{t+1, m} = 0$. This is analgous to ii)
+        \item[iv)] $s_{t-1, m} = 1$ and $s_{t+1, m} = 1$, equation (*) becomes (applying the recursive property twice):
+
+        \begin{align*}
+           \Gamma(\eta + U'_{mm} + 1 + 1) &= (\eta +  U'_{mm} + 1)\Gamma(\eta + U'_{mm} + 1)\\ 
+           &= (\eta +  U'_{mm} + 1)(\eta +  U'_{mm} )\Gamma(\eta + U'_{mm}) \\
+           &= \left[(\eta +  U'_{mm} + 1)^1(\eta +  U'_{mm} )^1\right]^1\Gamma(\eta + U'_{mm})
+        \end{align*}
+    \end{enumerate}
+\end{enumerate}
+\color{black}
+
+
+
+
+Again focus on the terms that are specific to a $t$ and $m$,
+
+
+\begin{align*}
+&P(\mathbf{Y}, \mathbf{L} \mid \mathbf{B}, \boldsymbol{\beta}, \boldsymbol{\gamma})
+\\\quad &=\left(M \eta+U_{m}^{\prime}\right)^{-s_{t m}}\left\{\left(\eta+U_{m m}^{\prime}+1\right)^{s_{t+1, m} s_{t-1, m}}\left(\eta+U_{m m}^{\prime}\right)^{s_{t-1, m}-s_{t-1, m} s_{t+1, m}+s_{t+1, m}}\right\}^{s_{t m}} \\
+\quad &\times \prod_{n \neq m}^{M}\left(\eta+U_{m n}^{\prime}\right)^{s_{t+1, n} s_{t m}}\left(\eta+U_{n m}^{\prime}\right)^{s_{t m} s_{t-1, n}} \\ 
+& \times \prod_{p \in V_{1t}} \left[ \frac{\Gamma\left(\xi_{ptm}\right)}{\Gamma \left( \xi_{ptm} + N_{2t} \right)}\prod_{g=1}^{K_1}\frac{ \Gamma\left( \alpha_{ptgm} + C_{ptg} \right)}{\Gamma\left(\alpha_{ptgm}\right)}  \right]^{s_{tm}} \\
+&\times \prod_{q \in V_{2t}}  \left[ \frac{\Gamma\left(\xi_{qtm}\right)}{\Gamma \left( \xi_{qtm} + N_{1t} \right)}\prod_{h=1}^{K_2}\frac{ \Gamma\left( \alpha_{qthm} + C_{qth} \right)}{\Gamma\left(\alpha_{qthm}\right)}  \right]^{s_{tm}}  + \text { const. } 
+\end{align*}
+
+Taking log and expectation under $\tilde{Q}$ w.r.t. variables do not contain $s_{tm}$:
+
+\begin{equation*}
+\begin{aligned} \log \hat{\phi}_{t m} &=-s_{t m} \mathbb{E}_{\tilde{Q}_{1}}\left[\log \left(M \eta+U_{m}^{\prime}\right)\right]+s_{t m} \phi_{t+1, m} \phi_{t-1, m} \mathbb{E}_{\tilde{Q}_{1}}\left[\log \left(\eta+U_{m m}^{\prime}+1\right)\right] \\ 
+&+s_{t m}\left(\phi_{t-1, m}-\phi_{t-1, m} \phi_{t+1, m}+\phi_{t+1, m}\right) \mathbb{E}_{\tilde{Q}_{1}}\left[\log \left(\eta+U_{m m}^{\prime}\right)\right] \\ 
+&+s_{t m} \sum_{n \neq m}^{M} \phi_{t+1, n} \mathbb{E}_{\tilde{Q}_{1}}\left[\log \left(\eta+U_{m n}^{\prime}\right)\right] + s_{t m} \sum_{n \neq m}^{M} \phi_{t-1, n} \mathbb{E}_{\tilde{Q}_{1}}\left[\log \left(\eta+U_{n m}^{\prime}\right)\right] \\
+&+s_{t m} \sum_{p \in V_{1t}}\left[\frac{\Gamma\left(\xi_{p t m}\right)}{\Gamma\left(\xi_{p t m}+ N_{2t}\right)}\right] + s_{t m} \sum_{p \in V_{t1}} \sum_{g=1}^{K_1} \mathbb{E}_{\tilde{Q}_2}\left[\log \left[\frac{\Gamma\left(\alpha_{p t m g}+C_{p t g}\right)}{\Gamma\left(\alpha_{p t m g}\right)}\right]\right] \\
+&+s_{t m} \sum_{q \in V_{2t}}\left[\frac{\Gamma\left(\textcolor{blue}{\xi_{q t m}}\right)}{\Gamma\left(\textcolor{blue}{\xi_{q t m}}+ N_{1t}\right)}\right] + s_{t m} \sum_{q \in V_{t2}} \sum_{h=1}^{K_2} \mathbb{E}_{\tilde{Q}_2}\left[\log \left[\frac{\Gamma\left(\textcolor{blue}{\alpha_{q t m h}+C_{q t h}}\right)}{\Gamma\left(\textcolor{blue}{\alpha_{q t m h}}\right)}\right]\right] +\text { const } \end{aligned}
+\end{equation*}
+
+So that the $m$th element of the parameter vector for $\widetilde{Q}_1(s_t \mid \mathbf{\phi}_{tm})$ is ({\textcolor{blue}{so  we could treat the expectations w.r.t. to $\tilde Q_2$ as constant}}):
+
+\begin{equation*}
+\begin{aligned} 
+\hat{\phi}_{t m} \propto & \exp \left[-\mathbb{E}_{\tilde{Q}_{1}}\left[\log \left(M \eta+U_{m}^{\prime}\right)\right]\right] \exp \left[\phi_{t+1, m} \phi_{t-1, m} \mathbb{E}_{\tilde{Q}_{1}}\left[\log \left(\eta+U_{m m}^{\prime}+1\right)\right]\right] \\ 
+& \times \exp \left[\left(\phi_{t-1, m}-\phi_{t-1, m} \phi_{t+1, m}+\phi_{t+1, m}\right) \mathbb{E}_{\tilde{Q}_{1}}\left[\log \left(\eta+U_{m m}^{\prime}\right)\right]\right] \\ 
+& \times \prod_{n \neq m} \exp \left[\phi_{t+1, n} \mathbb{E}_{\tilde{Q}_{1}}\left[\log \left(\eta+U_{m n}^{\prime}\right)\right]\right] \exp \left[\phi_{t-1, n} \mathbb{E}_{\tilde{Q}_{1}}\left[\log \left(\eta+U_{n m}^{\prime}\right)\right]\right] \\ 
+& \times \prod_{p \in V_{1t}} \left[ \frac{\Gamma\left(\xi_{ptm}\right)}{\Gamma \left( \xi_{ptm} + N_{2t} \right)}\prod_{g=1}^{K_1}\frac{ \Gamma\left( \alpha_{ptgm} + C_{ptg} \right)}{\Gamma\left(\alpha_{ptgm}\right)}  \right] \\
+&\times \prod_{q \in V_{2t}}  \left[ \frac{\Gamma\left(\xi_{qtm}\right)}{\Gamma \left( \xi_{qtm} + N_{1t} \right)}\prod_{h=1}^{K_2}\frac{ \Gamma\left( \alpha_{qthm} + C_{qth} \right)}{\Gamma\left(\alpha_{qthm}\right)}  \right]
+\end{aligned}
+\end{equation*}
+
+
+\subsection{The M-Steps}
+
+\subsubsection{The Lower Bound}
+
+The full expression of the lower bound can be written as:
+
+\begin{equation} \label{eqn8}
+\begin{aligned}
+    \mathcal{L}(\widetilde{Q}) &= \mathbb{E}_{\widetilde{Q}}\left[ \log P \left( \mathbf{Y}, \mathbf{L} \mid \boldsymbol{\beta_1}, \boldsymbol{\beta}_2, \boldsymbol{\gamma}, \mathbf{B}, \mathbf{X}_1, \mathbf{X}_2, \mathbf{D}\right) \right] - \mathbb{E}_{\widetilde{Q}}\left[ \log \widetilde{Q}(\mathbf{L} \mid \boldsymbol{\Phi}, \boldsymbol{\Lambda}, \boldsymbol{\Delta}) \right] \\
+    &= \log \left(P\left(s_{1}\right)\right)+\log \Gamma(M \eta)-\sum_{m} \mathbb{E}_{\tilde{Q}}\left[\log \Gamma\left(M \eta+U_{m\cdot}\right)\right]+\sum_{m, n} \mathbb{E}_{\tilde{Q}}\left[\log \Gamma\left(\eta+U_{m, n}\right)\right]-\log \Gamma(\eta)\\
+    & + \sum_{t, m}\phi_{tm} \sum_{p \in V_{1,t}} \left[ \Gamma(\xi_{ptm}) -  \Gamma(\xi_{ptm} + N_{2t}) \right] +  \sum_{t, m}\phi_{tm} \sum_{p \in V_{1,t}} \sum_{g=1}^{K_1} \left[ \mathbb{E}_{\tilde{Q}}\left[\log \Gamma(\alpha_{ptgm} + C_{ptg}) \right] - \log \Gamma(\alpha_{ptgm}) \right]\\
+    & + \sum_{t, m}\phi_{tm} \sum_{q \in V_{2,t}} \left[ \Gamma(\xi_{qtm}) -  \Gamma(\xi_{qtm} + N_{1t}) \right] +  \sum_{t, m}\phi_{tm} \sum_{q \in V_{2,t}} \sum_{h=1}^{K_2} \left[ \mathbb{E}_{\tilde{Q}}\left[\log \Gamma(\alpha_{qtgm} + C_{qth}) \right] - \log \Gamma(\alpha_{qthm}) \right] \\
+    & +\sum_{t}\sum_{(p, q) \in V_{1t} \times V_{2t}} \sum_{g=1}^{K_{1}} \sum_{h=1}^{K_{2}} \lambda_{p q, g} \delta_{p q, h}\left\{y_{p q t} \log \theta_{p q g h t}+\left(1-y_{p q t}\right) \log \left(1-\theta_{p q g h t}\right)\right\} \\
+    &-\sum_{g=1}^{K_1} \sum_{h=1}^{K_2} \frac{\left(B_{g h}-\mu_{g h}\right)^{2}}{2 \sigma_{g h}^{2}}-\sum_{j=1}^{J_{d}} \frac{\left(\gamma_{j}-\mu_{\gamma}\right)^{2}}{2 \sigma_{\gamma}^{2}}-\sum_{g=1}^{K_{1}} \sum_{j=1}^{J_{1 x}} \sum_{m=1}^M \frac{\left(\beta_{1 g j m}-\mu_{\beta_{1}}\right)^{2}}{2 \sigma_{\beta_{1}}^{2}}-\sum_{h=1}^{K_{2}} \sum_{j=1}^{J_{2 x}} \sum_{m=1}^M \frac{\left(\beta_{2 h j m}-\mu_{\beta_{2}}\right)^{2}}{2 \sigma_{\beta_{2}}^{2}} \\ 
+    & - \textcolor{blue}{\sum_{g=1}^{K_{1}} \sum_{m=1}^M \frac{\nu + 1}{2} \log(1 + \frac{\beta_{1\cdot 0}^2}{\nu})} - \textcolor{blue}{\sum_{h=1}^{K_{2}} \sum_{m=1}^M \frac{\nu + 1}{2} \log(1 + \frac{\beta_{2\cdot 0}^2}{\nu})} \\
+    &- \sum_{t,m} \phi_{tm} \log(\phi_{t,m})  - \sum_{(p, q) \in V_{1t} \times V_{2t}} \sum_{g=1}^{K_{1}} \sum_{h=1}^{K_{2}}\left\{\lambda_{p q g t} \log (\lambda_{p q g t})-\delta_{q p h t} \log \left(\delta_{q p h t}\right)\right\} 
+\end{aligned}
+\end{equation}
+
+\subsubsection{M step 1: B}
+
+Collect the terms that contain $B_{gh}$ in the lower bound:
+
+\begin{equation*}
+\begin{aligned} \mathcal{L}(\widetilde{Q})=& \sum_{t=1}^{T} \sum_{p, q \in V_{1t} \times V_{2t}} \sum_{g, h=1}^{K} \lambda_{p q t g} \delta_{q p t h}\left\{y_{p q t} \log \theta_{p q t g h}+\left(1-y_{p q t}\right) \log \left(1-\theta_{p q t g h}\right)\right\} \\ &-\sum_{g=1}^{K_1} \sum_{h=1}^{K_2} \frac{\left(B_{g h}-\mu_{g h}\right)^{2}}{2 \sigma_{g h}^{2}}+\text { const. } \end{aligned}
+\end{equation*}
+
+We optimize this lower bound with respect to \(\mathbf{B}_{g h}\) using a gradient-based numerical optimization method. The corresponding gradient is given by,
+$$
+\frac{\partial \mathcal{L}_{B_{g h}}}{\partial B_{g h}}=\sum_{t=1}^{T} \sum_{p, q \in V_{1t} \times V_{2t}} \lambda_{p  q t g} \delta_{q p t h}\left(y_{p q t}-\theta_{p q t g h}\right)-\frac{B_{g h}-\mu_{B_{g h}}}{\sigma_{B_{g h}}^{2}}
+$$
+\subsubsection{M step 2: $\boldsymbol{\gamma}$}
+
+Collect the terms that contain $\boldsymbol{\gamma}$ in the lower bound (note that $\theta_{pqtgh} = \mathrm{logit}^{-1} (B_{z_{pqt},u_{pqt}} + \mathbf{d}_{pq}^\top \boldsymbol{\gamma})$ is also a function of $\boldsymbol{\gamma}$), \textcolor{blue}{$J_{d}$ is the number of dyadic covariates}:
+
+\begin{equation*}
+\begin{aligned} \mathcal{L}(\tilde{Q})=& \sum_{t=1}^{T} \sum_{p, q \in V_{1t} \times V_{2t}} \sum_{g=1}^{K_1} \sum_{h=1}^{K_2} \lambda_{p q t g} \delta_{q p t h}\left\{y_{p q t} \log \theta_{p q t g h}+\left(1-y_{p q t}\right) \log \left(1-\theta_{p q t g h}\right)\right\} \\ &-\sum_{j}^{J_{d}} \frac{\left(\gamma_{j}-\mu_{\gamma}\right)^{2}}{2 \sigma_{\gamma}^{2}}+\text { const. } \end{aligned}
+\end{equation*}
+
+Similarly, we use a numerical optimization algorithm based on the following gradient to optimize this expression with respect to $\gamma_j$ (the $j$th element of the $\boldsymbol{\gamma}$ vector). The corresponding gradient is given by,
+
+
+$$
+\frac{\partial \mathcal{L}_{\gamma_j}}{\partial \gamma_j}=\sum_{t=1}^{T} \sum_{p, q \in V_{1t} \times V_{2t}} \sum_{g=1}^{K_1} \sum_{h=1}^{K_2} \lambda_{p  q t g} \delta_{q p t h} \mathbf{d}_{pqtj}^\top \left(y_{p q t}-\theta_{p q t g h}\right)- \frac{\gamma_{j}-\mu_{\gamma}}{\sigma_{\gamma}^{2}}
+$$
+
+
+\subsubsection{M step 3: $\boldsymbol{\beta_{1m}}$ and $\boldsymbol{\beta_{2m}}$}
+First, collect all terms that contain $\boldsymbol{\beta}_{1gm}$ and roll the rest of the terms into a constant. \textcolor{blue}{$J_{1 x}$ is the number of monadic covariates for family 1 (excluding the intercept term), and $J_{2 x}$ is the number of monadic covariates for family 2}:
+
+\begin{equation*}
+\begin{aligned} \mathcal{L}(\widetilde{Q})=& \sum_{t=1}^T \sum_{m=1}^M \phi_{tm}\sum_{p \in V_{1t}}\left[\log \Gamma\left(\xi_{p t m}\right)-\log \Gamma\left(\xi_{ptm}+N_{2t}\right)\right] \\ 
+&+\sum_{t,m}\phi_{tm}\sum_{p \in V_{1t}} \sum_{g=1}^{K_{1}}\left[\mathbb{E}_{\widetilde{Q}_{2}}\left[\log \Gamma\left(\alpha_{p g t m}+C_{p t g}\right)\right]-\log \Gamma\left(\alpha_{p g t m}\right)\right] \\ 
+&-\sum_{g=1}^{K_{1}} \sum_{j=1}^{J_{1 x}} \sum_{m=1}^M \frac{\left(\beta_{1 g j m}-\mu_{\beta_{1}}\right)^{2}}{2 \sigma_{\beta_{1}}^{2}} - \textcolor{blue}{\sum_{g=1}^{K_{1}} \sum_{m=1}^M \frac{\nu + 1}{2} \log(1 + \frac{\beta_{1\cdot 0}^2}{\nu})} + \text { const. } \end{aligned}
+\end{equation*}
+
+\textcolor{blue}{$\nu$ is the degree of freedom of the $t$ distribution the intercept term $\beta_{1\cdot0}$ is drawn from. Following Gelman et al. (2008), we set the default value of $\nu$ = 7}. No closed-form solution exists for an optimum with respect to $\beta_{1mgj}$,  but a gradient-based algorithm can be implemented to maximize the above expression. The corresponding gradient with respect to each element in vector $\boldsymbol{\beta}_{1gm}$ is given by:
+
+\begin{equation*}
+\begin{aligned} 
+\frac{\partial \mathcal{L}(\tilde{Q})}{\partial \beta_{1 m g j}} &=\sum_{t=1}^{T} \phi_{t m} \sum_{p \in V_{1t}} \alpha_{p t m g} x_{1 p t j}\left(\mathbb{E}_{\tilde{Q}_{2}}\left[\breve{\psi}\left(\alpha_{p t m g}+C_{p t g}\right)-\breve{\psi}\left(\alpha_{p t g m }\right)\right]\right.\\ 
+&\left.+\left[\breve{\psi}\left(\xi_{p t m}\right)-\breve{\psi}\left(\xi_{p t m}+N_{2t}\right)\right]\right) -\frac{\beta_{1 m g j}-\mu_{\beta_{1}}}{\sigma_{\beta_{1}}^{2}} -\textcolor{blue}{\sum_{g=1}^{K_{1}} \sum_{m=1}^M \frac{(1+\nu)\beta_{1\cdot 0}}{\nu + \beta_{1\cdot 0}^2}}
+\end{aligned}
+\end{equation*}
+
+Here, $\breve{\psi}$ is the digamma function. Similarly for $\boldsymbol{\beta_{2hm}}$, collect all the relevant terms yield:
+
+\begin{equation*}
+\begin{aligned} \mathcal{L}(\widetilde{Q})=& \sum_{t=1}^T \sum_{m=1}^M \phi_{tm}\sum_{q \in V_{2t}}\left[\log \Gamma\left(\xi_{q t m}\right)-\log \Gamma\left(\xi_{qtm}+N_{1t}\right)\right] \\ 
+&+\sum_{q \in V_{2t}} \sum_{h=1}^{K_{2}}\left[\mathbb{E}_{\widetilde{Q}_{2}}\left[\log \Gamma\left(\alpha_{q h t m}+C_{q t h}\right)\right]-\log \Gamma\left(\alpha_{q h t m}\right)\right] \\ 
+&-\sum_{h=1}^{K_{2}} \sum_{j=1}^{J_{2 x}} \sum_{m=1}^M \frac{\left(\beta_{2 h j m}-\mu_{\beta_{2}}\right)^{2}}{2 \sigma_{\beta_{2}}^{2}}- \textcolor{blue}{ \sum_{h=1}^{K_{2}} \sum_{m=1}^M \frac{\nu + 1}{2} \log(1 + \frac{\beta_{2\cdot 0}^2}{\nu})} \text { const. } \end{aligned}
+\end{equation*}
+
+With the corresponding gradient:
+
+\begin{equation*}
+\begin{aligned} 
+\frac{\partial \mathcal{L}(\tilde{Q})}{\partial \beta_{2 m h j}} &=\sum_{t=1}^{T} \phi_{t m} \sum_{q \in V_{2t}} \alpha_{q t m h} x_{2 p t j} \left(\mathbb{E}_{\tilde{Q}_{2}}\left[\breve{\psi}\left(\alpha_{q t m h}+C_{q t h}\right)-\breve{\psi}\left(\alpha_{q t h m }\right)\right]\right.\\ 
+&\left.+\left[\breve{\psi}\left(\xi_{q t m}\right)-\breve{\psi}\left(\xi_{q t m}+N_{1t}\right)\right]\right) -\frac{\beta_{2 m h j}-\mu_{\beta_{2}}}{\sigma_{\beta_{2}}^{2}} - \textcolor{blue}{ \sum_{h=1}^{K_{2}} \sum_{m=1}^M \frac{(1+\nu)\beta_{2\cdot 0}}{\nu + \beta_{2\cdot 0}^2}}
+\end{aligned}
+\end{equation*}
+
+\subsection{Standard Error Computation}
+\newpage
+\subsubsection{Hessian for $\boldsymbol{\gamma}$}
+Restricted to terms that involve $\gamma$, we have shown that 
+$$
+\frac{\partial \mathcal{L}(\tilde{Q})}{\partial \gamma_j}=\sum_{t=1}^{T} \sum_{p, q \in V_{1t} \times V_{2t}} \sum_{g=1}^{K_1} \sum_{h=1}^{K_2} \lambda_{p  q t g} \delta_{q p t h} \mathbf{d}_{pqtj}^\top \left(y_{p q t}-\theta_{p q t g h}\right)- \frac{\gamma_{j}-\mu_{\gamma}}{\sigma_{\gamma}^{2}}
+$$
+
+Then, 
+$$
+\frac{\partial^2 \mathcal{L}(\tilde{Q})}{\partial \gamma_j \partial {\gamma_{j^{\prime}}}}= \sum_{t=1}^{T} \sum_{p, q \in V_{1t} \times V_{2t}} \sum_{g=1}^{K_1} \sum_{h=1}^{K_2} -\mathbf{d}_{pqtj}^\top \mathbf{d}_{pqtj\prime} \left[ \bar{\theta}_{p q t g h} (1-\bar{\theta}_{p q t g h}) \right] - \sigma_{\gamma}^{-2} \delta_{j j\prime}
+$$
+
+Here, $\delta_{j j\prime}$ is the Kronecker delta function, and 
+
+$$
+\bar{\theta}_{p q t g h}= \mathbb{E}_{\widetilde{Q}} \left[ \theta_{p q t g h} \right] = \hat{\lambda}_{p  q t g}^\top \hat{\mathbf{B}} \hat{\delta}_{q p t h}+ \mathbf{d}_{pqt}^\top \boldsymbol{\gamma} 
+$$
+
+is a closed-form solution to the expectation over $\widetilde{Q}$.
+
+\subsubsection{Hessian for $\boldsymbol{\beta_{1}}$ and $\boldsymbol{\beta_{2}}$}
+First, we focus on family 1 coefficients, which is $\boldsymbol{\beta_{1}}$. For coefficients in the same group $g$:
+
+\begin{equation*}
+\begin{aligned} 
+\frac{\partial \mathcal{L}(\tilde{Q})}{\partial \beta_{1 m g j}} &=\sum_{t=1}^{T} \phi_{t m} \sum_{p \in V_{1t}} \alpha_{p t m g} x_{1 p t j}\left(\mathbb{E}_{\tilde{Q}_{2}}\left[\breve{\psi}\left(\alpha_{p t m g}+C_{p t g}\right)-\breve{\psi}\left(\alpha_{p t g m }\right)\right]\right.\\ 
+&\left.+\left[\breve{\psi}\left(\xi_{p t m}\right)-\breve{\psi}\left(\xi_{p t m}+N_{2t}\right)\right]\right) -\frac{\beta_{1 m g j}-\mu_{\beta_{1}}}{\sigma_{\beta_{1}}^{2}}
+\end{aligned}
+\end{equation*}
+
+So, 
+\begin{equation*}
+\begin{aligned} 
+\frac{\partial^2 \mathcal{L}(\tilde{Q})}{\partial \beta_{1 m g j} \partial \beta_{1 m g j\prime}} &= \sum_{t=1}^{T} \phi_{t m} \sum_{p \in V_{1t}} x_{1 p t j} x_{1 p t j\prime} \alpha_{p t m g} \left\{\mathbb{E}_{\tilde{Q}_{2}}\left[\breve{\psi}\left(\alpha_{p t m g}+C_{p t g}\right)-\breve{\psi}\left(\alpha_{p t g m }\right)\right] \right.\\ 
+&\left.+\breve{\psi}\left(\xi_{p t m}\right)-\breve{\psi}\left(\xi_{p t m}+N_{2t}\right) \right.\\ 
+&\left.+ \alpha_{p t m g} \left[ \mathbb{E}_{\tilde{Q}_{2}}\left[\breve{\psi_{1}}\left(\alpha_{p t m g}+C_{p t g}\right)-\breve{\psi_{1}}\left(\alpha_{p t g m }\right)\right] + \breve{\psi_{1}}\left(\xi_{p t m}\right)-\breve{\psi_{1}}\left(\xi_{p t m}+N_{2t}\right) \right] \right\}
+\end{aligned}
+\end{equation*}
+
+Here, $\breve{\psi_{1}}$ is the trigamma function. For coefficients in different latent groups $g$ and $g\prime$, 
+
+$$
+\frac{\partial^2 \mathcal{L}(\tilde{Q})}{\partial \beta_{1 m g j} \partial \beta_{1 m g\prime j\prime}}= \sum_{t=1}^{T} \phi_{t m} \sum_{p \in V_{1t}} x_{1 p t j} x_{1 p t j\prime} \alpha_{p t m g} \alpha_{p t m g\prime} \left( \breve{\psi_{1}}\left(\xi_{p t m}\right)-\breve{\psi_{1}}\left(\xi_{p t m}+N_{2t}\right) \right)
+$$
+
+The Hessian for $\boldsymbol{\beta_{2}}$ can be derived similarly. 
+
+Unlike $\boldsymbol{\gamma}$, there are no closed-form solutions for the expectations involved in the Hessian for $\boldsymbol{\beta_{1}}$ and $\boldsymbol{\beta_{2}}$. To approximate them, we take $S$ samples from the Poisson-Binomial distribution of $C_{p t g}$, and we get $C_{p t g}^{(s)}$ ($s \in 1...S$), and let
+$$
+\mathbb{E}_{\tilde{Q}_{2}}\left[\breve{\psi}\left(\alpha_{p t m g}+C_{p t g}\right) \right] \approx \frac{1}{S} \sum_{S} \left( \breve{\psi}\left(\alpha_{p t m g}+C_{p t g}^{(s)}\right) \right)
+$$
+
+$$
+\mathbb{E}_{\tilde{Q}_{2}}\left[\breve{\psi}_{1}\left(\alpha_{p t m g}+C_{p t g}\right) \right] \approx \frac{1}{S} \sum_{S} \left( \breve{\psi}_{1}\left(\alpha_{p t m g}+C_{p t g}^{(s)}\right) \right)
+$$
+\end{document}
