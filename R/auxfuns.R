@@ -449,10 +449,10 @@
                 function(ind, coefs, sd_vec, mean_vec){
                   mat <- coefs[,,ind, drop=FALSE]
                   constx <- 1
-                  mat[-constx, , 1] <- mat[-constx, , 1] / sd_vec[-constx]
-                  if(length(constx)!=0){
-                    mat[constx, ,1] <- mat[constx, ,1] - mean_vec[-constx] %*% mat[-constx, , 1]
-                  }
+                 # mat[-constx, , 1] <- mat[-constx, , 1] / sd_vec[-constx]
+                #  if(length(constx)!=0){
+                #    mat[constx, ,1] <- mat[constx, ,1] - mean_vec[-constx] %*% mat[-constx, , 1]
+                #  }
                   return(mat)
                 },
                 array(0.0, c(nrow(coefs), n.blk)),
