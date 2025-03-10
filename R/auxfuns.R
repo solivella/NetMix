@@ -392,6 +392,7 @@
                             t_id = tidn,
                             var_beta = vbeta,
                             mu_beta = mbeta)
+      hess_tmp<-hess_tmp/n.sim          #20250310 add: first divide by n, then inverse
     #  print("finished hess_tmp")
       vc_tmp <- Matrix::forceSymmetric(solve(hess_tmp))
     #  print("finished vc_tmp")
@@ -413,7 +414,7 @@
                     mbeta = mu.beta,
                     periods = n.periods),
     SIMPLIFY=FALSE)
-  vcov_monad <- Reduce("+", hessBeta_list)/n.sim
+  vcov_monad <- Reduce("+", hessBeta_list)#/n.sim #first divide by n, then inverse(line 395)
   
   colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:n.hmm), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
                                                         rep(colnames(beta_coef), each = nrow(beta_coef), times = n.hmm),#beta_coef used to be fbeta_coef??
@@ -449,10 +450,10 @@
                 function(ind, coefs, sd_vec, mean_vec){
                   mat <- coefs[,,ind, drop=FALSE]
                   constx <- 1
-                 # mat[-constx, , 1] <- mat[-constx, , 1] / sd_vec[-constx]
-                #  if(length(constx)!=0){
-                #    mat[constx, ,1] <- mat[constx, ,1] - mean_vec[-constx] %*% mat[-constx, , 1]
-                #  }
+                  mat[-constx, , 1] <- mat[-constx, , 1] / sd_vec[-constx]
+                  if(length(constx)!=0){
+                  mat[constx, ,1] <- mat[constx, ,1] - mean_vec[-constx] %*% mat[-constx, , 1]
+                  }
                   return(mat)
                 },
                 array(0.0, c(nrow(coefs), n.blk)),
