@@ -986,6 +986,8 @@ mmsbm <- function(formula.dyad,
     fit$vcov_monad1 <- .vcovBeta(all_phi, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1],
                                  n.hmmstates, fit[["TotNodes1"]], periods,
                                  ctrl$mu_beta1, ctrl$var_beta1, fit[["Kappa"]], t_id_n1, X1) 
+    cat("X1_sd: ", X1_sd,".\n")
+    cat("X1_sd: ", X2_sd,".\n")
     fit$vcov_monad1_tr <- .transfHess(fit[["vcov_monad1"]],n.hmmstates,X1_sd,n.blocks[1])                           
    # print("finished vcov_monad1")
     if(bipartite){
