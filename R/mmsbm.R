@@ -986,6 +986,7 @@ mmsbm <- function(formula.dyad,
     fit$vcov_monad1 <- .vcovBeta(all_phi, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1],
                                  n.hmmstates, fit[["TotNodes1"]], periods,
                                  ctrl$mu_beta1, ctrl$var_beta1, fit[["Kappa"]], t_id_n1, X1) 
+    fit$vcov_monad1_tr <- .transfHess(fit[["vcov_monad1"]],n.hmmstates,X1_sd,n.blocks[1])                           
    # print("finished vcov_monad1")
     if(bipartite){
       # kappa_mat2 <- t(fit[["Kappa"]][,t_id_n2+1, drop=FALSE])
@@ -1002,7 +1003,8 @@ mmsbm <- function(formula.dyad,
 
      fit$vcov_monad2 <- .vcovBeta(all_phi, fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
                                  n.hmmstates, fit[["TotNodes2"]], periods,
-                                 ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2) 
+                                 ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2)
+     fit$vcov_monad2_tr <- .transfHess(fit[["vcov_monad2"]],n.hmmstates,X2_sd,n.blocks[2])
    #   print("finished vcov_monad2")
     } 
     

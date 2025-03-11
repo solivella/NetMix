@@ -466,6 +466,31 @@
 }
 
 #' @rdname auxfuns
+.transfHess <- function(vcovmat, n.hmmstates, sd_vec, n.blk){
+ # res <- #vapply(1:n.hmmstates,
+          #      function(ind, vcovmat, sd_vec){
+                  #mat <- vcovmat[(ind-1)*(dim(vcovmat)[1]/n.hmmstates)+1:ind*(dim(vcovmat)[1]/n.hmmstates),(ind-1)*(dim(vcovmat)[1]/n.hmmstates)+1:ind*(dim(vcovmat)[1]/n.hmmstates)]
+                  constx <- 1
+                  sd_vec[constx]<-1
+                  sd_vec<-rep(rep(sd_vec, times = n.blk),times=n.hmmstates)
+                #  mat[-constx, , 1] <- mat[-constx, , 1] / sd_vec[-constx]
+                  scaling_mat <- sqrt(outer(sd_vec, sd_vec, `*`))  
+                  res <- mat / scaling_mat  # Element-wise division
+                #  if(length(constx)!=0){
+                #  mat[constx, ,1] <- mat[constx, ,1] #- mean_vec[-constx] %*% mat[-constx, , 1]
+                #  }
+                #  return(mat)
+                #},
+                #array(0.0, c(nrow(coefs), n.blk)),
+                #vcovmat = vcovmat,
+                #sd_vec1 = sd_vec1,
+                #sd_vec2 = sd_vec2)
+ # rownames(res) <- cnames
+ # colnames(res) <- paste("Group", 1:n.blk)
+  return(res)
+}
+
+#' @rdname auxfuns
 .initPi <- function(soc_mats,
                     bipartite,
                     dyads,
