@@ -362,11 +362,10 @@
                          function(mat){
                            apply(mat, 2, function(vec)poisbinom::rpoisbinom(n.sim, vec))
                          })) 
- # print("finished sampleC_perm")
+
   C_samples <- split.data.frame(sampleC_perm, rep(1:n.sim, times = length(all_phi)))
- # print("finished C_samples")
   S_samples <- replicate(n.sim, apply(est_kappa, 2, function(x)sample(1:n.hmm, 1, prob = x)), simplify = FALSE)
- # print("finished S_samples")
+
   hessBeta_list <- mapply(
     function(C_samp, S_samp, tidn, X_i, Nvec, beta_vec, vbeta, mbeta, periods)
     {
@@ -375,16 +374,14 @@
       } else {
         s_matrix <- matrix(1, ncol=periods)
       }
-      print("finished S_matrix")
+
       tot_in_state <- rowSums(s_matrix)
-     # cat("tot_in_state: ",tot_in_state,"\n")
+
       if(any(tot_in_state == 0.0)){
-        which_empty_s <- which(tot_in_state < 1.0)
-        
         warning("Some HMM states are empty; no standard errors will be returned for coefficients associated with them.")
       }  
-    #   print("start running  hess_tmp")
-      hess_tmp <- optimHess(c(beta_vec),alphaLBound,alphaGrad,
+
+         hess_tmp <- optimHess(c(beta_vec),alphaLBound,alphaGrad,
                             tot_nodes = Nvec,
                             c_t = t(C_samp),
                             x_t = t(X_i),
@@ -392,18 +389,7 @@
                             t_id = tidn,
                             var_beta = vbeta,
                             mu_beta = mbeta)
-      hess_tmp<-hess_tmp/n.sim          #20250310 add: first divide by n, then inverse
-    #  print("finished hess_tmp")
-      vc_tmp <- Matrix::forceSymmetric(solve(hess_tmp))
-    #  print("finished vc_tmp")
-      ev <- eigen(vc_tmp)$value
-    #  print("finished ev")
-      if(any(ev<0)){
-        vc_tmp <- vc_tmp - diag(min(ev)-1e-4, ncol(vc_tmp))
-      }
-      ch_vc <- chol(vc_tmp)
-    #  print("finished ch_vc")
-      return(t(ch_vc) %*% ch_vc)
+      return(hess_tmp)  
     },
     C_samples, S_samples,
     MoreArgs = list(tidn = t_id_n,
@@ -414,12 +400,21 @@
                     mbeta = mu.beta,
                     periods = n.periods),
     SIMPLIFY=FALSE)
-  vcov_monad <- Reduce("+", hessBeta_list)#/n.sim #first divide by n, then inverse(line 395)
-  
-  colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:n.hmm), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
-                                                        rep(colnames(beta_coef), each = nrow(beta_coef), times = n.hmm),#beta_coef used to be fbeta_coef??
+
+    expected_hessian <- Reduce("+", hessBeta_list) / n.sim  
+
+  vcov_monad <- Matrix::forceSymmetric(solve(expected_hessian))
+
+  ev <- eigen(vcov_monad)$value
+  if(any(ev < 0)){
+    vcov_monad <- vcov_monad - diag(min(ev) - 1e-4, ncol(vcov_monad))
+  }
+
+  colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:n.hmm), each = prod(dim(beta_coef)[1:2])),
+                                                        rep(colnames(beta_coef), each = nrow(beta_coef), times = n.hmm),
                                                         rep(rownames(beta_coef), times = n.blk*n.hmm),
                                                         sep=":")
+
   return(vcov_monad)
 }
 
