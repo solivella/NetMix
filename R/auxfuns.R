@@ -469,7 +469,7 @@
                   sd_vec[constx]<-1
                   sd_vec<-rep(rep(sd_vec, times = n.blk),times=n.hmmstates)
                 #  mat[-constx, , 1] <- mat[-constx, , 1] / sd_vec[-constx]
-                  scaling_mat <- sqrt(outer(sd_vec, sd_vec, `*`))  
+                  scaling_mat <- outer(sd_vec, sd_vec, `*`) 
                   res <- vcovmat / scaling_mat  # Element-wise division
                 #  if(length(constx)!=0){
                 #  mat[constx, ,1] <- mat[constx, ,1] #- mean_vec[-constx] %*% mat[-constx, , 1]
