@@ -1155,3 +1155,101 @@ find_best_init<-function(init_out){
   }
   res
 }
+                                 
+#' @rdname auxfuns
+#' @param y Numeric vector; dyadic outcomes (0/1).
+#' @param d_id Integer matrix (nr. dyads x 2); sender and receiver zero-indexed IDs.
+#' @param alpha1 Numeric matrix; Dirichlet parameters for sender mixed-membership vectors (Nr. senders x K1).
+#' @param alpha2 Numeric matrix; Dirichlet parameters for receiver mixed-membership vectors (Nr. receivers x K2).
+#' @param block_mat Numeric matrix; (k1 x k2) blockmodel on the log-odds scale.
+#' @param d_mat Numeric matrix; dyadic covariate design matrix (Nr. dyads x J).
+#' @param gamma Numeric vector; coefficients for dyadic covariates.
+#' @param k1 Integer; number of groups for family 1 (senders).
+#' @param k2 Integer; number of groups for family 2 (receivers).
+#' @param n_iter Integer; number of Gibbs iterations.
+#' @param burn_in Integer; number of burn-in iterations.
+#'
+#' @return A list containing:
+#' \describe{
+#'   \item{C_mat1}{Matrix (Nr. senders x k1); posterior counts of sender group assignments.}
+#'   \item{C_mat2}{Matrix (Nr. receivers x k2); posterior counts of receiver group assignments.}
+#'   \item{z_map}{Integer vector (length = nr. dyads); MAP sender group for each dyad.}
+#'   \item{u_map}{Integer vector (length = nr. dyads); MAP receiver group for each dyad.}
+#' }
+.collapsedGibbs <- function(y, d_id, alpha1, alpha2, block_mat, d_mat, gamma,
+                               k1, k2, n_iter = 1000, burn_in = 200) {
+  N_dyads <- nrow(d_id)
+  N1 <- nrow(alpha1)
+  N2 <- nrow(alpha2)
+  
+  z <- sample(1:k1, N_dyads, replace = TRUE)
+  u <- sample(1:k2, N_dyads, replace = TRUE)
+  
+  z_counts <- matrix(0, N_dyads, k1)
+  u_counts <- matrix(0, N_dyads, k2)
+  
+  logit_inv <- function(x) 1 / (1 + exp(-x))
+  
+  for (iter in 1:n_iter) {
+    for (i in 1:N_dyads) {
+      p <- d_id[i, 1] + 1  # Convert from 0-based to 1-based
+      q <- d_id[i, 2] + 1
+      y_i <- y[i]
+      
+      # Sample z
+      log_pz <- numeric(k1)
+      u_i <- u[i]
+      for (g in 1:k1) {
+        alpha_g <- alpha1[p, g]
+        eta <- block_mat[g, u_i] + sum(d_mat[i, ] * gamma)
+        theta <- logit_inv(eta)
+        log_lik <- y_i * log(theta) + (1 - y_i) * log(1 - theta)
+        log_pz[g] <- log(alpha_g) + log_lik
+      }
+      prob_z <- exp(log_pz - max(log_pz))
+      prob_z <- prob_z / sum(prob_z)
+      z_new <- sample(1:K1, 1, prob = prob_z)
+      z[i] <- z_new
+      
+      # Sample u
+      log_pu <- numeric(k2)
+      for (h in 1:k2) {
+        alpha_h <- alpha2[q, h]
+        eta <- block_mat[z_new, h] + sum(d_mat[i, ] * gamma)
+        theta <- logit_inv(eta)
+        log_lik <- y_i * log(theta) + (1 - y_i) * log(1 - theta)
+        log_pu[h] <- log(alpha_h) + log_lik
+      }
+      prob_u <- exp(log_pu - max(log_pu))
+      prob_u <- prob_u / sum(prob_u)
+      u_new <- sample(1:k2, 1, prob = prob_u)
+      u[i] <- u_new
+      
+      # Track MAP frequencies
+      if (iter > burn_in) {
+        z_counts[i, z_new] <- z_counts[i, z_new] + 1
+        u_counts[i, u_new] <- u_counts[i, u_new] + 1
+      }
+    }
+  }
+  
+  z_map <- apply(z_counts, 1, which.max)
+  u_map <- apply(u_counts, 1, which.max)
+  
+  C_mat1 <- matrix(0, N1, k1)
+  C_mat2 <- matrix(0, N2, k2)
+  for (i in 1:N_dyads) {
+    p <- d_id[i, 1] + 1
+    q <- d_id[i, 2] + 1
+    C_mat1[p, z_map[i]] <- C_mat1[p, z_map[i]] + 1
+    C_mat2[q, u_map[i]] <- C_mat2[q, u_map[i]] + 1
+  }
+  
+  return(list(
+    C_mat1 = C_mat1,
+    C_mat2 = C_mat2,
+    z_map = z_map,
+    u_map = u_map
+  ))
+}
+                                 
