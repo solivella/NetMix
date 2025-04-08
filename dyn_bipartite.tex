@@ -177,7 +177,33 @@ f(\mathbf{Y}, \mathbf{Z},  \mathbf{U} \mid \mathbf{B}, \boldsymbol{\beta}, \gamm
 \end{aligned}
 \end{equation}
 
-, where $\theta_{pqt, z_{pqt}, u_{qpt}} = \mathrm{logit}^{-1} (B_{z_{pqt},u_{pqt}} + \mathbf{d}_{pq}^\top \boldsymbol{\gamma})$ is the probability of a tie formation between $p$ in family 1 and $q$ in family 2 at time $t$ 
+, where $\theta_{pqt, z_{pqt}, u_{qpt}} = \mathrm{logit}^{-1} (B_{z_{pqt},u_{pqt}} + \mathbf{d}_{pq}^\top \boldsymbol{\gamma})$ is the probability of a tie formation between $p$ in family 1 and $q$ in family 2 at time $t$. The corresponding logarithm for the posterior function is therefore:
+
+\begin{equation}
+    \begin{aligned}
+\log f(\mathbf{Y}, \mathbf{Z},  \mathbf{U} & \mid \mathbf{B}, \boldsymbol{\beta}, \gamma) = \log P(s_1) \\
++ & \sum_{m=1}^{M} \Bigg[ \log \Gamma(M\eta) - \log \Gamma(M\eta + U_{m\cdot}) \Bigg] + \sum_{m=1}^{M} \sum_{n=1}^{M} \Bigg[ \log \Gamma(\eta + U_{mn}) - \log \Gamma(\eta) \Bigg] \\
++ & \sum_{t=2}^{T} \sum_{m=1}^{M} s_{tm} \Bigg\{\\
+& \sum_{p \in V_{1t}} \Bigg[ \log \Gamma(\xi_{ptm}) - \log \Gamma(\xi_{ptm} + N_{2t}) + \sum_{g=1}^{K1} \bigg( \log \Gamma(\alpha_{ptgm} + C_{ptg}) - \log \Gamma(\alpha_{ptgm}) \bigg) \Bigg] \\
++ & \sum_{q \in V_{2t}} \Bigg[ \log \Gamma(\xi_{qtm}) - \log \Gamma(\xi_{qtm} + N_{1t}) + \sum_{h=1}^{K2} \bigg( \log \Gamma(\alpha_{qthm} + C_{qth}) - \log \Gamma(\alpha_{qthm}) \bigg) \Bigg] \Bigg\} \\
++ & \sum_{t=2}^{T} \sum_{p,q \in V_{1t} \times V_{2t}} \sum_{g=1}^{K1} \sum_{h=1}^{K2} \big( z_{pqt,g} \times u_{qpt,h}\big) \bigg( y_{pqt} \log \theta_{pqt,z,u} + (1-y_{pqt}) \log (1 - \theta_{pqt,z,u}) \bigg)
+\end{aligned}
+\end{equation}
+
+%Ignoring terms that are not relevant for hessian calculation ($\alpha$, $\beta$, $\xi$): 
+%\begin{equation}
+%    \begin{aligned}
+%\log P(s_1) 
+%+ & \sum_{m=1}^{M} \Bigg[ \log \Gamma(M\eta) - \log \Gamma(M\eta + U_{m\cdot}) \Bigg] + \sum_{m=1}^{M} \sum_{n=1}^{M} \Bigg[ \log \Gamma(\eta + U_{mn}) - \log \Gamma(\eta) \Bigg] \\
+%+ & \sum_{t=2}^{T} \sum_{m=1}^{M} s_{tm} \Bigg\{\\
+%& \sum_{p \in V_{1t}} \Bigg[ - \log \Gamma(\xi_{ptm} + N_{2t}) + \sum_{g=1}^{K1} \bigg( \log \Gamma(\alpha_{ptgm} + C_{ptg}) \bigg) \Bigg] \\
+%+ & \sum_{q \in V_{2t}} \Bigg[  - \log \Gamma(\xi_{qtm} + N_{1t}) + \sum_{h=1}^{K2} \bigg( \log \Gamma(\alpha_{qthm} + C_{qth}) \bigg) \Bigg] \Bigg\} \\
+%+ & \sum_{t=2}^{T} \sum_{p,q \in V_{1t} \times V_{2t}} \sum_{g=1}^{K1} \sum_{h=1}^{K2} \big( z_{pqt,g} \times u_{qpt,h}\big) \bigg( y_{pqt} \log \theta_{pqt,z,u} + (1-y_{pqt}) \log (1 - \theta_{pqt,z,u}) \bigg)
+%\end{aligned}
+%\end{equation}
+
+
+
 
 \section{Estimation via Variational EM}
 Define a factorized distribution over the latent variables $\mathbf{L} := \{\mathbf{Z}, \mathbf{U}, \mathbf{S}\}$:
@@ -449,39 +475,74 @@ $$
 
 is a closed-form solution to the expectation over $\widetilde{Q}$.
 
+
 \subsubsection{Hessian for $\boldsymbol{\beta_{1}}$ and $\boldsymbol{\beta_{2}}$}
-First, we focus on family 1 coefficients, which is $\boldsymbol{\beta_{1}}$. For coefficients in the same group $g$:
+To derive the hessian for $\boldsymbol{\beta_{1}}$ and $\boldsymbol{\beta_{2}}$. We derive the second-order partial derivatives of the log posterior density function $f$. First, we focus on family 1 coefficients, which is $\boldsymbol{\beta_{1}}$. For coefficients in the same group $g$:
 
 \begin{equation*}
 \begin{aligned} 
-\frac{\partial \mathcal{L}(\tilde{Q})}{\partial \beta_{1 m g j}} &=\sum_{t=1}^{T} \phi_{t m} \sum_{p \in V_{1t}} \alpha_{p t m g} x_{1 p t j}\left(\mathbb{E}_{\tilde{Q}_{2}}\left[\breve{\psi}\left(\alpha_{p t m g}+C_{p t g}\right)-\breve{\psi}\left(\alpha_{p t g m }\right)\right]\right.\\ 
-&\left.+\left[\breve{\psi}\left(\xi_{p t m}\right)-\breve{\psi}\left(\xi_{p t m}+N_{2t}\right)\right]\right) -\frac{\beta_{1 m g j}-\mu_{\beta_{1}}}{\sigma_{\beta_{1}}^{2}}
+\frac{\partial \log f}{\partial \beta_{1 m g j}} =&\sum_{t=2}^{T} \sum_{p \in V_{1t}} s_{tm} \, \alpha_{ptgm} x_{ptj}
+\Big[
+\breve{\psi}(\xi_{ptm}) - \breve{\psi}(\xi_{ptm} + N_{2t})
++ \breve{\psi}(\alpha_{ptgm} + C_{ptg}) - \breve{\psi}(\alpha_{ptgm})
+\Big] \\
+&- \frac{\beta_{1mgj} - \mu_{\beta_1}}{\sigma^2_{\beta_1}}
 \end{aligned}
 \end{equation*}
 
-So, 
+So,
+
 \begin{equation*}
 \begin{aligned} 
-\frac{\partial^2 \mathcal{L}(\tilde{Q})}{\partial \beta_{1 m g j} \partial \beta_{1 m g j\prime}} &= \sum_{t=1}^{T} \phi_{t m} \sum_{p \in V_{1t}} x_{1 p t j} x_{1 p t j\prime} \alpha_{p t m g} \left\{\mathbb{E}_{\tilde{Q}_{2}}\left[\breve{\psi}\left(\alpha_{p t m g}+C_{p t g}\right)-\breve{\psi}\left(\alpha_{p t g m }\right)\right] \right.\\ 
-&\left.+\breve{\psi}\left(\xi_{p t m}\right)-\breve{\psi}\left(\xi_{p t m}+N_{2t}\right) \right.\\ 
-&\left.+ \alpha_{p t m g} \left[ \mathbb{E}_{\tilde{Q}_{2}}\left[\breve{\psi_{1}}\left(\alpha_{p t m g}+C_{p t g}\right)-\breve{\psi_{1}}\left(\alpha_{p t g m }\right)\right] + \breve{\psi_{1}}\left(\xi_{p t m}\right)-\breve{\psi_{1}}\left(\xi_{p t m}+N_{2t}\right) \right] \right\}
+\frac{\partial^2 \log f}{\partial \beta_{1mgj} \, \partial \beta_{1mgj'}} =
+& \sum_{t=2}^{T} \sum_{p \in V_{1t}} s_{tm} \cdot  \, x_{ptj} x_{ptj'} \cdot 
+ \alpha_{ptgm} \cdot \bigg[ \breve{\psi_{1}}(\xi_{ptm}) - \breve{\psi_{1}}(\xi_{ptm} + N_{2t}) \\
+& + \breve{\psi_{1}}(\alpha_{ptgm} + C_{ptg}) - \psi_1(\alpha_{ptgm}) \bigg] - \frac{\delta_{jj'}}{\sigma^2_{\beta_1}}
 \end{aligned}
 \end{equation*}
 
-Here, $\breve{\psi_{1}}$ is the trigamma function. For coefficients in different latent groups $g$ and $g\prime$, 
+Here, $\breve{\psi_{1}}$ is the trigamma function. For coefficients in different latent groups $g\prime \neq g$, 
 
-$$
-\frac{\partial^2 \mathcal{L}(\tilde{Q})}{\partial \beta_{1 m g j} \partial \beta_{1 m g\prime j\prime}}= \sum_{t=1}^{T} \phi_{t m} \sum_{p \in V_{1t}} x_{1 p t j} x_{1 p t j\prime} \alpha_{p t m g} \alpha_{p t m g\prime} \left( \breve{\psi_{1}}\left(\xi_{p t m}\right)-\breve{\psi_{1}}\left(\xi_{p t m}+N_{2t}\right) \right)
-$$
+\begin{equation*}
+\frac{\partial^2 \log f}{\partial \beta_{1mgj} \, \partial \beta_{1mg'j'}} =
+\sum_{t=2}^{T} \sum_{p \in V_{1t}} s_{tm} \cdot \alpha_{ptgm} \alpha_{ptg'm} \cdot x_{ptj} x_{ptj'}  \left[ \breve{\psi_{1}}(\xi_{ptm}) - \breve{\psi_{1}}(\xi_{ptm} + N_{2t}) \right]
+\end{equation*}
 
 The Hessian for $\boldsymbol{\beta_{2}}$ can be derived similarly. 
 
-Unlike $\boldsymbol{\gamma}$, there are no closed-form solutions for the expectations involved in the Hessian for $\boldsymbol{\beta_{1}}$ and $\boldsymbol{\beta_{2}}$. To approximate them, we take $S$ samples from the Poisson-Binomial distribution of $C_{p t g}$, and we get $C_{p t g}^{(s)}$ ($s \in 1...S$), and let
-$$
-\mathbb{E}_{\tilde{Q}_{2}}\left[\breve{\psi}\left(\alpha_{p t m g}+C_{p t g}\right) \right] \approx \frac{1}{S} \sum_{S} \left( \breve{\psi}\left(\alpha_{p t m g}+C_{p t g}^{(s)}\right) \right)
-$$
+%\subsubsection{Hessian for $\boldsymbol{\beta_{1}}$ and $\boldsymbol{\beta_{2}}$}
+%First, we focus on family 1 coefficients, which is $\boldsymbol{\beta_{1}}$. For coefficients in the same group $g$:
 
-$$
-\mathbb{E}_{\tilde{Q}_{2}}\left[\breve{\psi}_{1}\left(\alpha_{p t m g}+C_{p t g}\right) \right] \approx \frac{1}{S} \sum_{S} \left( \breve{\psi}_{1}\left(\alpha_{p t m g}+C_{p t g}^{(s)}\right) \right)
-$$
+%\begin{equation*}
+%\begin{aligned} 
+%\frac{\partial \mathcal{L}(\tilde{Q})}{\partial \beta_{1 m g j}} &=\sum_{t=1}^{T} \phi_{t m} \sum_{p \in V_{1t}} \alpha_{p t m g} x_{1 p t j}\left(\mathbb{E}_{\tilde{Q}_{2}}\left[\breve{\psi}\left(\alpha_{p t m g}+C_{p t g}\right)-\breve{\psi}\left(\alpha_{p t g m }\right)\right]\right.\\ 
+%&\left.+\left[\breve{\psi}\left(\xi_{p t m}\right)-\breve{\psi}\left(\xi_{p t m}+N_{2t}\right)\right]\right) -\frac{\beta_{1 m g j}-\mu_{\beta_{1}}}{\sigma_{\beta_{1}}^{2}}
+%\end{aligned}
+%\end{equation*}
+
+%So, 
+%\begin{equation*}
+%\begin{aligned} 
+%\frac{\partial^2 \mathcal{L}(\tilde{Q})}{\partial \beta_{1 m g j} \partial \beta_{1 m g j\prime}} &= \sum_{t=1}^{T} \phi_{t m} \sum_{p \in V_{1t}} x_{1 p t j} x_{1 p t j\prime} \alpha_{p t m g} \left\{\mathbb{E}_{\tilde{Q}_{2}}\left[\breve{\psi}\left(\alpha_{p t m g}+C_{p t g}\right)-\breve{\psi}\left(\alpha_{p t g m }\right)\right] \right.\\ 
+%&\left.+\breve{\psi}\left(\xi_{p t m}\right)-\breve{\psi}\left(\xi_{p t m}+N_{2t}\right) \right.\\ 
+%&\left.+ \alpha_{p t m g} \left[ \mathbb{E}_{\tilde{Q}_{2}}\left[\breve{\psi_{1}}\left(\alpha_{p t m g}+C_{p t g}\right)-\breve{\psi_{1}}\left(\alpha_{p t g m }\right)\right] + \breve{\psi_{1}}\left(\xi_{p t m}\right)-\breve{\psi_{1}}\left(\xi_{p t m}+N_{2t}\right) \right] \right\}
+%\end{aligned}
+%\end{equation*}
+
+%Here, $\breve{\psi_{1}}$ is the trigamma function. For coefficients in different latent groups $g$ and $g\prime$, 
+
+%$$
+%\frac{\partial^2 \mathcal{L}(\tilde{Q})}{\partial \beta_{1 m g j} \partial \beta_{1 m g\prime j\prime}}= \sum_{t=1}^{T} \phi_{t m} \sum_{p \in V_{1t}} x_{1 p t j} x_{1 p t j\prime} \alpha_{p t m g} \alpha_{p t m g\prime} \left( \breve{\psi_{1}}\left(\xi_{p t m}\right)-\breve{\psi_{1}}\left(\xi_{p t m}+N_{2t}\right) \right)
+%$$
+
+%The Hessian for $\boldsymbol{\beta_{2}}$ can be derived similarly. 
+
+%Unlike $\boldsymbol{\gamma}$, there are no closed-form solutions for the expectations involved in the Hessian for $\boldsymbol{\beta_{1}}$ and $\boldsymbol{\beta_{2}}$. To approximate them, we take $S$ samples from the Poisson-Binomial distribution of $C_{p t g}$, and we get $C_{p t g}^{(s)}$ ($s \in 1...S$), and let
+%$$
+%\mathbb{E}_{\tilde{Q}_{2}}\left[\breve{\psi}\left(\alpha_{p t m g}+C_{p t g}\right) \right] \approx \frac{1}{S} \sum_{S} \left( \breve{\psi}\left(\alpha_{p t m g}+C_{p t g}^{(s)}\right) \right)
+%$$
+
+%$$
+%\mathbb{E}_{\tilde{Q}_{2}}\left[\breve{\psi}_{1}\left(\alpha_{p t m g}+C_{p t g}\right) \right] \approx \frac{1}{S} \sum_{S} \left( \breve{\psi}_{1}\left(\alpha_{p t m g}+C_{p t g}^{(s)}\right) \right)
+%$$
 \end{document}
