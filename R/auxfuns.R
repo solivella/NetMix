@@ -401,7 +401,7 @@
                    t_id = tidn,
                    var_beta = vbeta,
                    mu_beta = mbeta,
-                   control = list(maxit = 1000, fnscale = 1),
+                   control = list(maxit =5000, fnscale = 1),
                    hessian = TRUE)           
       return(res_optim$hessian)  
     },
