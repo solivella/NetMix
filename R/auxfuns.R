@@ -381,29 +381,29 @@
         warning("Some HMM states are empty; no standard errors will be returned for coefficients associated with them.")
       }  
 
-        # hess_tmp <- optimHess(c(beta_vec),alphaLBound,alphaGrad,
-        #                    tot_nodes = Nvec,
-        #                    c_t = t(C_samp),
-        #                    x_t = t(X_i),
-        #                    s_mat = s_matrix,
-        #                    t_id = tidn,
-        #                    var_beta = vbeta,
-        #                    mu_beta = mbeta)
-        #return(hess_tmp)  
-         res_optim <- optim(par = beta_vec,
-                   fn = alphaLBound,
-                   gr = alphaGrad,
-                   method = "BFGS",  
-                   tot_nodes = Nvec,
-                   c_t = t(C_samp),
-                   x_t = t(X_i),
-                   s_mat = s_matrix,
-                   t_id = tidn,
-                   var_beta = vbeta,
-                   mu_beta = mbeta,
-                   control = list(maxit =5000, fnscale = 1),
-                   hessian = TRUE)           
-      return(res_optim$hessian)  
+         hess_tmp <- optimHess(c(beta_vec),alphaLBound,alphaGrad,
+                          tot_nodes = Nvec,
+                           c_t = t(C_samp),
+                            x_t = t(X_i),
+                            s_mat = s_matrix,
+                            t_id = tidn,
+                            var_beta = vbeta,
+                            mu_beta = mbeta)
+        return(hess_tmp)  
+        # res_optim <- optim(par = beta_vec,
+        #           fn = alphaLBound,
+        #           gr = alphaGrad,
+        #           method = "BFGS",  
+        #           tot_nodes = Nvec,
+        #           c_t = t(C_samp),
+        #           x_t = t(X_i),
+        #           s_mat = s_matrix,
+        #           t_id = tidn,
+        #           var_beta = vbeta,
+        #           mu_beta = mbeta,
+        #           control = list(maxit =5000, fnscale = 1),
+        #           hessian = TRUE)           
+     # return(res_optim$hessian)  
     },
     C_samples, S_samples,
     MoreArgs = list(tidn = t_id_n,
