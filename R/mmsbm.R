@@ -979,11 +979,16 @@ mmsbm <- function(formula.dyad,
 
    ## Compute approximate standard errors
     ## for monadic coefficients
-    all_phi <- split.data.frame(rbind(t(fit[["SenderPhi"]]),
-                                         t(fit[["ReceiverPhi"]])),
-                                   c(nt_id))
+  #  all_phi <- split.data.frame(rbind(t(fit[["SenderPhi"]]),
+  #                                       t(fit[["ReceiverPhi"]])),
+  #                                 c(nt_id))
+all_phi1 <- split.data.frame((t(fit[["SenderPhi"]])),
+                              c(nt_id[,1]))
+  all_phi2 <- split.data.frame((t(fit[["ReceiverPhi"]])),
+                               c(nt_id[,2]))
+
   #  print("finished calculating all_phi")
-    fit$vcov_monad1 <- .vcovBeta(all_phi, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1],
+    fit$vcov_monad1 <- .vcovBeta(all_phi1, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1],
                                  n.hmmstates, fit[["TotNodes1"]], periods,
                                  ctrl$mu_beta1, ctrl$var_beta1, fit[["Kappa"]], t_id_n1, X1) 
     cat("X1_sd: ", X1_sd,".\n")
@@ -1003,7 +1008,7 @@ mmsbm <- function(formula.dyad,
     #                               var_beta=ctrl$var_beta2,
     #                               mu_beta=ctrl$mu_beta2)
 
-     fit$vcov_monad2 <- .vcovBeta(all_phi, fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
+     fit$vcov_monad2 <- .vcovBeta(all_phi2, fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
                                  n.hmmstates, fit[["TotNodes2"]], periods,
                                  ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2)
      fit$vcov_monad2_tr <- .transfHess(fit[["vcov_monad2"]],n.hmmstates,X2_sd,n.blocks[2])
