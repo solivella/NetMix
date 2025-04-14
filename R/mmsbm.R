@@ -549,13 +549,13 @@ mmsbm <- function(formula.dyad,
       nodes1 <- nodes2 <- unique(unlist(dyad_mat[,c("(sid)","(rid)")]))
       nnode1 <- nnode2 <- length(nodes1)
     }
-    print("starting mmsbm line 552")
+
     adj_mat <- matrix(NA,
                       nnode1,
                       nnode2,
                       dimnames = list(nodes1,
                                       nodes2))
-    print("end mmsbm line 552")
+
     indeces <- as.matrix(dyad_mat[,c("(sid)","(rid)")])
     index <- cbind(match(indeces[,1],rownames(adj_mat)),match(indeces[,2],colnames(adj_mat)))
     adj_mat[index] <- dyad_mat[,y_var] 
