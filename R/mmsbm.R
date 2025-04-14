@@ -555,7 +555,7 @@ mmsbm <- function(formula.dyad,
                       nnode2,
                       dimnames = list(nodes1,
                                       nodes2))
-     print("end mmsbm line 552")
+    print("end mmsbm line 552")
     indeces <- as.matrix(dyad_mat[,c("(sid)","(rid)")])
     index <- cbind(match(indeces[,1],rownames(adj_mat)),match(indeces[,2],colnames(adj_mat)))
     adj_mat[index] <- dyad_mat[,y_var] 
@@ -606,7 +606,7 @@ mmsbm <- function(formula.dyad,
     if(bipartite){
       ctrl$mm_init_t[[2]] <- mm_init[[2]]
     }
-  
+    
     
     # Feed back the switched mm   
     ctrl$mm_init_t[[1]] <- mm_init[[1]]
@@ -623,7 +623,7 @@ mmsbm <- function(formula.dyad,
   ## Initizalize beta with dirichlet regression
   library(DirichletReg)
   
-
+  
   
   ##Initial gamma
   if(is.null(ctrl$gamma_init)){
@@ -663,72 +663,10 @@ mmsbm <- function(formula.dyad,
                               function(m){
                                 lm.fit(X1, t(ctrl$mm_init_t[[1]]))$coefficients
                               }, prot)
-    #   ori_beta1<-ctrl$beta1_init
-    #  if (length(unique(data.dyad[[timeID]]))==1){
-    #    if (unique(data.dyad[[timeID]])<=25){#      #intercept_values <- beta_easy[[1]][1, ]
-    #      #ctrl$beta1_init[1, , 1] <- intercept_values
-    #     ctrl$beta1_init[, , 1] <- t(beta_easy[[1]])
-    #  }else{
-    #   #intercept_values <- beta_easy[[2]][1, ]
-    #    #ctrl$beta1_init[1, , 1] <- intercept_values
-    #   ctrl$beta1_init[, , 1] <- t(beta_easy[[2]])
-    # }
-    # }else{
-    #  for(i in seq_along(beta_easy)) {
-    #            #intercept_values <- beta_easy[[i]][1, ]
-    #           ctrl$beta1_init[, , i] <- t(beta_easy[[i]])
-    #      }
-    #}
-    
-    
-    # new_beta1<-ctrl$beta1_init
-  }#}else{
-#  # Senators
-#  # State 1
-#  mm_S<-t(mm_init[[1]])
-#  monad_S<-netSim[["df_monad_S"]]
-#  df_S<-cbind(mm_S,monad_S)
-#  df_S<-df_S%>%select(1,2,VarS1)
-#  df_S<-df_S%>%rename(prop1=1,prop2=2)%>%
-#  mutate(Intercept=1)
-#  df_S_1<-df_S[1:2500,]
-#  #df_S_1<-df_S[c(1:400,501:2200,2301:2500),] #out3 adjusted
-
-#  df_S_1$composition <- DR_data(df_S_1[, c("prop1", "prop2")])
-#  model_S1 <- DirichReg(composition ~VarS1, data = df_S_1)
-#  coef_s1_g1<-coef(model_S1)[1]
-#  coef_s1_g2<-coef(model_S1)[2]
-
- # # State 2
-#  df_S_2<-df_S[2501:5000,]
- # #df_S_1<-df_S[c(1:400,501:2200,2301:2500),] #out3 adjusted
-
- # df_S_2$composition <- DR_data(df_S_2[, c("prop1", "prop2")])
- #model_S2 <- DirichReg(composition ~VarS1, data = df_S_2)
- # coef_s2_g1<-coef(model_S2)[1]
- # coef_s2_g2<-coef(model_S2)[2]
-
-#beta_init_S<-array(c(coef_s1_g1[[1]][1], coef_s1_g1[[1]][2], ##Intercepts
- #                      
- #                        coef_s1_g2[[1]][1], coef_s1_g2[[1]][2],
-#
- #                       coef_s2_g1[[1]][1], coef_s2_g1[[1]][2], ##Intercepts
- #                      
-  #                      coef_s2_g2[[1]][1], coef_s2_g2[[1]][2]), ## Predictor coefficients
- #                     c(2, 2, 2)
-#)
-
-#ctrl$beta1_init<-beta_init_S
- # }
-  
-  #cat("ori_beta1\n")
-  #print(ori_beta1)
-  #cat("ctrl$beta1_init\n")
-  #print(ctrl$beta1_init)
-  
+   
   
   ##Initial Beta 2
- # if(periods==1){
+  # if(periods==1){
   if(bipartite){
     #   beta_easy = list(array(c(0.05, -0.75, ##Intercepts
     #                             0.75, -1.0), ## Predictor coefficients
@@ -744,84 +682,13 @@ mmsbm <- function(formula.dyad,
                                 function(m){
                                   lm.fit(X2,t(ctrl$mm_init_t[[2]]))$coefficients
                                 }, prot)
-      #      ori_beta2<-ctrl$beta2_init
-      
-      #     if (length(unique(data.dyad[[timeID]]))==1){
-      #        if (unique(data.dyad[[timeID]])<=25){
-      #          #intercept_values <- beta_easy[[1]][1, ]
-      #          #ctrl$beta2_init[1, , 1] <- intercept_values
-      #          ctrl$beta2_init[, , 1] <- t(beta_easy[[1]])
-      #        }else{
-      #          #intercept_values <- beta_easy[[2]][1, ]
-      #          #ctrl$beta2_init[1, , 1] <- intercept_values
-      #          ctrl$beta2_init[, , 1] <- t(beta_easy[[2]])
-      #        }
-      #      }else{
-      #        for(i in seq_along(beta_easy)) {
-      #          #intercept_values <- beta_easy[[i]][1, ]
-      #          ctrl$beta2_init[, , i] <- t(beta_easy[[i]])
-      #       }
-    }
+   
     
     new_beta2<-ctrl$beta2_init
-  }#}else{
-
-  
-
-## Bills
-  # State 1
- #mm_B<-t(mm_init[[2]])
- # monad_B<-netSim[["df_monad_B"]]
- # df_B<-cbind(mm_B,monad_B)
- # df_B<-df_B%>%select(1,2,VarB1)
- # df_B<-df_B%>%rename(prop1=1,prop2=2)%>%
- # mutate(Intercept=1)
- # df_B_1<-df_B[1:2500,]
- # #df_S_1<-df_S[c(1:400,501:2200,2301:2500),] #out3 adjusted
-
- # df_B_1$composition <- DR_data(df_B_1[, c("prop1", "prop2")])
- # model_B1 <- DirichReg(composition ~VarB1, data = df_B_1)
- # coef_b1_g1<-coef(model_B1)[1]
- # coef_b1_g2<-coef(model_B1)[2]
-
-  # State 2
- # df_B_2<-df_B[2501:5000,]
-  #df_S_1<-df_S[c(1:400,501:2200,2301:2500),] #out3 adjusted
-
- # df_B_2$composition <- DR_data(df_B_2[, c("prop1", "prop2")])
- # model_B2 <- DirichReg(composition ~VarB1, data = df_B_2)
- # coef_b2_g1<-coef(model_B2)[1]
- # coef_b2_g2<-coef(model_B2)[2]
-
-#beta_init_B<-array(c(coef_b1_g1[[1]][1], coef_b1_g1[[1]][2], ##Intercepts
- #                      
- #                        coef_b1_g2[[1]][1], coef_b1_g2[[1]][2],
-#
- #                       coef_b2_g1[[1]][1], coef_b2_g1[[1]][2], ##Intercepts
- #                      
-  #                       coef_b2_g2[[1]][1], coef_b2_g2[[1]][2]), ## Predictor coefficients
- #                    c(2, 2, 2)
-#)
-  
-  #  ctrl$beta2_init<-beta_init_B
- # }
-  
-  #cat("ori_beta2\n")
-  #print(ori_beta2)
-  #cat("ctrl$beta2_init\n")
-  #print(ctrl$beta2_init)
-  
-  #ctrl$beta1_init[1, , 1] <- beta_easy[[1]][1, ]
-  #ctrl$beta1_init[1, , 2] <- beta_easy[[2]][1, ]
-  #ctrl$beta2_init[1, , 1] <- beta_easy[[1]][1, ]
-  #ctrl$beta2_init[1, , 2] <- beta_easy[[2]][1, ]
+  }
   
   ## Create randomizer for order of updatePhis
   ctrl$phi_order <- rbinom(nrow(Z)[1],1,0.5) #ndyad
-  #test print
-  #print(ctrl$b_init_t)
-  #print(ctrl$beta2_init)
-  
   
   ## Estimate model
   if(ctrl$verbose){
@@ -908,43 +775,13 @@ mmsbm <- function(formula.dyad,
     names(fit[["DyadCoef"]]) <- colnames(Z) 
   }
   X1 <- t(t(X1) * X1_sd + X1_mean) #unscale
-  # tmp1 <- .transfBeta(fit[["MonadCoef1"]], n.hmmstates,
-  #                    X1_mean, X1_sd, n.blocks[1], colnames(X1))
-  # tmp1[1,,] <- 1
-  # tmp_beta1 <- maxLik::maxNR(alphaLBound,
-  #                       start = tmp1,
-  #                       tot_nodes = fit[["TotNodes1"]],
-  #                       c_t=t(fit[["CountMatrix1"]]),
-  #                       x_t=t(X1),
-  #                       s_mat=fit[["Kappa"]],
-  #                       t_id=t_id_n1,
-  #                       var_beta=ctrl$var_beta1,
-  #                       mu_beta=ctrl$mu_beta1, 
-  #                       control=list(iterlim=100))
-  # fit[["MonadCoef1"]] <- array(tmp_beta1$estimate, dim(fit[["MonadCoef1"]]))
-  # rownames(fit[["MonadCoef1"]]) <- colnames(X1)
-  # colnames(fit[["MonadCoef1"]]) <- paste("Group", 1:n.blocks[1])
+
   fit[["MonadCoef1"]] <- .transfBeta(fit[["MonadCoef1"]], n.hmmstates,
                                      X1_mean, X1_sd, n.blocks[1], colnames(X1))
   
   if(bipartite){
     X2 <- t(t(X2) * X2_sd + X2_mean) #unscale
-    # tmp2 <- .transfBeta(fit[["MonadCoef2"]], n.hmmstates,
-    #                     X2_mean, X2_sd, n.blocks[2], colnames(X2))
-    # tmp2[1,,] <- 1
-    # tmp_beta2 <- maxLik::maxNR(alphaLBound,
-    #                            start = tmp2,
-    #                            tot_nodes = fit[["TotNodes2"]],
-    #                            c_t=t(fit[["CountMatrix2"]]),
-    #                            x_t=t(X2),
-    #                            s_mat=fit[["Kappa"]],
-    #                            t_id=t_id_n2,
-    #                            var_beta=ctrl$var_beta2,
-    #                            mu_beta=ctrl$mu_beta2,
-    #                            control=list(iterlim=1))
-    # fit[["MonadCoef2"]] <- array(tmp_beta2$estimate, dim(fit[["MonadCoef2"]]))
-    # rownames(fit[["MonadCoef2"]]) <- colnames(X2)
-    # colnames(fit[["MonadCoef2"]]) <- paste("Group", 1:n.blocks[2])
+
     fit[["MonadCoef2"]] <- .transfBeta(fit[["MonadCoef2"]], n.hmmstates,
                                        X2_mean, X2_sd, n.blocks[2], colnames(X2))
   }
@@ -961,58 +798,30 @@ mmsbm <- function(formula.dyad,
   
   if(ctrl$hessian){
     if(ctrl$verbose){
-      cat("Computing approximate vcov. matrices...\n")
+      cat("Collapsed Gibbs' Sampling for MAPs...\n")
     }
-    ## Compute approximate standard errors
-    ## for monadic coefficients
-    # kappa_mat1 <- t(fit[["Kappa"]][,t_id_n1+1, drop=FALSE])
-    # all_phi1 <- (fit[["CountMatrix1"]])
-  #  print("start vcov_monad1")
-   # fit$vcov_monad1 <- .vcovBeta(fit[["MonadCoef1"]],
-   #                              tot_nodes = fit[["TotNodes1"]],
-    #                             c_t=t(fit[["CountMatrix1"]]),
-    #                             x_t=t(X1),
-    #                             s_mat=fit[["Kappa"]],
-    #                             t_id=t_id_n1,
-    #                             var_beta=ctrl$var_beta1,
-    #                             mu_beta=ctrl$mu_beta1)
-
-   ## Compute approximate standard errors
-    ## for monadic coefficients
-  #  all_phi <- split.data.frame(rbind(t(fit[["SenderPhi"]]),
-  #                                       t(fit[["ReceiverPhi"]])),
-  #                                 c(nt_id))
-all_phi1 <- split.data.frame((t(fit[["SenderPhi"]])),
-                              c(nt_id[,1]))
-  all_phi2 <- split.data.frame((t(fit[["ReceiverPhi"]])),
-                               c(nt_id[,2]))
-
-  #  print("finished calculating all_phi")
-    fit$vcov_monad1 <- .vcovBeta(all_phi1, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1],
+    
+    C_map <- .collapsedGibbs(model.obj = fit, gibbs_iter = 1000, burn_in = 200, n_cores = 5) 
+    
+    C_mat1 <- do.call(rbind, C_map$C_mat1_list)
+    C_mat2 <- do.call(rbind, C_map$C_mat2_list)
+    
+    if(ctrl$verbose){
+    cat("Computing vcov. matrices...\n")
+    }
+    
+    fit$vcov_monad1 <- .vcovBeta(C_mat1, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1],
                                  n.hmmstates, fit[["TotNodes1"]], periods,
                                  ctrl$mu_beta1, ctrl$var_beta1, fit[["Kappa"]], t_id_n1, X1) 
     cat("X1_sd: ", X1_sd,".\n")
     cat("X2_sd: ", X2_sd,".\n")
     fit$vcov_monad1_tr <- .transfHess(fit[["vcov_monad1"]],n.hmmstates,X1_sd,n.blocks[1])                           
-   # print("finished vcov_monad1")
-    if(bipartite){
-      # kappa_mat2 <- t(fit[["Kappa"]][,t_id_n2+1, drop=FALSE])
-      # all_phi2 <- (fit[["CountMatrix2"]])
-    
-    #  fit$vcov_monad2 <- .vcovBeta(fit[["MonadCoef2"]],
-    #                               tot_nodes = fit[["TotNodes2"]],
-    #                               c_t=t(fit[["CountMatrix2"]]),
-    #                               x_t=t(X2),
-    #                               s_mat=fit[["Kappa"]],
-    #                               t_id=t_id_n2,
-    #                               var_beta=ctrl$var_beta2,
-    #                               mu_beta=ctrl$mu_beta2)
 
-     fit$vcov_monad2 <- .vcovBeta(all_phi2, fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
-                                 n.hmmstates, fit[["TotNodes2"]], periods,
-                                 ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2)
-     fit$vcov_monad2_tr <- .transfHess(fit[["vcov_monad2"]],n.hmmstates,X2_sd,n.blocks[2])
-   #   print("finished vcov_monad2")
+    if(bipartite){
+      fit$vcov_monad2 <- .vcovBeta(C_mat2, fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
+                                   n.hmmstates, fit[["TotNodes2"]], periods,
+                                   ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2)
+      fit$vcov_monad2_tr <- .transfHess(fit[["vcov_monad2"]],n.hmmstates,X2_sd,n.blocks[2])
     } 
     
     ## and for dyadic coefficients
@@ -1023,29 +832,29 @@ all_phi1 <- split.data.frame((t(fit[["SenderPhi"]])),
       if(bipartite){
         w_map <- apply(fit[["MixedMembership2"]], 2, which.max)
       }
-    #  cat("w_map:",w_map,"\n")
+      #  cat("w_map:",w_map,"\n")
       hessTheta_list <- lapply(1,
                                function(i, eta, z, w, B, ind){
-                            #    cat("ind[,1]]:",ind[,1],"\n")
-                             #    cat("ind[,2]]:",ind[,2],"\n")
-                             #    cat("ind:",ind,"\n")
-
-                             #   cat("dntid:", 
-                             #  cbind(do.call(paste, c(mfd[c("(sid)","(tid)")], sep = "@")),
-           #    do.call(paste, c(mfd[c("(rid)","(tid)")], sep = "@")))
-                                
-                         #       ,"\n")
-
+                                 #    cat("ind[,1]]:",ind[,1],"\n")
+                                 #    cat("ind[,2]]:",ind[,2],"\n")
+                                 #    cat("ind:",ind,"\n")
+                                 
+                                 #   cat("dntid:", 
+                                 #  cbind(do.call(paste, c(mfd[c("(sid)","(tid)")], sep = "@")),
+                                 #    do.call(paste, c(mfd[c("(rid)","(tid)")], sep = "@")))
+                                 
+                                 #       ,"\n")
+                                 
                                  offset_bm <- B[cbind(z_map[ind[,1]], w_map[ind[,2]])]
-                          #       cat("offset_bm:",offset_bm,"\n")
-                          #       cat("cbind(z_map[ind[,1]], w_map[ind[,2]]):",cbind(z_map[ind[,1]], w_map[ind[,2]]),"\n")
-                                
+                                 #       cat("offset_bm:",offset_bm,"\n")
+                                 #       cat("cbind(z_map[ind[,1]], w_map[ind[,2]]):",cbind(z_map[ind[,1]], w_map[ind[,2]]),"\n")
+                                 
                                  pred_edges <- plogis(offset_bm + eta)
                                  return(vcovGamma_ext(Z, pred_edges, c(ctrl$var_gamma)))
-                          #    }, eta = edge_eta, z=z_samples, w=w_samples, B=fit[["BlockModel"]], ind = as.matrix(mfd[,c("(sid)","(rid)")]))
-                             }, eta = edge_eta, z=z_samples, w=w_samples, B=fit[["BlockModel"]], ind = cbind(do.call(paste, c(mfd[c("(sid)","(tid)")], sep = "@")),
-               do.call(paste, c(mfd[c("(rid)","(tid)")], sep = "@")))  )
-
+                                 #    }, eta = edge_eta, z=z_samples, w=w_samples, B=fit[["BlockModel"]], ind = as.matrix(mfd[,c("(sid)","(rid)")]))
+                               }, eta = edge_eta, z=z_samples, w=w_samples, B=fit[["BlockModel"]], ind = cbind(do.call(paste, c(mfd[c("(sid)","(tid)")], sep = "@")),
+                                                                                                               do.call(paste, c(mfd[c("(rid)","(tid)")], sep = "@")))  )
+      
       print(hessTheta_list)
       fit$vcov_dyad <- as.matrix(hessTheta_list[[1]])
       colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
@@ -1110,9 +919,9 @@ all_phi1 <- split.data.frame((t(fit[["SenderPhi"]])),
   fit$init_distance<-init_distance
   fit$beta1_init<-ctrl$beta1_init
   fit$beta2_init<-ctrl$beta2_init
-
-
-
+  
+  
+  
   ##Assign class for methods
   if(fit$bipartite){
     class(fit) <- c("mmsbmB", "mmsbm")
