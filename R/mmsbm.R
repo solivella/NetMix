@@ -948,91 +948,8 @@ mmsbm <- function(formula.dyad,
     fit[["MonadCoef2"]] <- .transfBeta(fit[["MonadCoef2"]], n.hmmstates,
                                        X2_mean, X2_sd, n.blocks[2], colnames(X2))
   }
-  
-  
-  ## Add other names
-  colnames(fit[["Kappa"]]) <- unique(mfm1[,"(tid)"])
-  dimnames(fit[["BlockModel"]]) <- c(replicate(1,paste("1 Group",1:n.blocks[1]), simplify = FALSE),replicate(1,paste("2 Group",1:n.blocks[2]), simplify = FALSE))
-  dimnames(fit[["TransitionKernel"]]) <- replicate(2,paste("State",1:n.hmmstates), simplify = FALSE)
-  colnames(fit[["MixedMembership1"]]) <- ntid1
-  if(bipartite){
-    colnames(fit[["MixedMembership2"]]) <- ntid2 
-  }
-  
-  if(ctrl$hessian){
-    if(ctrl$verbose){
-      cat("Collapsed Gibbs' Sampling for MAPs...\n")
-    }
-    
-    C_map <- .collapsedGibbs(model.obj = fit, gibbs_iter = 1000, burn_in = 200, n_cores = 5) 
-    
-    C_mat1 <- do.call(rbind, C_map$C_mat1_list)
-    C_mat2 <- do.call(rbind, C_map$C_mat2_list)
-    
-    if(ctrl$verbose){
-      cat("Computing vcov. matrices...\n")
-    }
-    
-    fit$vcov_monad1 <- .vcovBeta(C_mat1, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1],
-                                 n.hmmstates, fit[["TotNodes1"]], periods,
-                                 ctrl$mu_beta1, ctrl$var_beta1, fit[["Kappa"]], t_id_n1, X1) 
-    cat("X1_sd: ", X1_sd,".\n")
-    cat("X2_sd: ", X2_sd,".\n")
-    fit$vcov_monad1_tr <- .transfHess(fit[["vcov_monad1"]],n.hmmstates,X1_sd,n.blocks[1])                           
-    
-    if(bipartite){
-      fit$vcov_monad2 <- .vcovBeta(C_mat2, fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
-                                   n.hmmstates, fit[["TotNodes2"]], periods,
-                                   ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2)
-      fit$vcov_monad2_tr <- .transfHess(fit[["vcov_monad2"]],n.hmmstates,X2_sd,n.blocks[2])
-    } 
-    
-    ## and for dyadic coefficients
-    if(any(Z_sd > 0)){
-      edge_eta <- Z %*% fit[["DyadCoef"]]
-      z_map <- apply(fit[["MixedMembership1"]], 2, which.max) 
-      w_map <- z_map
-      if(bipartite){
-        w_map <- apply(fit[["MixedMembership2"]], 2, which.max)
-      }
-      #  cat("w_map:",w_map,"\n")
-      hessTheta_list <- lapply(1,
-                               function(i, eta, z, w, B, ind){
-                                 #    cat("ind[,1]]:",ind[,1],"\n")
-                                 #    cat("ind[,2]]:",ind[,2],"\n")
-                                 #    cat("ind:",ind,"\n")
-                                 
-                                 #   cat("dntid:", 
-                                 #  cbind(do.call(paste, c(mfd[c("(sid)","(tid)")], sep = "@")),
-                                 #    do.call(paste, c(mfd[c("(rid)","(tid)")], sep = "@")))
-                                 
-                                 #       ,"\n")
-                                 
-                                 offset_bm <- B[cbind(z_map[ind[,1]], w_map[ind[,2]])]
-                                 #       cat("offset_bm:",offset_bm,"\n")
-                                 #       cat("cbind(z_map[ind[,1]], w_map[ind[,2]]):",cbind(z_map[ind[,1]], w_map[ind[,2]]),"\n")
-                                 
-                                 pred_edges <- plogis(offset_bm + eta)
-                                 return(vcovGamma_ext(Z, pred_edges, c(ctrl$var_gamma)))
-                                 #    }, eta = edge_eta, z=z_samples, w=w_samples, B=fit[["BlockModel"]], ind = as.matrix(mfd[,c("(sid)","(rid)")]))
-                               }, eta = edge_eta, z=z_samples, w=w_samples, B=fit[["BlockModel"]], ind = cbind(do.call(paste, c(mfd[c("(sid)","(tid)")], sep = "@")),
-                                                                                                               do.call(paste, c(mfd[c("(rid)","(tid)")], sep = "@")))  )
-      
-      print(hessTheta_list)
-      fit$vcov_dyad <- as.matrix(hessTheta_list[[1]])
-      colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
-    }
-    
-    
-    
-    if(ctrl$verbose){
-      cat("done.\n")
-    }
-    
-  }#end Hessian portion
-  
-  
-  #Include used data
+
+                                   #Include used data
   attr(mfm1, "terms") <- NULL
   fit$monadic.data <- list(mfm1) #nodes are in nid1,nide2 naming conventions; time in tid convention
   attr(mfd, "terms") <- NULL
@@ -1083,6 +1000,88 @@ mmsbm <- function(formula.dyad,
   fit$beta1_init<-ctrl$beta1_init
   fit$beta2_init<-ctrl$beta2_init
   
+  
+  ## Add other names
+  colnames(fit[["Kappa"]]) <- unique(mfm1[,"(tid)"])
+  dimnames(fit[["BlockModel"]]) <- c(replicate(1,paste("1 Group",1:n.blocks[1]), simplify = FALSE),replicate(1,paste("2 Group",1:n.blocks[2]), simplify = FALSE))
+  dimnames(fit[["TransitionKernel"]]) <- replicate(2,paste("State",1:n.hmmstates), simplify = FALSE)
+  colnames(fit[["MixedMembership1"]]) <- ntid1
+  if(bipartite){
+    colnames(fit[["MixedMembership2"]]) <- ntid2 
+  }
+  
+  if(ctrl$hessian){
+    if(ctrl$verbose){
+      cat("Collapsed Gibbs' Sampling for MAPs...\n")
+    }
+    
+    C_map <- .collapsedGibbs(model.obj = fit, gibbs_iter = 1000, burn_in = 200, n_cores = 5) 
+    
+    C_mat1 <- do.call(rbind, C_map$C_mat1_list)
+    C_mat2 <- do.call(rbind, C_map$C_mat2_list)
+
+    fit$C_mat1 <- C_mat1
+    fit$C_mat2 <- C_mat2
+    
+    if(ctrl$verbose){
+      cat("Computing vcov. matrices...\n")
+    }
+    
+    fit$vcov_monad1 <- .vcovBeta(C_mat1, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1],
+                                 n.hmmstates, fit[["TotNodes1"]], periods,
+                                 ctrl$mu_beta1, ctrl$var_beta1, fit[["Kappa"]], t_id_n1, X1) 
+    cat("X1_sd: ", X1_sd,".\n")
+    cat("X2_sd: ", X2_sd,".\n")                      
+    
+    if(bipartite){
+      fit$vcov_monad2 <- .vcovBeta(C_mat2, fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
+                                   n.hmmstates, fit[["TotNodes2"]], periods,
+                                   ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2)
+    } 
+    
+    ## and for dyadic coefficients
+    if(any(Z_sd > 0)){
+      edge_eta <- Z %*% fit[["DyadCoef"]]
+      z_map <- apply(fit[["MixedMembership1"]], 2, which.max) 
+      w_map <- z_map
+      if(bipartite){
+        w_map <- apply(fit[["MixedMembership2"]], 2, which.max)
+      }
+      #  cat("w_map:",w_map,"\n")
+      hessTheta_list <- lapply(1,
+                               function(i, eta, z, w, B, ind){
+                                 #    cat("ind[,1]]:",ind[,1],"\n")
+                                 #    cat("ind[,2]]:",ind[,2],"\n")
+                                 #    cat("ind:",ind,"\n")
+                                 
+                                 #   cat("dntid:", 
+                                 #  cbind(do.call(paste, c(mfd[c("(sid)","(tid)")], sep = "@")),
+                                 #    do.call(paste, c(mfd[c("(rid)","(tid)")], sep = "@")))
+                                 
+                                 #       ,"\n")
+                                 
+                                 offset_bm <- B[cbind(z_map[ind[,1]], w_map[ind[,2]])]
+                                 #       cat("offset_bm:",offset_bm,"\n")
+                                 #       cat("cbind(z_map[ind[,1]], w_map[ind[,2]]):",cbind(z_map[ind[,1]], w_map[ind[,2]]),"\n")
+                                 
+                                 pred_edges <- plogis(offset_bm + eta)
+                                 return(vcovGamma_ext(Z, pred_edges, c(ctrl$var_gamma)))
+                                 #    }, eta = edge_eta, z=z_samples, w=w_samples, B=fit[["BlockModel"]], ind = as.matrix(mfd[,c("(sid)","(rid)")]))
+                               }, eta = edge_eta, z=z_samples, w=w_samples, B=fit[["BlockModel"]], ind = cbind(do.call(paste, c(mfd[c("(sid)","(tid)")], sep = "@")),
+                                                                                                               do.call(paste, c(mfd[c("(rid)","(tid)")], sep = "@")))  )
+      
+      print(hessTheta_list)
+      fit$vcov_dyad <- as.matrix(hessTheta_list[[1]])
+      colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
+    }
+    
+    
+    
+    if(ctrl$verbose){
+      cat("done.\n")
+    }
+    
+  }#end Hessian portion
   
   
   ##Assign class for methods
