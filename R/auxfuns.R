@@ -360,7 +360,7 @@
 .vcovBeta <- function(c_mat, beta_coef, n.sim, n.blk, n.hmm, n.nodes, n.periods,
                       mu.beta, var.beta, est_kappa, t_id_n, X){
   
-  hess_tmp <- optimHess(c(beta_vec),alphaLBound,alphaGrad,
+  hess_tmp <- optimHess(c(beta_coef),alphaLBound,alphaGrad,
                         tot_nodes = n.nodes,
                         c_t = t(c_mat),
                         x_t = t(X),
