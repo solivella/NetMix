@@ -368,8 +368,8 @@
                         t_id = t_id_n,
                         var_beta = var.beta,
                         mu_beta = mu.beta)
-  hess_tmp<-hess_tmp/nrow(c_mat)
-  print(paste0("nrow(c_mat): ",nrow(c_mat) ))
+  hess_tmp<-hess_tmp/n.nodes
+ # print(paste0("nrow(c_mat): ",nrow(c_mat) ))
   vcov_monad <- Matrix::forceSymmetric(solve(hess_tmp))
   
   ev <- eigen(vcov_monad)$value
