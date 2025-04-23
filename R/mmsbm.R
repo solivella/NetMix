@@ -988,9 +988,12 @@ all_phi1 <- split.data.frame((t(fit[["SenderPhi"]])),
                                c(nt_id[,2]))
 
   #  print("finished calculating all_phi")
-    fit$vcov_monad1 <- .vcovBeta(all_phi1, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1],
+  monad1_out<-.vcovBeta(all_phi1, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1],
                                  n.hmmstates, fit[["TotNodes1"]], periods,
                                  ctrl$mu_beta1, ctrl$var_beta1, fit[["Kappa"]], t_id_n1, X1) 
+    fit$vcov_monad1 <- monad1_out[[1]]
+fit$c_sample1 <- monad1_out[[2]]
+   
     cat("X1_sd: ", X1_sd,".\n")
     cat("X2_sd: ", X2_sd,".\n")
     fit$vcov_monad1_tr <- .transfHess(fit[["vcov_monad1"]],n.hmmstates,X1_sd,n.blocks[1])                           
@@ -1007,10 +1010,11 @@ all_phi1 <- split.data.frame((t(fit[["SenderPhi"]])),
     #                               t_id=t_id_n2,
     #                               var_beta=ctrl$var_beta2,
     #                               mu_beta=ctrl$mu_beta2)
-
-     fit$vcov_monad2 <- .vcovBeta(all_phi2, fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
+monad2_out<-.vcovBeta(all_phi2, fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
                                  n.hmmstates, fit[["TotNodes2"]], periods,
                                  ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2)
+     fit$vcov_monad2 <- monad2_out[[1]]
+     fit$c_sample2 <- monad2_out[[2]]
      fit$vcov_monad2_tr <- .transfHess(fit[["vcov_monad2"]],n.hmmstates,X2_sd,n.blocks[2])
    #   print("finished vcov_monad2")
     } 

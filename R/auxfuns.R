@@ -428,8 +428,8 @@
                                                         rep(colnames(beta_coef), each = nrow(beta_coef), times = n.hmm),
                                                         rep(rownames(beta_coef), times = n.blk*n.hmm),
                                                         sep=":")
-
-  return(vcov_monad)
+  result<-list(vcov_monad,C_samples)
+  return(result)
 }
 
 
