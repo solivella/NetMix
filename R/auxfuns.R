@@ -927,7 +927,7 @@
         perms_temp <- lapply(bm1, find_closest_matrix, t_mat = bm_base)
       }
       else{
-        perms_temp<-lapply(1:50, function(x) list(as.matrix(as(all_perms[1,], "pMatrix")), as.matrix(as(all_perms[1,], "pMatrix"))))
+        perms_temp<-lapply(1:periods, function(x) list(as.matrix(as(all_perms[1,], "pMatrix")), as.matrix(as(all_perms[1,], "pMatrix"))))
       }
       
       phis_temp <- lapply(out, `[[`, 1) 
