@@ -533,8 +533,8 @@
         
         for (s in seeds){
           m_s<-mmsbm(formula.dyad = formula_dyad,
-                    formula.monad = list(netSim$formula_monad[[1]], 
-                                         netSim$formula_monad[[2]]),
+                    formula.monad = list(formula_monad[[1]], 
+                                         formula_monad[[2]]),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
