@@ -1026,17 +1026,18 @@ mmsbm <- function(formula.dyad,
     if(ctrl$verbose){
       cat("Computing vcov. matrices...\n")
     }
-    
+    tot_nodeid_1<-length(unique(mfd[,"(sid)"]))
+    tot_nodeid_2<-length(unique(mfd[,"(rid)"]))
     fit$vcov_monad1 <- .vcovBeta(C_mat1, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1],
                                  n.hmmstates, fit[["TotNodes1"]], periods,
-                                 ctrl$mu_beta1, ctrl$var_beta1, fit[["Kappa"]], t_id_n1, X1) 
+                                 ctrl$mu_beta1, ctrl$var_beta1, fit[["Kappa"]], t_id_n1, X1,tot_nodeid_1) 
     cat("X1_sd: ", X1_sd,".\n")
     cat("X2_sd: ", X2_sd,".\n")                      
     
     if(bipartite){
       fit$vcov_monad2 <- .vcovBeta(C_mat2, fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
                                    n.hmmstates, fit[["TotNodes2"]], periods,
-                                   ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2)
+                                   ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2, tot_nodeid_2)
     } 
     
     ## and for dyadic coefficients

@@ -358,7 +358,7 @@
 #}
 
 .vcovBeta <- function(c_mat, beta_coef, n.sim, n.blk, n.hmm, n.nodes, n.periods,
-                      mu.beta, var.beta, est_kappa, t_id_n, X){
+                      mu.beta, var.beta, est_kappa, t_id_n, X, tot_nodeid){
   print(paste0("n.nodes is: ",n.nodes))
   hess_tmp <- optimHess(c(beta_coef),alphaLBound,alphaGrad,
                         tot_nodes = n.nodes,
@@ -368,8 +368,9 @@
                         t_id = t_id_n,
                         var_beta = var.beta,
                         mu_beta = mu.beta)
-  print(paste0("hess_tmp is: ",hess_tmp))                      
-  hess_tmp<-hess_tmp/n.nodes[[1]]
+  print(paste0("hess_tmp is: ",hess_tmp))     
+  print(paste0("tot_nodeid is: ",tot_nodeid))    
+  hess_tmp<-hess_tmp/tot_nodeid
  # print(paste0("nrow(c_mat): ",nrow(c_mat) ))
   vcov_monad <- Matrix::forceSymmetric(solve(hess_tmp))
   
