@@ -454,7 +454,7 @@
 }
 
 #' @rdname auxfuns
-.initPi <- function(soc_mats,
+.initPi <- function(formula.monad,formula.dyad,soc_mats,
                     bipartite,
                     dyads,
                     edges,
@@ -532,9 +532,9 @@
         init_seed_i<-seeds 
         
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = Y~1,
-                    formula.monad = list(netSim$formula_monad1, 
-                                         netSim$formula_monad2),
+          m_s<-mmsbm(formula.dyad = formula_dyad,
+                    formula.monad = list(netSim$formula_monad[[1]], 
+                                         netSim$formula_monad[[2]]),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
