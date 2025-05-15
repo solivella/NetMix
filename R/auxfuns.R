@@ -532,9 +532,9 @@
         init_seed_i<-seeds 
         
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = formula_dyad,
-                    formula.monad = list(formula_monad[[1]], 
-                                         formula_monad[[2]]),
+          m_s<-mmsbm(formula.dyad = formula.dyad,
+                    formula.monad = list(formula.monad[[1]], 
+                                         formula.monad[[2]]),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
