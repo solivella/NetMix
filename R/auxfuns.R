@@ -1166,8 +1166,14 @@
     alpha2_t <- t(alpha2_t)
     
     y <- dyads_t$Y
-    D <- matrix(dyads_t$var1, ncol = 1)
+    dyad_covars <- setdiff(names(dyads_t), c("Y", "sid", "rid", "tid", "(sid)", "(rid)", "(tid)", "sid_idx", "rid_idx"))
+    D <- as.matrix(dyads_t[, dyad_covars, drop = FALSE])
     d_id <- cbind(dyads_t$sid_idx, dyads_t$rid_idx)
+
+    if (ncol(D) == 0 || length(gamma) == 0) {
+    D <- matrix(0, nrow = nrow(D), ncol = 1)
+    gamma <- 0
+    }
     
     z <- sample(1:K1, N_dyads, replace = TRUE)
     u <- sample(1:K2, N_dyads, replace = TRUE)
