@@ -513,7 +513,7 @@
   
   realign<-TRUE #manual
   moretimes<-FALSE
-  fp5times<-FALSE
+  fp5times<-TRUE
   if(bipartite){
     if (periods==1){
       phi_init_temp <- lapply(soc_mats, function(mat){
@@ -581,7 +581,7 @@
                      mmsbm.control = list(verbose = TRUE,
                                           threads=1,
                                           svi = TRUE,
-                                          vi_iter = 100,
+                                          vi_iter = 5000,
                                           #   batch_size = 1.0,
                                           conv_tol = 1e-3,
                                           mu_gamma = ctrl[["mu_gamma"]],
@@ -666,7 +666,7 @@
                      mmsbm.control = list(verbose = TRUE,
                                           threads=1,
                                           svi = TRUE,
-                                          vi_iter = 100,
+                                          vi_iter = 5000,
                                           #  batch_size = 1.0,
                                           conv_tol = 1e-3,
                                           mu_gamma = ctrl[["mu_gamma"]],
