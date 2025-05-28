@@ -48,11 +48,6 @@
 #'        \item{nstart}{Integer. Number of random initialization trials. Defaults to 5.}            
 #'        \item{spectral}{Boolean. Type of initialization algorithm for mixed-membership vectors in static case. If \code{TRUE} (default),
 #'                    use spectral clustering with degree correction; otherwise, use kmeans algorithm}
-#'        \item{init_gibbs}{Boolean. Should a collapsed Gibbs sampler of non-regression mmsbmB be used to initialize
-#'                    each time period? Setting to \code{TRUE} will result in slower initialization and faster model estimation. Setting to \code{TRUE} will be result in faster estimation that is very sensitive to
-#'                    choice of alpha (see below)}            
-#'        \item{alpha}{Numeric positive value. Concentration parameter for collapsed Gibbs sampler to find initial
-#'                     mixed-membership values in dynamic case when \code{init_gibbs=TRUE}. Defaults to 1.0}
 #'        \item{missing}{Means of handling missing data. One of "indicator method" (default) or "listwise deletion".}   
 #'        \item{assortative}{Boolean indicating whether blockmodel should be assortative (i.e. stronger connections within groups) or disassortative
 #'                           (i.e. stronger connections between groups). Defaults to \code{TRUE}.}        
@@ -208,7 +203,7 @@ mmsbm <- function(formula.dyad,
                svi = TRUE,
                nstarts = 5,
                spectral = TRUE,
-               init_gibbs = if (n.hmmstates > 1) TRUE else FALSE,
+               #init_gibbs = if (n.hmmstates > 1) TRUE else FALSE,
                threads = 1,
                alpha = 1.0,
                forget_rate = 0.75,
@@ -1010,34 +1005,34 @@ mmsbm <- function(formula.dyad,
     colnames(fit[["MixedMembership2"]]) <- ntid2 
   }
   
-  if(ctrl$hessian){
+   if(ctrl$hessian){
     if(ctrl$verbose){
-      cat("Collapsed Gibbs' Sampling for MAPs...\n")
+      cat("Computing approximate vcov. matrices...\n")
     }
-    
-    C_map <- .collapsedGibbs(model.obj = fit, gibbs_iter = 1000, burn_in = 200, n_cores = 5) 
-    
-    C_mat1 <- do.call(rbind, C_map$C_mat1_list)
-    C_mat2 <- do.call(rbind, C_map$C_mat2_list)
+    ## Compute approximate standard errors
 
-    fit$C_mat1 <- C_mat1
-    fit$C_mat2 <- C_mat2
-    
-    if(ctrl$verbose){
-      cat("Computing vcov. matrices...\n")
-    }
+    all_phi1 <- split.data.frame((t(fit[["SenderPhi"]])),
+                              c(nt_id[,1]))
+    all_phi2 <- split.data.frame((t(fit[["ReceiverPhi"]])),
+                               c(nt_id[,2]))
+
     tot_nodeid_1<-length(unique(mfd[,"(sid)"]))
     tot_nodeid_2<-length(unique(mfd[,"(rid)"]))
+     
     fit$vcov_monad1 <- .vcovBeta(C_mat1, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1],
                                  n.hmmstates, fit[["TotNodes1"]], periods,
-                                 ctrl$mu_beta1, ctrl$var_beta1, fit[["Kappa"]], t_id_n1, X1,tot_nodeid_1) 
-    cat("X1_sd: ", X1_sd,".\n")
-    cat("X2_sd: ", X2_sd,".\n")                      
-    
+                                 ctrl$mu_beta1, ctrl$var_beta1, fit[["Kappa"]], t_id_n1, X1, tot_nodeid_1) 
+     
+    fit$vcov_monad1 <- monad1_out[[1]]           
+    print("finished vcov_monad1")
+     
     if(bipartite){
-      fit$vcov_monad2 <- .vcovBeta(C_mat2, fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
-                                   n.hmmstates, fit[["TotNodes2"]], periods,
-                                   ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2, tot_nodeid_2)
+     monad2_out<-.vcovBeta(all_phi2, fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
+                                 n.hmmstates, fit[["TotNodes2"]], periods,
+                                 ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2, tot_nodeid_2)
+      
+     fit$vcov_monad2 <- monad2_out[[1]]
+     print("finished vcov_monad2")
     } 
     
     ## and for dyadic coefficients
