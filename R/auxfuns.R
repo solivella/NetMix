@@ -389,21 +389,10 @@
                             t_id = tidn,
                             var_beta = vbeta,
                             mu_beta = mbeta)
+        hess_tmp<-hess_tmp/tot_nodeid
+      
         return(hess_tmp)  
-        # res_optim <- optim(par = beta_vec,
-        #           fn = alphaLBound,
-        #           gr = alphaGrad,
-        #           method = "BFGS",  
-        #           tot_nodes = Nvec,
-        #           c_t = t(C_samp),
-        #           x_t = t(X_i),
-        #           s_mat = s_matrix,
-        #           t_id = tidn,
-        #           var_beta = vbeta,
-        #           mu_beta = mbeta,
-        #           control = list(maxit =5000, fnscale = 1),
-        #           hessian = TRUE)           
-     # return(res_optim$hessian)  
+          
     },
     C_samples, S_samples,
     MoreArgs = list(tidn = t_id_n,
@@ -417,7 +406,7 @@
 
     expected_hessian <- Reduce("+", hessBeta_list) / n.sim  
 
-  vcov_monad <- Matrix::forceSymmetric(solve(expected_hessian))
+    vcov_monad <- Matrix::forceSymmetric(solve(expected_hessian))
 
   ev <- eigen(vcov_monad)$value
   if(any(ev < 0)){
