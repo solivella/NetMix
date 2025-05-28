@@ -268,7 +268,7 @@ mmsbm <- function(formula.dyad,
   }
 
   if(ctrl$verbose){
-    cat("New4: Pre-processing data...\n")
+    cat("New Hess: Pre-processing data...\n")
   }
 
   ## Add time variable if null or single period
