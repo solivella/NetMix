@@ -356,7 +356,7 @@
 #}
 
 .vcovBeta <- function(all_phi, beta_coef, n.sim, n.blk, n.hmm, n.nodes, n.periods,
-                      mu.beta, var.beta, est_kappa, t_id_n, X){
+                      mu.beta, var.beta, est_kappa, t_id_n, X, tot_nodeid){
   sampleC_perm <- do.call(rbind,
                           lapply(all_phi,
                          function(mat){
