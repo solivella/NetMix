@@ -489,7 +489,7 @@
 }
 
 #' @rdname auxfuns
-.initPi <- function(formula.monad,formula.dyad,soc_mats,
+.initPi <- function(soc_mats,
                     bipartite,
                     dyads,
                     edges,
@@ -514,7 +514,6 @@
   realign<-TRUE #manual
   moretimes<-FALSE
   fp5times<-FALSE
-  bipartite <- TRUE #manual
   if(bipartite){
     if (periods==1){
       phi_init_temp <- lapply(soc_mats, function(mat){
@@ -568,9 +567,9 @@
         init_seed_i<-seeds 
         
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = formula.dyad,
-                    formula.monad = list(formula.monad[[1]], 
-                                         formula.monad[[2]]),
+          m_s<-mmsbm(formula.dyad = Y~ var1,
+                     formula.monad = list(netSim$formula_monad1, 
+                                          netSim$formula_monad2),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
@@ -651,12 +650,11 @@
         init_bm_i<-list()
         init_seed_i<-seeds 
         m_s_list<-list()
-        state_current<-ifelse(i<=25,1,2)
         
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = formula.dyad,
-                    formula.monad = list(formula.monad[[1]], 
-                                         formula.monad[[2]]),
+          m_s<-mmsbm(formula.dyad = Y~var1,
+                     formula.monad = list(netSim$formula_monad1, 
+                                          netSim$formula_monad2),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
@@ -675,8 +673,6 @@
                                           var_gamma = ctrl[["var_gamma"]],
                                           var_beta=list(ctrl[["var_beta"]][[1]][,,1],
                                                         ctrl[["var_beta"]][[2]][,,1]),
-                                          #  mu_beta=list(ctrl[["mu_beta"]][[1]][,,state_current],
-                                          #          ctrl[["mu_beta"]][[2]][,,state_current]),
                                           hessian = FALSE,
                                           seed=s))
           cat("Seed:", s, "\n")
@@ -964,7 +960,7 @@
         perms_temp <- lapply(bm1, find_closest_matrix, t_mat = bm_base)
       }
       else{
-        perms_temp<-lapply(1:periods, function(x) list(as.matrix(as(all_perms[1,], "pMatrix")), as.matrix(as(all_perms[1,], "pMatrix"))))
+        perms_temp<-lapply(1:50, function(x) list(as.matrix(as(all_perms[1,], "pMatrix")), as.matrix(as(all_perms[1,], "pMatrix"))))
       }
       
       phis_temp <- lapply(out, `[[`, 1) 
