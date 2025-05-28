@@ -567,7 +567,7 @@
         init_seed_i<-seeds 
         
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = Y~ var1,
+          m_s<-mmsbm(formula.dyad = Y~1,
                      formula.monad = list(netSim$formula_monad1, 
                                           netSim$formula_monad2),
                      timeID="year",
@@ -652,7 +652,7 @@
         m_s_list<-list()
         
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = Y~var1,
+          m_s<-mmsbm(formula.dyad = Y~1,
                      formula.monad = list(netSim$formula_monad1, 
                                           netSim$formula_monad2),
                      timeID="year",
