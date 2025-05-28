@@ -1,4 +1,4 @@
-#' @name auxfuns
+return(vcov_monad)#' @name auxfuns
 #' @title Internal functions and generics for \code{mmsbm} package
 #' 
 #' @description  These are various utilities and generic methods used by 
@@ -322,39 +322,6 @@
 }
 
 #' @rdname auxfuns
-#.vcovBeta <- function(beta_coef,tot_nodes, c_t, x_t,s_mat,t_id,var_beta,mu_beta){
- # print("start tmp in line 326 auxfuns")
- # tmp <- alphaLBound(c(beta_coef),
- #                    tot_nodes,
- #                    c_t,
- #                    x_t,
- #                    s_mat,
- #                    t_id,
- #                    var_beta,
-#                     mu_beta)
-#  print("end tmp in line 326 auxfuns")
- # cat("tmp:", attr(tmp, "hessian"), "\n")
- # cat("dim tmp:", dim(attr(tmp, "hessian")), "\n")
- # vcov_monad <- as.matrix(Matrix::nearPD(solve(-attr(tmp, "hessian")))$mat)
- # print("start colnames(vcov_monad)")
- #  cat("ncol (cov_monad)", ncol(vcov_monad), "\n")
- #  cat("nrow (cov_monad)", nrow(vcov_monad), "\n")
- #  cat("cov_monad", vcov_monad, "\n")
- #  cat("dim(beta_coef)",dim(beta_coef),"\n")
- #  cat("(beta_coef)",beta_coef,"\n")
- #  names_344<-paste(rep(paste("State",1:dim(beta_coef)[3]), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
- #                                                       rep(colnames(beta_coef), each = nrow(beta_coef), times = dim(beta_coef)[3]),#beta_coef used to be fbeta_coef??
- #                                                       rep(rownames(beta_coef), times = prod(dim(beta_coef)[2:3])),
- #                                                       sep=":")
- # cat("names_344",names_344,"\n")
- # colnames(vcov_monad) <- rownames(vcov_monad) <- paste(rep(paste("State",1:dim(beta_coef)[3]), each = prod(dim(beta_coef)[1:2])), #beta_coef used to be fbeta_coef??
-#                                                        rep(colnames(beta_coef), each = nrow(beta_coef), times = dim(beta_coef)[3]),#beta_coef used to be fbeta_coef??
- #                                                       rep(rownames(beta_coef), times = prod(dim(beta_coef)[2:3])),
- #                                                       sep=":")
-# print("end colnames(vcov_monad)")
- # return(as.matrix(vcov_monad))
-#}
-
 .vcovBeta <- function(all_phi, beta_coef, n.sim, n.blk, n.hmm, n.nodes, n.periods,
                       mu.beta, var.beta, est_kappa, t_id_n, X, tot_nodeid){
   sampleC_perm <- do.call(rbind,
