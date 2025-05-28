@@ -417,7 +417,7 @@
                                                         rep(colnames(beta_coef), each = nrow(beta_coef), times = n.hmm),
                                                         rep(rownames(beta_coef), times = n.blk*n.hmm),
                                                         sep=":")
-  result<-list(vcov_monad,C_samples)
+  result<-vcov_monad
   return(result)
 }
 
