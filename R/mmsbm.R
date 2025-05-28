@@ -973,7 +973,7 @@ mmsbm <- function(formula.dyad,
 
     tot_nodeid_1<-length(unique(mfd[,"(sid)"]))
     tot_nodeid_2<-length(unique(mfd[,"(rid)"]))
-    fit$vcov_monad1 <- .vcovBeta(C_mat1, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1],
+    fit$vcov_monad1 <- .vcovBeta(all_phi1, fit[["MonadCoef1"]], ctrl$se_sim, n.blocks[1],
                                  n.hmmstates, fit[["TotNodes1"]], periods,
                                  ctrl$mu_beta1, ctrl$var_beta1, fit[["Kappa"]], t_id_n1, X1, tot_nodeid_1) 
     fit$vcov_monad1 <- monad1_out[[1]]
