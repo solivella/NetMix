@@ -514,6 +514,7 @@
   realign<-TRUE #manual
   moretimes<-FALSE
   fp5times<-TRUE
+  bipartite <- TRUE #manual
   if(bipartite){
     if (periods==1){
       phi_init_temp <- lapply(soc_mats, function(mat){
