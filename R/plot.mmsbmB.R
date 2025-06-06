@@ -27,6 +27,12 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
            call. = FALSE)
     }
   }
+  if(type %in% c("block")){
+    if (!requireNamespace("reshape2", quietly = TRUE)) {
+      stop("Package \"reshape2\" needed to produce requested plot. Please install it.",
+           call. = FALSE)
+    }
+  }
   
   all_args <- list(...)
   if(type=="groups"){
