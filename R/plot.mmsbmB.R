@@ -214,6 +214,7 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
   }
   
   if(type=="block"){
+    message("Entering block plot code...") #test
     adj_mat <- x$BlockModel
     dimnames(adj_mat) <- list(paste("G",1:nrow(adj_mat), sep=""),
                               paste("H", 1:ncol(adj_mat), sep=""))  
