@@ -78,6 +78,29 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
       adj_x <- bm_lo$x *0.25
       adj_y <- bm_lo$y *0.25
     }
+    print(ggraph(bm_lo) +
+             geom_edge_link(aes(color = weight), linewidth=1.5) +
+             geom_edge_loop(aes(color = weight,
+                                span = 60,
+                                strength=0.4), direction = dir,
+                            linewidth=1.5) +
+             geom_node_point(aes(size=MM, fill=v.col, color=v.col),
+                             show.legend = FALSE) +
+             scale_edge_color_gradient("Edge\nProbability",
+                                       low = "gray90", high = "black", 
+                                       limits=c(0,1)) +
+             scale_size_area(max_size = 15, guide="none") +
+             geom_node_text(aes(label = v.lab),
+                            fontface = "bold",
+                            size = 5,
+                            nudge_x = adj_x,
+                            nudge_y = adj_y) +
+             scale_fill_manual(values = vertex.color) + 
+             scale_colour_manual(values = vertex.color) + 
+             theme_void() +
+             theme(legend.justification = ifelse(x$bipartite, "center","bottom"),
+                   legend.title = element_text(size=12)) +
+             coord_cartesian(clip="off"))
     return(ggraph(bm_lo) +
              geom_edge_link(aes(color = weight), linewidth=1.5) +
              geom_edge_loop(aes(color = weight,
