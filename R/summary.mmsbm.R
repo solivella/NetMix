@@ -46,7 +46,8 @@ summary.mmsbm <- function(object, ...){
                "Number of Blocks" = ncol(object$BlockModel), 
                "Percent of Observations in Each Block" = rowMeans(object$MixedMembership1),
                "Blockmodel Matrix" = exp(object$BlockModel) / (1 + exp(object$BlockModel)),
-               "Monadic Coefficients" = object$MonadCoef1)
+               "Monadic Coefficients 1" = object$MonadCoef1,
+               "Monadic Coefficients 2" = object$MonadCoef2)  
   if(length(object$DyadCoef)){
     summ$`Dyadic Coefficients` <- object$DyadCoef
   }
@@ -61,11 +62,22 @@ summary.mmsbm <- function(object, ...){
       colnames(summ$`Dyadic Coefficients`) <- c("Coefficient", "Std. Error")
     }
     
-    mse <- sqrt(diag(object$vcov_monad1))
-    summ$`Monadic Coefficients` <- cbind(c(summ$`Monadic Coefficients`),
-                                         mse)
-    colnames(summ$`Monadic Coefficients`) <- c("Coefficient", "Std. Error")
-    rownames(summ$`Monadic Coefficients`) <- rownames(object$vcov_monad1)
+    #mse <- sqrt(diag(object$vcov_monad1))
+  #  summ$`Monadic Coefficients` <- cbind(c(summ$`Monadic Coefficients`),
+   #                                      mse)
+   # colnames(summ$`Monadic Coefficients`) <- c("Coefficient", "Std. Error")
+   # rownames(summ$`Monadic Coefficients`) <- rownames(object$vcov_monad1)
+   #family 1
+    mse1 <- sqrt(diag(object$vcov_monad1))
+    summ$`Monadic Coefficients 1` <- cbind(c(summ$`Monadic Coefficients 1`),
+                                         mse1)
+    colnames(summ$`Monadic Coefficients 1`) <- c("Coefficient", "Std. Error")
+    rownames(summ$`Monadic Coefficients 1`) <- rownames(object$vcov_monad1)
+    #family 2
+    mse2 <- sqrt(diag(object$vcov_monad2))
+    summ$`Monadic Coefficients 2` <- cbind(c(summ$`Monadic Coefficients 2`),mse2)
+    colnames(summ$`Monadic Coefficients 2`) <- c("Coefficient", "Std. Error")
+    rownames(summ$`Monadic Coefficients 2`) <- rownames(object$vcov_monad2)
 
   }
   print(summ)
