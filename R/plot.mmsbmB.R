@@ -220,6 +220,9 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
                               paste("H", 1:ncol(adj_mat), sep=""))  
     melt_block<-melt(plogis(adj_mat))
     colnames(melt_block)<-c("G","H","Probability")
+    print(ggplot2::ggplot(data = melt_block, aes(x=H, y=G, fill=`Probability`)) + 
+             ggplot2::geom_tile(aes(fill = `Probability`)) + ggplot2::geom_text(aes(label=round(`Probability`,3)), col="dodgerblue4") +
+             ggplot2::scale_fill_gradient(low = "white", high = "black"))
     return(ggplot2::ggplot(data = melt_block, aes(x=H, y=G, fill=`Probability`)) + 
              ggplot2::geom_tile(aes(fill = `Probability`)) + ggplot2::geom_text(aes(label=round(`Probability`,3)), col="dodgerblue4") +
              ggplot2::scale_fill_gradient(low = "white", high = "black"))
