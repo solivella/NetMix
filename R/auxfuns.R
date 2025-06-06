@@ -568,7 +568,7 @@
         init_seed_i<-seeds 
         
         for (s in seeds){
-         m_s<-mmsbm(formula.dyad = Y~formula.dyad,
+         m_s<-mmsbm(formula.dyad = formula.dyad,
                      formula.monad = list(formula.monad[[1]], 
                                          formula.monad[[2]]),
                      timeID="year",
@@ -653,7 +653,7 @@
         m_s_list<-list()
         
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = Y~formula.dyad,
+          m_s<-mmsbm(formula.dyad = formula.dyad,
                      formula.monad = list(formula.monad[[1]],
                                          formula.monad[[2]]),
                      timeID="year",
