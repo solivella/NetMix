@@ -36,6 +36,7 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
   
   all_args <- list(...)
   if(type=="groups"){
+    message("In groups plot")
     require(igraph, quietly = TRUE)
     require(ggraph, quietly = TRUE)
     adj_mat <- x$BlockModel
@@ -78,6 +79,7 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
       adj_x <- bm_lo$x *0.25
       adj_y <- bm_lo$y *0.25
     }
+    message("Printing groups plot")
     print(ggraph(bm_lo) +
              geom_edge_link(aes(color = weight), linewidth=1.5) +
              geom_edge_loop(aes(color = weight,
@@ -101,6 +103,7 @@ plot.mmsbmB <- function(x, type="groups", FX=NULL, family=1, nodelabel=NULL,...)
              theme(legend.justification = ifelse(x$bipartite, "center","bottom"),
                    legend.title = element_text(size=12)) +
              coord_cartesian(clip="off"))
+    message("Returning groups plot")
     return(ggraph(bm_lo) +
              geom_edge_link(aes(color = weight), linewidth=1.5) +
              geom_edge_loop(aes(color = weight,
