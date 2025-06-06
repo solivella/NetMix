@@ -96,9 +96,9 @@ plot.mmsbm <- function(x, type="groups", FX=NULL, ...){ # network graph showing 
     return(ggraph(bm_lo) +
              geom_edge_link(aes(color = weight), linewidth=1.5) +
              geom_edge_loop(aes(color = weight,
-                                direction = dir,
                                 span = 60,
                                 strength=1),
+                                #direction = dir,
                             linewidth=1.5) +
              geom_node_point(aes(size=MM, fill=v.lab, color=v.lab),
                              show.legend = FALSE) +
