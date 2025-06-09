@@ -568,9 +568,9 @@
         init_seed_i<-seeds 
         
         for (s in seeds){
-         m_s<-mmsbm(formula.dyad = Y~var1,
-                     formula.monad = list(~VarS1, 
-                                         ~VarB1),
+          m_s<-mmsbm(formula.dyad = Y~1,
+                     formula.monad = list(netSim$formula_monad1, 
+                                          netSim$formula_monad2),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
@@ -582,9 +582,9 @@
                      mmsbm.control = list(verbose = TRUE,
                                           threads=1,
                                           svi = TRUE,
-                                          vi_iter = 10000,
+                                          vi_iter = 15000,
                                           #   batch_size = 1.0,
-                                          conv_tol = 5e-3,
+                                          conv_tol = 1e-3,
                                           mu_gamma = ctrl[["mu_gamma"]],
                                           var_gamma = ctrl[["var_gamma"]],
                                           var_beta=list(ctrl[["var_beta"]][[1]][,,1],
@@ -653,9 +653,9 @@
         m_s_list<-list()
         
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = Y~var1,
-                     formula.monad = list(~VarS1, 
-                                         ~VarB1),
+          m_s<-mmsbm(formula.dyad = Y~1,
+                     formula.monad = list(netSim$formula_monad1, 
+                                          netSim$formula_monad2),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
@@ -667,7 +667,7 @@
                      mmsbm.control = list(verbose = TRUE,
                                           threads=1,
                                           svi = TRUE,
-                                          vi_iter = 10000,
+                                          vi_iter = 15000,
                                           #  batch_size = 1.0,
                                           conv_tol = 5e-3,
                                           mu_gamma = ctrl[["mu_gamma"]],
