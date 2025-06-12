@@ -455,7 +455,7 @@
 }
 
 #' @rdname auxfuns
-.initPi <- function(formula.monad,formula.dyad,soc_mats,
+.initPi <- function(formula.monad,formula.dyad,soc_mats,More actions
                     bipartite,
                     dyads,
                     edges,
@@ -476,9 +476,10 @@
   init_seed_best<-list()
   init_distance<-list()
   init_distance_best<-list()
-  
+
   realign<-TRUE #manual
   moretimes<-FALSE
+  fp5times<-FALSE
   fp5times<-TRUE
   if(bipartite){
     if (periods==1){
@@ -514,7 +515,7 @@
         dy<-data.dyad%>%filter(year==i)
         sdf<-data.monad[[1]]%>%filter(year==i)
         bdf<-data.monad[[2]]%>%filter(year==i)
-        
+
         seeds<-c(sample(100:9999, 1)) #run 5 times
         if(fp5times){
           seeds<-c(sample(100:9999,5))
@@ -523,15 +524,15 @@
           seeds<-c(sample(100:9999, 1))
         }
         # seeds<-c(02138) #only run once
-        
+
         best_model <- NULL
         best_lower_bound <- -Inf
-        
+
         init_lb_i<-c()
         init_niter_i<-c()
         init_bm_i<-list()
         init_seed_i<-seeds 
-        
+
         for (s in seeds){
           m_s<-mmsbm(formula.dyad = formula.dyad,
                     formula.monad = list(formula.monad[[1]], 
@@ -562,8 +563,8 @@
           init_lb_i<-c(init_lb_i,m_s$LowerBound)
           init_niter_i<-c(init_niter_i,m_s$niter)
           init_bm_i<-append(init_bm_i,list(m_s$BlockModel))
-          
-          
+
+
           if (m_s$LowerBound > best_lower_bound) {
             best_lower_bound <- m_s$LowerBound
             best_model <- m_s
@@ -576,27 +577,26 @@
         init_niter_best<-append(init_niter,list(m$niter))
         init_bm_best<-append(init_bm_best,list(m$BlockModel))
         init_seed_best<-append(init_seed_best,list(m$seed))
-        
+
         init_lb<- append(init_lb,list(init_lb_i))
         init_niter<-append(init_niter,list(init_niter_i))
         init_bm<-append(init_bm,list(init_bm_i))
         init_seed<-append(init_seed,list(init_seed_i))
-        
-        
-        
+
+
+
         #PredS = matrix(c(t(m$MixedMembership1)),nrow=2,byrow=T)
         #PredB = matrix(c(t(m$MixedMembership2)),nrow=2,byrow = T)
         PredS =m$MixedMembership1
         PredB=m$MixedMembership2
-        
+
         out[[i]][[1]]<-PredS
         out[[i]][[2]]<-PredB
-        
+
         out2[[i]]<-m$BlockModel
-        bm_cumulative <- plogis(m$BlockModel)
       }
-   
-      
+
+
       for (i in 2:periods){
         cat("Now running year:", i, "\n")
         dy<-data.dyad%>%filter(year==i)
@@ -608,17 +608,17 @@
           seeds<-c(sample(100:9999, 1))
         }
         # seeds<-c(02138) #only run once
-        
+
         best_model <- NULL
         best_lower_bound <- -Inf
-        
+
         init_lb_i<-c()
         init_niter_i<-c()
         init_bm_i<-list()
         init_seed_i<-seeds 
         m_s_list<-list()
         state_current<-ifelse(i<=25,1,2)
-        
+
         for (s in seeds){
           m_s<-mmsbm(formula.dyad = formula.dyad,
                     formula.monad = list(formula.monad[[1]], 
@@ -648,8 +648,8 @@
           cat("Seed:", s, "\n")
           cat("BM original",i, m_s$BlockModel, "\n")
           cat("Current LB",i, m_s$LowerBound, "\n")
-          
-          
+
+
           init_lb_i<-c(init_lb_i,m_s$LowerBound)
           init_niter_i<-c(init_niter_i,m_s$niter)
           init_bm_i<-append(init_bm_i,list(m_s$BlockModel))
@@ -660,7 +660,7 @@
           #    }
         }
         # find the best initialization based on the permuted matrix's distance to bm in year 1
-        
+
         find_best_init<-function(init_out){
           block_models <- init_out
           target_ind <- which.max(sapply(soc_mats, ncol))
@@ -672,7 +672,7 @@
           #  print(bm1[[1]])
           # print(unlist(bm1))
           # print(length(bm1))
-          
+
           bm<-bm1[1:length(seeds)]
           permute_matrix <- function(mat) {
             index <- 1
@@ -690,7 +690,7 @@
                 # Create permutation matrices for the i-th row permutation and the j-th column permutation
                 row_perm_matrix <- as.matrix(as(all_row_perms[i,], "pMatrix"))
                 col_perm_matrix <- as.matrix(as(all_col_perms[j,], "pMatrix"))
-                
+
                 # Store the pair of permutation matrices in perms_temp_store
                 perms_temp_store[[index]] <- list(row_perm_matrix, col_perm_matrix)
                 index <- index + 1
@@ -699,7 +699,7 @@
             for (i in 1:length(perms_temp_store)){
               permuted_matrices[[i]]<-perms_temp_store[[i]][[1]]%*%mat%*%perms_temp_store[[i]][[2]]
             }
-            
+
             return(permuted_matrices)
           }
           # bm2<-lapply(bm1, permute_matrix)
@@ -714,21 +714,20 @@
           #   print("end problematic chunck")
           #   print("finished bm2 step")
           #   print(bm2)
-          
-         # bm_base<-plogis(bm_year1)
-         bm_base<-ifelse(i==1,bm_cumulative, bm_cumulative / (i - 1))
+
+          bm_base<-plogis(bm_year1)
           #bm_base<-matrix((c(0.9, 0.2, 0.05, 0.35)), ncol = 2) #if want to use the truth
-          
+
           # Define a function to find the closest matrix to bm_base in a list
           calculate_norm <- function(matrix1, matrix2) {
             return(base::norm(matrix1 - matrix2, type = "f"))
           }
-          
+
           m<-nrow(bm_base)
           n<-ncol(bm_base)
           all_row_perms <- gtools::permutations(m, m, v=1:m)
           all_col_perms <- gtools::permutations(n, n, v=1:n)
-          
+
           find_closest_matrix <- function(m, t_mat) {
             permuted_matrix_list <- m
             smallest_norm <- Inf
@@ -738,7 +737,7 @@
             for (i in 1:length(permuted_matrix_list)) {
               current_matrix <- permuted_matrix_list[[i]]
               current_norm <- calculate_norm(current_matrix, t_mat)
-              
+
               # Check if the current norm is smaller than the smallest found so far
               if (current_norm < smallest_norm) {
                 smallest_norm <- current_norm
@@ -747,7 +746,7 @@
             }
             # Initialize perms_temp_store to hold pairs of permutation matrices
             perms_temp_store <- list()
-            
+
             # Populate perms_temp_store with all possible combinations of row and column permutation matrices
             index <- 1
             for (i in 1:nrow(all_row_perms)) {
@@ -755,20 +754,20 @@
                 # Create permutation matrices for the i-th row permutation and the j-th column permutation
                 row_perm_matrix <- as.matrix(as(all_row_perms[i,], "pMatrix"))
                 col_perm_matrix <- as.matrix(as(all_col_perms[j,], "pMatrix"))
-                
+
                 # Store the pair of permutation matrices in perms_temp_store
                 perms_temp_store[[index]] <- list(row_perm_matrix, col_perm_matrix)
                 index <- index + 1
               }
             }
             perms_temp<-permuted_matrix_list[[perms_temp_id]]
-            
+
             #  cat("Permutation id",perms_temp_id,"\n")
-            
+
             # cat("BM original",i, m$BlockModel, "\n")
             return(perms_temp)
           }
-          
+
           #  print("start line 683")
           perms_temp <- list()
           for (j in 1:length(seeds)){
@@ -781,7 +780,7 @@
           best_init_bm<-bm1[[best_init_id]]
           #cat("all distance",i, dist, "\n")
           #  cat("best distance",i, perms_temp[[best_init_id]], "\n")
-          
+
           return(list(best_init_bm,dist,best_init_id))
         }
         if(moretimes==TRUE){
@@ -793,19 +792,19 @@
         else{
           bestid<-1
         }
-        
+
         m<-m_s_list[bestid] #best init model (before realignment)
         #  print(bestid)
         m<-m[[1]] #now a list object
         # print(m$niter)
-        
+
         #    cat("BM original (best)",i, m$BlockModel, "\n")
         #  cat("Best LB",i, m$LowerBound, "\n")
         init_lb_best<- append(init_lb,list(best_lower_bound))
         init_niter_best<-append(init_niter,list(m$niter))
         init_bm_best<-append(init_bm_best,list(m$BlockModel))
         init_seed_best<-append(init_bm_best,list(m$seed))
-        
+
         init_lb<- append(init_lb,list(init_lb_i))
         init_niter<-append(init_niter,list(init_niter_i))
         init_bm<-append(init_bm,list(init_bm_i))
@@ -813,28 +812,27 @@
         if(moretimes==TRUE){
           init_distance<-append(init_distance,list(out3[[2]]))
           init_distance_best<-append(init_distance_best,list(out3[[3]]))}
-        
+
         #PredS = matrix(c(t(m$MixedMembership1)),nrow=2,byrow=T)
         #PredB = matrix(c(t(m$MixedMembership2)),nrow=2,byrow = T)
         PredS =m$MixedMembership1
         PredB=m$MixedMembership2
-        
+
         out[[i]][[1]]<-PredS
         out[[i]][[2]]<-PredB
-        
+
         out2[[i]]<-m$BlockModel
-        bm_cumulative <- bm_cumulative + plogis(m$BlockModel)
-              }
+      }
       #res[[1]] <- do.call(cbind, lapply(out, `[[`, 1))#1st matrix of each element of big list
       #res[[2]] <- do.call(cbind, lapply(out, `[[`, 2))#2nd matrix of each element of big list
-      
+
       #Node1
       block_models <- out2
       target_ind <- which.max(sapply(soc_mats, ncol))
       # perms_temp <- .findPerm(block_models, target_mat = block_models[[target_ind]], use_perms = ctrl$permute)
       bm1<-block_models #original bm
       bm1<-lapply(bm1,plogis)
-      
+
       permute_matrix <- function(mat) {
         index <- 1
         perms_temp_store<-list()
@@ -848,7 +846,7 @@
             # Create permutation matrices for the i-th row permutation and the j-th column permutation
             row_perm_matrix <- as.matrix(as(all_row_perms[i,], "pMatrix"))
             col_perm_matrix <- as.matrix(as(all_col_perms[j,], "pMatrix"))
-            
+
             # Store the pair of permutation matrices in perms_temp_store
             perms_temp_store[[index]] <- list(row_perm_matrix, col_perm_matrix)
             index <- index + 1
@@ -857,7 +855,7 @@
         for (i in 1:length(perms_temp_store)){
           permuted_matrices[[i]]<-perms_temp_store[[i]][[1]]%*%mat%*%perms_temp_store[[i]][[2]]
         }
-        
+
         return(permuted_matrices)
       }
       #   bm2<-lapply(bm1, permute_matrix)
@@ -870,83 +868,54 @@
         bm2[[i]]<-permute_matrix(bm1[[i]])
       }  
       #   print("end second problematic chunck")
-      
-      bm_base<-ifelse(i==1,bm_cumulative, bm_cumulative / (i - 1))
-      #bm_base<-matrix((c(0.9, 0.2, 0.05, 0.35)), ncol = 2) #if want to use the truth
-      
-      # Define a function to find the closest matrix to bm_base in a list
-      calculate_norm <- function(matrix1, matrix2) {
-        return(base::norm(matrix1 - matrix2, type = "f"))
-      }
-      
-      m<-nrow(bm_base)
-      n<-ncol(bm_base)
-      all_row_perms <- gtools::permutations(m, m, v=1:m)
-      all_col_perms <- gtools::permutations(n, n, v=1:n)
-      
-      find_closest_matrix <- function(m, t_mat) {
-        permuted_matrix_list <- permute_matrix(m)
-        smallest_norm <- Inf
-        perms_temp <- NULL
-        cat("length(permuted_matrix_list)",length(permuted_matrix_list),"\n")
-        # Loop through each matrix in the list
-        for (i in 1:length(permuted_matrix_list)) {
-          current_matrix <- permuted_matrix_list[[i]]
-          current_norm <- calculate_norm(current_matrix, t_mat)
-          
-          # Check if the current norm is smaller than the smallest found so far
-          if (current_norm < smallest_norm) {
-            smallest_norm <- current_norm
-            perms_temp_id <-  i 
-          }
-        }
-        # Initialize perms_temp_store to hold pairs of permutation matrices
-        perms_temp_store <- list()
-        
-        # Populate perms_temp_store with all possible combinations of row and column permutation matrices
-        index <- 1
-        for (i in 1:nrow(all_row_perms)) {
-          for (j in 1:nrow(all_col_perms)) {
-            # Create permutation matrices for the i-th row permutation and the j-th column permutation
-            row_perm_matrix <- as.matrix(as(all_row_perms[i,], "pMatrix"))
-            col_perm_matrix <- as.matrix(as(all_col_perms[j,], "pMatrix"))
-            
-            # Store the pair of permutation matrices in perms_temp_store
-            perms_temp_store[[index]] <- list(row_perm_matrix, col_perm_matrix)
-            index <- index + 1
-          }
-        }
-        perms_temp<-perms_temp_store[[perms_temp_id]]
-        
-        cat("Permutation id",perms_temp_id,"\n")
-        
-        # cat("BM original",i, m$BlockModel, "\n")
-        return(perms_temp)
-      }
-      
-      
+
+# Step 1: transform all block models to probability space
+bm1 <- lapply(block_models, plogis)
+
+# Step 2: initialize
+perms_temp <- vector("list", length = periods)
+perms_temp[[1]] <- list(diag(n.blocks[1]), diag(n.blocks[2]))  # identity for year 1
+
+# Step 3: cumulative alignment from year 2 onward
+bm_aligned <- list()
+bm_aligned[[1]] <- bm1[[1]]
+
+for (i in 2:periods) {
+  # compute cumulative reference (mean of previous aligned BMs)
+  ref_bm <- Reduce("+", bm_aligned[1:(i - 1)]) / (i - 1)
+
+  # find best permutation aligning current BM to cumulative reference
+  perms_temp[[i]] <- find_closest_matrix(bm1[[i]], t_mat = ref_bm)
+
+  # apply permutation to current BM and store aligned version
+  bm_aligned[[i]] <- perms_temp[[i]][[1]] %*% bm1[[i]] %*% perms_temp[[i]][[2]]
+}
+
+
       # Apply the find_closest_matrix function to each matrix in the list
       #   perms_temp <- lapply(bm1, find_closest_matrix, t_mat = bm_base)
-      
-      if(realign){
-        perms_temp <- lapply(bm1, find_closest_matrix, t_mat = bm_base)
-      }
-      else{
-        perms_temp<-lapply(1:periods, function(x) list(as.matrix(as(all_perms[1,], "pMatrix")), as.matrix(as(all_perms[1,], "pMatrix"))))
-      }
-      
+
+      #if(realign){
+      #  perms_temp <- lapply(bm1, find_closest_matrix, t_mat = bm_base)
+      #}
+      #else{
+      #  perms_temp<-lapply(1:periods, function(x) list(as.matrix(as(all_perms[1,], "pMatrix")), as.matrix(as(all_perms[1,], "pMatrix"))))
+      #}
+
       phis_temp <- lapply(out, `[[`, 1) 
       perms_temp1<-lapply(perms_temp, `[[`, 1) 
-      
+
       phi.ord <- as.numeric(lapply(phis_temp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get correct temporal order
+      perms_temp1[[1]] <- diag(n.blocks[1])
+      perms_temp2[[1]] <- diag(n.blocks[2])
       mm_init_t1 <- do.call(cbind,mapply(function(phi,perm){perm %*% phi },
                                          phis_temp, perms_temp1, SIMPLIFY = FALSE))
-      
+
       #cat("dimension of mm_init_t1",dim(mm_init_t1),"\n")
       #cat("n.blocks[1]",n.blocks[1],"\n")
       rownames(mm_init_t1) <- 1:n.blocks[1]
       res[[1]] <- mm_init_t1
-      
+
       #Node2
       #block_models <- out2
       #target_ind <- which.max(sapply(soc_mats, ncol))
@@ -960,15 +929,15 @@
       #                                  phis_temp, perms_temp2, SIMPLIFY = FALSE))
       mm_init_t2 <- do.call(cbind,mapply(function(phi,perm){t(t(phi) %*% perm ) },
                                          phis_temp, (perms_temp2), SIMPLIFY = FALSE))
-      
-      
+
+
       # cat("dimension of mm_init_t2",dim(mm_init_t2),"\n")
       #  cat("n.blocks[2]",n.blocks[2],"\n")
       rownames(mm_init_t2) <- 1:n.blocks[2]
       res[[2]] <- mm_init_t2
     }
-    
-    
+
+
   } else {
     temp_res <- vector("list", periods)
     for(i in 1:periods){
@@ -1005,7 +974,7 @@
                                           centers = n.blocks[1],
                                           iter.max = 15,
                                           nstart = 10), "classes")
-          
+
         } else {
           init_c <- sample(1:nrow(target), n.blocks[1], replace = FALSE)
           cents <- jitter(target[init_c, ])
@@ -1015,7 +984,7 @@
                                                            algorithm = "Lloyd",
                                                            nstart = 1)), "classes")
         }
-        
+
         phi_internal <- model.matrix(~ factor(clust_internal, 1:n.blocks[1]) - 1)
         phi_internal <- .transf(phi_internal)
         rownames(phi_internal) <- rownames(soc_mats[[i]])
@@ -1027,7 +996,7 @@
         BlockModel <- approxB(edges[[i]], int_dyad_id, MixedMembership)
         temp_res[[i]] <- list(BlockModel = BlockModel,
                               MixedMembership = MixedMembership)
-        
+
       } else {
         n_prior <- (dyads_pp[i] - nodes_pp[i]) * .05
         a <- plogis(ctrl$mu_block) * n_prior
@@ -1054,8 +1023,8 @@
         }
         temp_res[[i]] <- list(BlockModel = BlockModel,
                               MixedMembership = MixedMembership)
-        
-        
+
+
       }
     }
     block_models <- lapply(temp_res, function(x)x$BlockModel)
@@ -1071,6 +1040,7 @@
   return(list(res,init_lb,init_niter,init_lb_best,init_niter_best,init_bm,init_bm_best,init_seed,init_seed_best,init_distance,init_distance_best))
   # return(res)
 } 
+
 
 
 
