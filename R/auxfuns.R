@@ -549,7 +549,7 @@
                                           svi = TRUE,
                                           vi_iter = 10000,
                                           #   batch_size = 1.0,
-                                          conv_tol = 1e-5,
+                                          conv_tol = 1e-4,
                                           mu_gamma = ctrl[["mu_gamma"]],
                                           var_gamma = ctrl[["var_gamma"]],
                                           var_beta=list(ctrl[["var_beta"]][[1]][,,1],
