@@ -954,7 +954,6 @@ for (i in 2:periods) {
 
       phi.ord <- as.numeric(lapply(phis_temp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get correct temporal order
       perms_temp1[[1]] <- diag(n.blocks[1])
-      perms_temp2[[1]] <- diag(n.blocks[2])
       mm_init_t1 <- do.call(cbind,mapply(function(phi,perm){perm %*% phi },
                                          phis_temp, perms_temp1, SIMPLIFY = FALSE))
 
@@ -972,6 +971,7 @@ for (i in 2:periods) {
       # p1<-lapply(perms_temp, `[[`, 1) 
       #  p2<-lapply(perms_temp, `[[`, 2) 
       phi.ord <- as.numeric(lapply(phis_temp, function(x)strsplit(colnames(x), "@")[[1]][2])) # to get correct temporal order
+      perms_temp2[[1]] <- diag(n.blocks[2])
       #mm_init_t2 <- do.call(cbind,mapply(function(phi,perm){perm %*% phi },
       #                                  phis_temp, perms_temp2, SIMPLIFY = FALSE))
       mm_init_t2 <- do.call(cbind,mapply(function(phi,perm){t(t(phi) %*% perm ) },
