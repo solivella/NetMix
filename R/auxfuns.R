@@ -479,7 +479,7 @@
   
   realign<-TRUE #manual
   moretimes<-FALSE
-  fp5times<-FALSE
+  fp5times<-TRUE
   if(bipartite){
     if (periods==1){
       phi_init_temp <- lapply(soc_mats, function(mat){
@@ -549,7 +549,7 @@
                                           svi = TRUE,
                                           vi_iter = 10000,
                                           #   batch_size = 1.0,
-                                          conv_tol = 1e-3,
+                                          conv_tol = 1e-5,
                                           mu_gamma = ctrl[["mu_gamma"]],
                                           var_gamma = ctrl[["var_gamma"]],
                                           var_beta=list(ctrl[["var_beta"]][[1]][,,1],
