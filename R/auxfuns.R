@@ -869,38 +869,85 @@
       }  
       #   print("end second problematic chunck")
 
-# Step 1: transform all block models to probability space
-bm1 <- lapply(block_models, plogis)
-
-# Step 2: initialize
+      bm_base<-plogis(block_models[[1]])
+      # Create lists to store outputs
 perms_temp <- vector("list", length = periods)
-perms_temp[[1]] <- list(diag(n.blocks[1]), diag(n.blocks[2]))  # identity for year 1
+best_matrix_list <- list()
 
-# Step 3: cumulative alignment from year 2 onward
-bm_aligned <- list()
-bm_aligned[[1]] <- bm1[[1]]
+# Identity permutation for year 1
+perms_temp[[1]] <- list(diag(n.blocks[1]), diag(n.blocks[2]))
+best_matrix_list[[1]] <- bm1[[1]]  # Year 1 unpermuted reference
 
+      #bm_base<-matrix((c(0.9, 0.2, 0.05, 0.35)), ncol = 2) #if want to use the truth
+
+      # Define a function to find the closest matrix to bm_base in a list
+      calculate_norm <- function(matrix1, matrix2) {
+        return(base::norm(matrix1 - matrix2, type = "f"))
+      }
+
+      m<-nrow(bm_base)
+      n<-ncol(bm_base)
+      all_row_perms <- gtools::permutations(m, m, v=1:m)
+      all_col_perms <- gtools::permutations(n, n, v=1:n)
+
+      find_closest_matrix <- function(m, t_mat) {
+        permuted_matrix_list <- permute_matrix(m)
+        smallest_norm <- Inf
+        best_matrix<-NULL
+        perms_temp <- NULL
+        cat("length(permuted_matrix_list)",length(permuted_matrix_list),"\n")
+        # Loop through each matrix in the list
+        for (i in 1:length(permuted_matrix_list)) {
+          current_matrix <- permuted_matrix_list[[i]]
+          current_norm <- calculate_norm(current_matrix, t_mat)
+
+          # Check if the current norm is smaller than the smallest found so far
+          if (current_norm < smallest_norm) {
+            smallest_norm <- current_norm
+            best_matrix <- current_matrix
+            perms_temp_id <-  i 
+          }
+        }
+        # Initialize perms_temp_store to hold pairs of permutation matrices
+        perms_temp_store <- list()
+
+        # Populate perms_temp_store with all possible combinations of row and column permutation matrices
+        index <- 1
+        for (i in 1:nrow(all_row_perms)) {
+          for (j in 1:nrow(all_col_perms)) {
+            # Create permutation matrices for the i-th row permutation and the j-th column permutation
+            row_perm_matrix <- as.matrix(as(all_row_perms[i,], "pMatrix"))
+            col_perm_matrix <- as.matrix(as(all_col_perms[j,], "pMatrix"))
+
+            # Store the pair of permutation matrices in perms_temp_store
+            perms_temp_store[[index]] <- list(row_perm_matrix, col_perm_matrix)
+            index <- index + 1
+          }
+        }
+        perms_temp<-perms_temp_store[[perms_temp_id]]
+
+        cat("Permutation id",perms_temp_id,"\n")
+
+        # cat("BM original",i, m$BlockModel, "\n")
+        return(list(perms_temp = perms_temp, best_matrix = best_matrix))
+      }
+
+
+  # Cumulative alignment loop
 for (i in 2:periods) {
-  # compute cumulative reference (mean of previous aligned BMs)
-  ref_bm <- Reduce("+", bm_aligned[1:(i - 1)]) / (i - 1)
+  bm_base <- Reduce("+", best_matrix_list[1:(i - 1)]) / (i - 1)
 
-  # find best permutation aligning current BM to cumulative reference
-  perms_temp[[i]] <- find_closest_matrix(bm1[[i]], t_mat = ref_bm)
-
-  # apply permutation to current BM and store aligned version
-  bm_aligned[[i]] <- perms_temp[[i]][[1]] %*% bm1[[i]] %*% perms_temp[[i]][[2]]
+  result <- find_closest_matrix(bm1[[i]], t_mat = bm_base)
+  perms_temp[[i]] <- result$perms_temp
+  best_matrix_list[[i]] <- result$best_matrix
 }
-
-
-      # Apply the find_closest_matrix function to each matrix in the list
-      #   perms_temp <- lapply(bm1, find_closest_matrix, t_mat = bm_base)
-
-      #if(realign){
-      #  perms_temp <- lapply(bm1, find_closest_matrix, t_mat = bm_base)
-      #}
-      #else{
-      #  perms_temp<-lapply(1:periods, function(x) list(as.matrix(as(all_perms[1,], "pMatrix")), as.matrix(as(all_perms[1,], "pMatrix"))))
-      #}
+   
+    #  if(realign){
+    #    perms_temp <- lapply(bm1, find_closest_matrix, t_mat = bm_base)
+   #   }
+   #   else{
+    #    perms_temp<-lapply(1:periods, function(x) list(as.matrix(as(all_perms[1,], "pMatrix")), as.matrix(as(all_perms[1,], "pMatrix"))))
+    #  }
 
       phis_temp <- lapply(out, `[[`, 1) 
       perms_temp1<-lapply(perms_temp, `[[`, 1) 
