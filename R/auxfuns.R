@@ -716,7 +716,7 @@
           #   print(bm2)
           
          # bm_base<-plogis(bm_year1)
-         bm_base<-ifelse(i=1,bm_cumulative, bm_cumulative / (i - 1))
+         bm_base<-ifelse(i==1,bm_cumulative, bm_cumulative / (i - 1))
           #bm_base<-matrix((c(0.9, 0.2, 0.05, 0.35)), ncol = 2) #if want to use the truth
           
           # Define a function to find the closest matrix to bm_base in a list
@@ -871,7 +871,7 @@
       }  
       #   print("end second problematic chunck")
       
-      bm_base<-ifelse(i=1,bm_cumulative, bm_cumulative / (i - 1))
+      bm_base<-ifelse(i==1,bm_cumulative, bm_cumulative / (i - 1))
       #bm_base<-matrix((c(0.9, 0.2, 0.05, 0.35)), ncol = 2) #if want to use the truth
       
       # Define a function to find the closest matrix to bm_base in a list
