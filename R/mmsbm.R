@@ -1046,7 +1046,7 @@ mmsbm <- function(formula.dyad,
       fit$vcov_monad2 <- .vcovBeta(C_mat2, fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
                                    n.hmmstates, fit[["TotNodes2"]], periods,
                                    ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2, tot_nodeid_2)
-      fit$hess_calc_data2-list(all_phi2,fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
+      fit$hess_calc_data2<-list(all_phi2,fit[["MonadCoef2"]], ctrl$se_sim, n.blocks[2],
                                    n.hmmstates, fit[["TotNodes2"]], periods,
                                    ctrl$mu_beta2, ctrl$var_beta2, fit[["Kappa"]], t_id_n2, X2, tot_nodeid_2)
     } 
