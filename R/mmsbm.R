@@ -1119,8 +1119,8 @@ cat("max(n1) * max(n2):", max_n1_times_max_n2, "\n")
 
       fit$vcov_dyad <- as.matrix(hessTheta_list[[1]])
       cat("vcov_dyad original: ", fit$vcov_dyad,".\n")
-      fit$vcov_dyad <-  fit$vcov_dyad/max_n1n2
-      fit$vcov_dyad_max2 <-  fit$vcov_dyad/max_n1_times_max_n2
+      fit$vcov_dyad <-  fit$vcov_dyad*max_n1n2 # scale up because already inversed
+      fit$vcov_dyad_max2 <-  as.matrix(hessTheta_list[[1]])*max_n1_times_max_n2
       cat("fit$vcov_dyad after rescaling (max(n1 * n2)): ", fit$vcov_dyad,".\n")
       cat("fit$vcov_dyad after rescaling (max(n1) * max(n2)): ", fit$vcov_dyad_max2,".\n")
       colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
