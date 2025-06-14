@@ -1081,7 +1081,7 @@ mmsbm <- function(formula.dyad,
                                  #    }, eta = edge_eta, z=z_samples, w=w_samples, B=fit[["BlockModel"]], ind = as.matrix(mfd[,c("(sid)","(rid)")]))
                                }, eta = edge_eta, z=z_samples, w=w_samples, B=fit[["BlockModel"]], ind = cbind(do.call(paste, c(mfd[c("(sid)","(tid)")], sep = "@")),
                                                                                                                do.call(paste, c(mfd[c("(rid)","(tid)")], sep = "@")))  )
-      cat("hessTheta_list: ", hessTheta_list,".\n")
+     # cat("hessTheta_list: ", hessTheta_list,".\n")
      
 # Get unique time periods
 periods <- unique(mfd[["(tid)"]])
@@ -1118,6 +1118,7 @@ cat("max(n1) * max(n2):", max_n1_times_max_n2, "\n")
 
 
       fit$vcov_dyad <- as.matrix(hessTheta_list[[1]])
+      cat("vcov_dyad original: ", fit$vcov_dyad,".\n")
       fit$vcov_dyad <-  fit$vcov_dyad/max_n1n2
       fit$vcov_dyad_max2 <-  fit$vcov_dyad/max_n1_times_max_n2
       cat("fit$vcov_dyad after rescaling (max(n1 * n2)): ", fit$vcov_dyad,".\n")
