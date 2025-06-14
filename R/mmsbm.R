@@ -1081,9 +1081,34 @@ mmsbm <- function(formula.dyad,
                                  #    }, eta = edge_eta, z=z_samples, w=w_samples, B=fit[["BlockModel"]], ind = as.matrix(mfd[,c("(sid)","(rid)")]))
                                }, eta = edge_eta, z=z_samples, w=w_samples, B=fit[["BlockModel"]], ind = cbind(do.call(paste, c(mfd[c("(sid)","(tid)")], sep = "@")),
                                                                                                                do.call(paste, c(mfd[c("(rid)","(tid)")], sep = "@")))  )
-      
-      print(hessTheta_list)
+      cat("hessTheta_list: ", hessTheta_list,".\n")
+     
+      # Get unique time periods
+      periods <- unique(mfd[["(tid)"]])
+       cat("periods: ", periods,".\n")
+
+     # Calculate n1 * n2 for each year
+     dyad_sizes <- sapply(periods, function(t) {
+  if (bipartite) {
+    n1 <- length(unique(mfd[mfd[["(tid)"]] == t, "(sid)"]))
+    n2 <- length(unique(mfd[mfd[["(tid)"]] == t, "(rid)"]))
+  } else {
+    nodes_t <- unique(c(
+      mfd[mfd[["(tid)"]] == t, "(sid)"],
+      mfd[mfd[["(tid)"]] == t, "(rid)"]
+    ))
+    n1 <- n2 <- length(nodes_t)
+  }
+  n1 * n2
+})
+
+# Take max across years
+max_n1n2 <- max(dyad_sizes)
+cat("max_n1n2: ", max_n1n2,".\n")
+
       fit$vcov_dyad <- as.matrix(hessTheta_list[[1]])
+      fit$vcov_dyad <-  fit$vcov_dyad/max_n1n2
+      cat("fit$vcov_dyad after rescaling: ", fit$vcov_dyad,".\n")
       colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
     }
     
