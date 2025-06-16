@@ -1019,9 +1019,51 @@ mmsbm <- function(formula.dyad,
                              }, eta = edge_eta, z=z_samples, w=w_samples, B=fit[["BlockModel"]], ind = cbind(do.call(paste, c(mfd[c("(sid)","(tid)")], sep = "@")),
                do.call(paste, c(mfd[c("(rid)","(tid)")], sep = "@")))  )
 
-      print(hessTheta_list)
+    #  print(hessTheta_list)
+    #  fit$vcov_dyad <- as.matrix(hessTheta_list[[1]])
+     # colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
+     # Get unique time periods
+periods <- unique(mfd[["(tid)"]])
+
+# Initialize vectors
+n1_vec <- c()
+n2_vec <- c()
+
+# For each period, get n1 and n2
+dyad_sizes <- sapply(periods, function(t) {
+  if (bipartite) {
+    sid_t <- mfd[mfd[["(tid)"]] == t, "(sid)"]
+    rid_t <- mfd[mfd[["(tid)"]] == t, "(rid)"]
+    n1 <- length(unique(sid_t))
+    n2 <- length(unique(rid_t))
+  } else {
+    nodes_t <- unique(c(
+      mfd[mfd[["(tid)"]] == t, "(sid)"],
+      mfd[mfd[["(tid)"]] == t, "(rid)"]
+    ))
+    n1 <- n2 <- length(nodes_t)
+  }
+  n1_vec <<- c(n1_vec, n1)
+  n2_vec <<- c(n2_vec, n2)
+  n1 * n2
+})
+
+# Results:
+max_n1n2 <- max(dyad_sizes)
+max_n1_times_max_n2 <- max(n1_vec) * max(n2_vec)
+
+cat("max(n1 * n2):", max_n1n2, "\n")
+cat("max(n1) * max(n2):", max_n1_times_max_n2, "\n")
+
+
       fit$vcov_dyad <- as.matrix(hessTheta_list[[1]])
+      cat("vcov_dyad original: ", fit$vcov_dyad,".\n")
+      fit$vcov_dyad <-  fit$vcov_dyad*max_n1n2 # scale up because already inversed
+      fit$vcov_dyad_max2 <-  as.matrix(hessTheta_list[[1]])*max_n1_times_max_n2
+      cat("fit$vcov_dyad after rescaling (max(n1 * n2)): ", fit$vcov_dyad,".\n")
+      cat("fit$vcov_dyad after rescaling (max(n1) * max(n2)): ", fit$vcov_dyad_max2,".\n")
       colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
+      colnames(fit$vcov_dyad_max2) <- rownames(fit$vcov_dyad_max2) <- names(fit[["DyadCoef"]])
     }
 
 
