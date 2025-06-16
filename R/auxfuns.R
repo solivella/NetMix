@@ -489,7 +489,7 @@
 }
 
 #' @rdname auxfuns
-.initPi <- function(formula.monad,formula.dyad,soc_mats,
+.initPi <- function(soc_mats,
                     bipartite,
                     dyads,
                     edges,
