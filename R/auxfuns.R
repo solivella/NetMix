@@ -941,6 +941,15 @@ for (i in 2:periods) {
   perms_temp[[i]] <- result$perms_temp
   best_matrix_list[[i]] <- result$best_matrix
 }
+
+# ---- Realign Year 1 to the Average of Years 2 to T ----
+bm_base_new <- Reduce("+", best_matrix_list[2:periods]) / (periods - 1)
+
+result_first <- find_closest_matrix(bm1[[1]], t_mat = bm_base_new)
+
+# Update the permutation and aligned matrix for Year 1
+perms_temp[[1]] <- result_first$perms_temp
+best_matrix_list[[1]] <- result_first$best_matrix
    
     #  if(realign){
     #    perms_temp <- lapply(bm1, find_closest_matrix, t_mat = bm_base)

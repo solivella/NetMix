@@ -1110,21 +1110,21 @@ dyad_sizes <- sapply(periods, function(t) {
 })
 
 # Results:
-max_n1n2 <- max(dyad_sizes)
-max_n1_times_max_n2 <- max(n1_vec) * max(n2_vec)
+avg_n1n2 <- mean(dyad_sizes)
+#max_n1_times_max_n2 <- max(n1_vec) * max(n2_vec)
 
-cat("max(n1 * n2):", max_n1n2, "\n")
-cat("max(n1) * max(n2):", max_n1_times_max_n2, "\n")
+cat("avg(n1 * n2):", avg_n1n2, "\n")
+#cat("max(n1) * max(n2):", max_n1_times_max_n2, "\n")
 
 
       fit$vcov_dyad <- as.matrix(hessTheta_list[[1]])
       cat("vcov_dyad original: ", fit$vcov_dyad,".\n")
-      fit$vcov_dyad <-  fit$vcov_dyad*max_n1n2 # scale up because already inversed
-      fit$vcov_dyad_max2 <-  as.matrix(hessTheta_list[[1]])*max_n1_times_max_n2
-      cat("fit$vcov_dyad after rescaling (max(n1 * n2)): ", fit$vcov_dyad,".\n")
-      cat("fit$vcov_dyad after rescaling (max(n1) * max(n2)): ", fit$vcov_dyad_max2,".\n")
+      fit$vcov_dyad <-  fit$vcov_dyad*avg_n1n2 # scale up because already inversed
+   #   fit$vcov_dyad_max2 <-  as.matrix(hessTheta_list[[1]])*max_n1_times_max_n2
+      cat("fit$vcov_dyad after rescaling (avg(n1 * n2)): ", fit$vcov_dyad,".\n")
+     # cat("fit$vcov_dyad after rescaling (max(n1) * max(n2)): ", fit$vcov_dyad_max2,".\n")
       colnames(fit$vcov_dyad) <- rownames(fit$vcov_dyad) <- names(fit[["DyadCoef"]])
-      colnames(fit$vcov_dyad_max2) <- rownames(fit$vcov_dyad_max2) <- names(fit[["DyadCoef"]])
+    #  colnames(fit$vcov_dyad_max2) <- rownames(fit$vcov_dyad_max2) <- names(fit[["DyadCoef"]])
     }
     
     
