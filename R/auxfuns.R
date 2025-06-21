@@ -569,9 +569,9 @@
         init_seed_i<-seeds 
 
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = Y~1,
-                    formula.monad = list(netSim$formula_monad1, 
-                                         netSim$formula_monad2),
+          m_s<-mmsbm(formula.dyad = Y~var1,
+                    formula.monad = list(~VarS1, 
+                                         ~VarB1),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
@@ -655,9 +655,9 @@
         state_current<-ifelse(i<=25,1,2)
 
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = Y~1,
-                    formula.monad = list(netSim$formula_monad1, 
-                                         netSim$formula_monad2),
+         m_s<-mmsbm(formula.dyad = Y~var1,
+                    formula.monad = list(~VarS1, 
+                                         ~VarB1),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
@@ -976,6 +976,15 @@ for (i in 2:periods) {
   perms_temp[[i]] <- result$perms_temp
   best_matrix_list[[i]] <- result$best_matrix
 }
+
+# ---- Realign Year 1 to the Average of Years 2 to T ----Add commentMore actions
+bm_base_new <- Reduce("+", best_matrix_list[2:periods]) / (periods - 1)
+
+result_first <- find_closest_matrix(bm1[[1]], t_mat = bm_base_new)
+
+# Update the permutation and aligned matrix for Year 1
+perms_temp[[1]] <- result_first$perms_temp
+best_matrix_list[[1]] <- result_first$best_matrix
    
     #  if(realign){
     #    perms_temp <- lapply(bm1, find_closest_matrix, t_mat = bm_base)
