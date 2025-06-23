@@ -568,9 +568,9 @@
         init_seed_i<-seeds 
 
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = Y~1,
-                     formula.monad = list(netSim$formula_monad1, 
-                                          netSim$formula_monad2),
+          m_s<-mmsbm(formula.dyad = Y~var1,Add commentMore actions
+                    formula.monad = list(~VarS1, 
+                                         ~VarB1),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
@@ -654,9 +654,9 @@
         state_current<-ifelse(i<=25,1,2)
 
         for (s in seeds){
-         m_s<-mmsbm(formula.dyad = Y~1,
-                     formula.monad = list(netSim$formula_monad1, 
-                                          netSim$formula_monad2),
+        m_s<-mmsbm(formula.dyad = Y~var1,Add commentMore actions
+                    formula.monad = list(~VarS1, 
+                                         ~VarB1),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
@@ -984,6 +984,14 @@ result_first <- find_closest_matrix(bm1[[1]], t_mat = bm_base_new)
 # Update the permutation and aligned matrix for Year 1
 perms_temp[[1]] <- result_first$perms_temp
 best_matrix_list[[1]] <- result_first$best_matrix
+
+# Apply the permutation immediately to the membership matrices
+out[[1]][[1]] <- result_first$perms_temp[[1]] %*% out[[1]][[1]]
+out[[1]][[2]] <- t(t(out[[1]][[2]]) %*% result_first$perms_temp[[2]])
+
+# Since we already applied it, reset to identity
+perms_temp[[1]] <- list(diag(n.blocks[1]), diag(n.blocks[2]))
+
    
     #  if(realign){
     #    perms_temp <- lapply(bm1, find_closest_matrix, t_mat = bm_base)
