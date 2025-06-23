@@ -568,7 +568,7 @@
         init_seed_i<-seeds 
 
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = Y~var1,Add commentMore actions
+          m_s<-mmsbm(formula.dyad = Y~var1,
                     formula.monad = list(~VarS1, 
                                          ~VarB1),
                      timeID="year",
@@ -654,7 +654,7 @@
         state_current<-ifelse(i<=25,1,2)
 
         for (s in seeds){
-        m_s<-mmsbm(formula.dyad = Y~var1,Add commentMore actions
+        m_s<-mmsbm(formula.dyad = Y~var1,
                     formula.monad = list(~VarS1, 
                                          ~VarB1),
                      timeID="year",
