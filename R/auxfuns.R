@@ -512,7 +512,7 @@
   init_distance_best<-list()
 
   realign<-TRUE #manual
-  moretimes<-TRUE
+  moretimes<-FALSE
   fp5times<-TRUE
   bipartite<-TRUE
   if(bipartite){
@@ -630,6 +630,90 @@
         out2[[i]]<-m$BlockModel
       }
 
+## ========= PARALLEL PRECOMPUTE: all mmsbm fits for years 2..T =========
+if (!requireNamespace("future", quietly = TRUE) ||
+    !requireNamespace("future.apply", quietly = TRUE)) {
+  stop("Please install 'future' and 'future.apply' to run parallel initialization.")
+}
+
+# Let user control workers via ctrl$workers; otherwise use cores-1
+workers <- if (!is.null(ctrl[["workers"]])) ctrl[["workers"]] else max(1L, parallel::detectCores() - 1L)
+
+# In a package, consider NOT overriding an existing plan; this is the simplest.
+future::plan(future::multisession, workers = workers)
+
+years_to_run <- 2:periods
+n_seeds <- if (moretimes) 5L else 1L
+
+# IMPORTANT for reproducibility with set.seed(...) before calling .initPi:
+# draw all year-specific seeds in the main process, in a fixed order
+seeds_by_year <- setNames(
+  lapply(years_to_run, function(ii) sample(100:9999, n_seeds)),
+  as.character(years_to_run)
+)
+
+# Create one job per (year, seed)
+jobs <- do.call(
+  rbind,
+  lapply(years_to_run, function(ii) {
+    data.frame(year = ii, seed = seeds_by_year[[as.character(ii)]], stringsAsFactors = FALSE)
+  })
+)
+
+# Run all jobs in parallel
+fits_all <- future.apply::future_lapply(
+  seq_len(nrow(jobs)),
+  function(j) {
+    i <- jobs$year[[j]]
+    s <- jobs$seed[[j]]
+
+    dy  <- dplyr::filter(data.dyad, year == i)
+    sdf <- dplyr::filter(data.monad[[1]], year == i)
+    bdf <- dplyr::filter(data.monad[[2]], year == i)
+
+    m_s <- mmsbm(
+      formula.dyad = Y ~ var1,
+      formula.monad = list(~VarS1, ~VarB1),
+      timeID = "year",
+      senderID = "id1",
+      receiverID = "id2",
+      nodeID = list("id", "id"),
+      bipartite = TRUE,
+      data.dyad = dy,
+      data.monad = list(sdf, bdf),
+      n.blocks = c(n.blocks[1], n.blocks[2]),
+      n.hmmstates = 1,
+      mmsbm.control = list(
+        verbose = FALSE,  # keep worker output quiet; print later in order
+        threads = 1,      # IMPORTANT: do not nest parallelism
+        svi = TRUE,
+        vi_iter = 10000,
+        conv_tol = 1e-3,
+        mu_gamma = ctrl[["mu_gamma"]],
+        var_gamma = ctrl[["var_gamma"]],
+        var_beta = list(ctrl[["var_beta"]][[1]][,,1],
+                        ctrl[["var_beta"]][[2]][,,1]),
+        hessian = FALSE,
+        seed = s
+      )
+    )
+
+    list(
+      year = i,
+      seed = s,
+      m_s = m_s,
+      LowerBound = m_s$LowerBound,
+      niter = m_s$niter,
+      BlockModel = m_s$BlockModel
+    )
+  },
+  future.seed = TRUE
+)
+
+# Group fits by year for easy lookup inside your existing for(i in 2:periods) loop
+fits_by_year <- split(fits_all, vapply(fits_all, `[[`, integer(1), "year"))
+## =====================================================================
+
 
       for (i in 2:periods){
         cat("Now running year:", i, "\n")
@@ -652,47 +736,29 @@
         init_seed_i<-seeds 
         m_s_list<-list()
         state_current<-ifelse(i<=25,1,2)
+# Use the same seeds as precomputed (ignore the local sample() call)
+seeds <- seeds_by_year[[as.character(i)]]
+init_seed_i <- seeds
 
-        for (s in seeds){
-        m_s<-mmsbm(formula.dyad = Y~var1,
-                    formula.monad = list(~VarS1, 
-                                         ~VarB1),
-                     timeID="year",
-                     senderID = "id1",
-                     receiverID = "id2",
-                     nodeID = list("id","id"),
-                     bipartite= TRUE,
-                     data.dyad = dy,
-                     data.monad = list(sdf,bdf),
-                     n.blocks = c(n.blocks[1],n.blocks[2]),  n.hmmstates = 1,
-                     mmsbm.control = list(verbose = TRUE,
-                                          threads=1,
-                                          svi = TRUE,
-                                          vi_iter = 10000,
-                                          #  batch_size = 1.0,
-                                          conv_tol = 1e-3,
-                                          mu_gamma = ctrl[["mu_gamma"]],
-                                          var_gamma = ctrl[["var_gamma"]],
-                                          var_beta=list(ctrl[["var_beta"]][[1]][,,1],
-                                                        ctrl[["var_beta"]][[2]][,,1]),
-                                          #  mu_beta=list(ctrl[["mu_beta"]][[1]][,,state_current],
-                                          #          ctrl[["mu_beta"]][[2]][,,state_current]),
-                                          hessian = FALSE,
-                                          seed=s))
-          cat("Seed:", s, "\n")
-          cat("BM original",i, m_s$BlockModel, "\n")
-          cat("Current LB",i, m_s$LowerBound, "\n")
+fits_i <- fits_by_year[[as.character(i)]]
 
+# Ensure order matches 'seeds'
+ord <- match(seeds, vapply(fits_i, `[[`, numeric(1), "seed"))
+fits_i <- fits_i[ord]
 
-          init_lb_i<-c(init_lb_i,m_s$LowerBound)
-          init_niter_i<-c(init_niter_i,m_s$niter)
-          init_bm_i<-append(init_bm_i,list(m_s$BlockModel))
-          m_s_list<-append(m_s_list,list(m_s))
-          #    if (m_s$LowerBound > best_lower_bound) {
-          #      best_lower_bound <- m_s$LowerBound
-          #      best_model <- m_s
-          #    }
-        }
+# Fill exactly the same objects your downstream code expects
+init_lb_i     <- vapply(fits_i, `[[`, numeric(1), "LowerBound")
+init_niter_i  <- vapply(fits_i, `[[`, numeric(1), "niter")
+init_bm_i     <- lapply(fits_i, `[[`, "BlockModel")
+m_s_list      <- lapply(fits_i, `[[`, "m_s")
+
+# Optional: reproduce your logging in a clean ordered way
+for (k in seq_along(fits_i)) {
+  cat("Seed:", fits_i[[k]]$seed, "\n")
+  cat("BM original", i, fits_i[[k]]$BlockModel, "\n")
+  cat("Current LB", i, fits_i[[k]]$LowerBound, "\n")
+}
+
         # find the best initialization based on the permuted matrix's distance to bm in year 1
 
         find_best_init<-function(init_out){
