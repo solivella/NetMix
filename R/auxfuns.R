@@ -489,7 +489,7 @@
 }
 
 #' @rdname auxfuns
-.initPi <- function(soc_mats,
+.initPi <- function(formula.monad,formula.dyad,soc_mats,
                     bipartite,
                     dyads,
                     edges,
@@ -568,9 +568,9 @@
         init_seed_i<-seeds 
 
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = Y~var1,
-                    formula.monad = list(~VarS1, 
-                                         ~VarB1),
+          m_s<-mmsbm(formula.dyad = formula.dyad,
+                    formula.monad = list(formula.monad[[1]], 
+                                         formula.monad[[2]]),
                      timeID="year",
                      senderID = "id1",
                      receiverID = "id2",
@@ -657,8 +657,9 @@ run_job <- function(j) {
   bdf <- dplyr::filter(data.monad[[2]], year == i)
 
   m_s <- mmsbm(
-    formula.dyad = Y ~ var1,
-    formula.monad = list(~VarS1, ~VarB1),
+formula.dyad = formula.dyad,
+                    formula.monad = list(formula.monad[[1]], 
+                                         formula.monad[[2]]),
     timeID = "year",
     senderID = "id1",
     receiverID = "id2",
