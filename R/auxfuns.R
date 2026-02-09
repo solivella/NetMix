@@ -701,7 +701,7 @@ if (isTRUE(ctrl[["parallel"]])) {
   }
 
   # threads-per-job and outer workers (user can override via ctrl)
- # threads_per_job <- if (!is.null(ctrl[["threads"]])) as.integer(ctrl[["threads"]]) else 1L
+  threads_per_job <- 1L
   total_cores <- parallel::detectCores(logical = TRUE)
  # default_workers <- max(1L, floor(total_cores / max(1L, threads_per_job)) - 1L)
   #workers <- if (!is.null(ctrl[["workers"]])) as.integer(ctrl[["workers"]]) else default_workers
