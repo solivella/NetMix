@@ -629,30 +629,17 @@
 
         out2[[i]]<-m$BlockModel
       }
+## ====== Make parallelism optional (controlled by ctrl$parallel) ======
 
-## ========= PARALLEL PRECOMPUTE: all mmsbm fits for years 2..T =========
-if (!requireNamespace("future", quietly = TRUE) ||
-    !requireNamespace("future.apply", quietly = TRUE)) {
-  stop("Please install 'future' and 'future.apply' to run parallel initialization.")
-}
-
-# Let user control workers via ctrl$workers; otherwise use cores-1
-workers <- if (!is.null(ctrl[["workers"]])) ctrl[["workers"]] else max(1L, parallel::detectCores() - 1L)
-
-# In a package, consider NOT overriding an existing plan; this is the simplest.
-future::plan(future::multisession, workers = workers)
-
+# years and per-year seeds (drawn on main process so set.seed() controls them)
 years_to_run <- 2:periods
 n_seeds <- if (moretimes) 5L else 1L
-
-# IMPORTANT for reproducibility with set.seed(...) before calling .initPi:
-# draw all year-specific seeds in the main process, in a fixed order
 seeds_by_year <- setNames(
   lapply(years_to_run, function(ii) sample(100:9999, n_seeds)),
   as.character(years_to_run)
 )
 
-# Create one job per (year, seed)
+# build jobs table (one row per (year,seed))
 jobs <- do.call(
   rbind,
   lapply(years_to_run, function(ii) {
@@ -660,58 +647,95 @@ jobs <- do.call(
   })
 )
 
-# Run all jobs in parallel
-fits_all <- future.apply::future_lapply(
-  seq_len(nrow(jobs)),
-  function(j) {
-    i <- jobs$year[[j]]
-    s <- jobs$seed[[j]]
+# helper that runs one job (used by both parallel and sequential branches)
+run_job <- function(j) {
+  i <- jobs$year[[j]]
+  s <- jobs$seed[[j]]
 
-    dy  <- dplyr::filter(data.dyad, year == i)
-    sdf <- dplyr::filter(data.monad[[1]], year == i)
-    bdf <- dplyr::filter(data.monad[[2]], year == i)
+  dy  <- dplyr::filter(data.dyad, year == i)
+  sdf <- dplyr::filter(data.monad[[1]], year == i)
+  bdf <- dplyr::filter(data.monad[[2]], year == i)
 
-    m_s <- mmsbm(
-      formula.dyad = Y ~ var1,
-      formula.monad = list(~VarS1, ~VarB1),
-      timeID = "year",
-      senderID = "id1",
-      receiverID = "id2",
-      nodeID = list("id", "id"),
-      bipartite = TRUE,
-      data.dyad = dy,
-      data.monad = list(sdf, bdf),
-      n.blocks = c(n.blocks[1], n.blocks[2]),
-      n.hmmstates = 1,
-      mmsbm.control = list(
-        verbose = FALSE,  # keep worker output quiet; print later in order
-        threads = 1,      # IMPORTANT: do not nest parallelism
-        svi = TRUE,
-        vi_iter = 10000,
-        conv_tol = 1e-3,
-        mu_gamma = ctrl[["mu_gamma"]],
-        var_gamma = ctrl[["var_gamma"]],
-        var_beta = list(ctrl[["var_beta"]][[1]][,,1],
-                        ctrl[["var_beta"]][[2]][,,1]),
-        hessian = FALSE,
-        seed = s
-      )
+  m_s <- mmsbm(
+    formula.dyad = Y ~ var1,
+    formula.monad = list(~VarS1, ~VarB1),
+    timeID = "year",
+    senderID = "id1",
+    receiverID = "id2",
+    nodeID = list("id", "id"),
+    bipartite = TRUE,
+    data.dyad = dy,
+    data.monad = list(sdf, bdf),
+    n.blocks = c(n.blocks[1], n.blocks[2]),
+    n.hmmstates = 1,
+    mmsbm.control = list(
+      verbose = FALSE,
+      threads = 1,        # keep inner algorithm single-threaded by default
+      svi = TRUE,
+      vi_iter = 10000,
+      conv_tol = 1e-3,
+      mu_gamma = ctrl[["mu_gamma"]],
+      var_gamma = ctrl[["var_gamma"]],
+      var_beta = list(ctrl[["var_beta"]][[1]][,,1],
+                      ctrl[["var_beta"]][[2]][,,1]),
+      hessian = FALSE,
+      seed = s
     )
+  )
 
-    list(
-      year = i,
-      seed = s,
-      m_s = m_s,
-      LowerBound = m_s$LowerBound,
-      niter = m_s$niter,
-      BlockModel = m_s$BlockModel
-    )
-  },
-  future.seed = TRUE
-)
+  list(
+    year = i,
+    seed = s,
+    m_s = m_s,
+    LowerBound = m_s$LowerBound,
+    niter = m_s$niter,
+    BlockModel = m_s$BlockModel
+  )
+}
 
-# Group fits by year for easy lookup inside your existing for(i in 2:periods) loop
+# Decide whether to run parallel or sequential
+if (isTRUE(ctrl[["parallel"]])) {
+  if (!requireNamespace("future", quietly = TRUE) ||
+      !requireNamespace("future.apply", quietly = TRUE)) {
+    stop("Please install 'future' and 'future.apply' to use parallel initialization.")
+  }
+
+  # threads-per-job and outer workers (user can override via ctrl)
+  threads_per_job <- if (!is.null(ctrl[["threads"]])) as.integer(ctrl[["threads"]]) else 1L
+  total_cores <- parallel::detectCores(logical = TRUE)
+  default_workers <- max(1L, floor(total_cores / max(1L, threads_per_job)) - 1L)
+  workers <- if (!is.null(ctrl[["workers"]])) as.integer(ctrl[["workers"]]) else default_workers
+  workers <- max(1L, workers)
+
+  # Set BLAS/OpenMP thread env for safety inside workers (restore later if needed)
+  old_env <- Sys.getenv(c("OMP_NUM_THREADS","MKL_NUM_THREADS","OPENBLAS_NUM_THREADS"))
+  Sys.setenv(OMP_NUM_THREADS = as.character(threads_per_job),
+             MKL_NUM_THREADS = as.character(threads_per_job),
+             OPENBLAS_NUM_THREADS = as.character(threads_per_job))
+
+  # Save/restore future plan so we don't permanently change user's plan
+  old_plan <- future::plan()
+  on.exit({
+    # restore environment & plan on exit of the function scope
+    Sys.setenv(OMP_NUM_THREADS = old_env[1], MKL_NUM_THREADS = old_env[2], OPENBLAS_NUM_THREADS = old_env[3])
+    future::plan(old_plan)
+  }, add = TRUE)
+
+  # set a temporary plan for multithreading outer jobs
+  future::plan(future::multisession, workers = workers)
+
+  # run jobs in parallel (future.seed=TRUE preserves reproducibility)
+  fits_all <- future.apply::future_lapply(seq_len(nrow(jobs)), function(j) run_job(j), future.seed = TRUE)
+
+} else {
+  # sequential (same work but no parallelism)
+  fits_all <- lapply(seq_len(nrow(jobs)), function(j) run_job(j))
+}
+
+# Group fits by year for downstream lookup
 fits_by_year <- split(fits_all, vapply(fits_all, `[[`, integer(1), "year"))
+## =====================================================================
+
 ## =====================================================================
 
 

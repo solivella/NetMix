@@ -106,6 +106,7 @@
 #'                      done via faster graph matching algorithm, but may not be exact. Defaults to \code{TRUE}.}
 #'        \item{conv_tol}{Numeric value. Absolute tolerance for VI convergence. Defaults to 1e-4}
 #'        \item{verbose}{Boolean. Should extra information be printed as model iterates? Defaults to FALSE}
+#'        \item{parallel}{Boolean. Should parallel computing be used for initialization? Defaults to TRUE}
 #'        }
 #'       
 #' @return Object of class \code{mmsbmB}. List with named components:
@@ -238,7 +239,8 @@ mmsbm <- function(formula.dyad,
                permute = TRUE,
                threads = 1,
                conv_tol = 1e-2,
-               verbose = FALSE)
+               verbose = FALSE,
+               parallel=TRUE)
   ctrl[names(mmsbm.control)] <- mmsbm.control
   ctrl$bipartite <- bipartite
   ctrl$directed <- ifelse(!bipartite,directed,TRUE) #patch currently, since not doing directed bipartite
