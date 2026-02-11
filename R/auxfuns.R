@@ -593,7 +593,7 @@
                                           #         ctrl[["mu_beta"]][[2]][,,1]),
                                           hessian = FALSE,
                                           seed=s))
-          cat("Seed:", s, "\n")
+          cat("Seed year 1:", s, "\n")
           init_lb_i<-c(init_lb_i,m_s$LowerBound)
           init_niter_i<-c(init_niter_i,m_s$niter)
           init_bm_i<-append(init_bm_i,list(m_s$BlockModel))
@@ -638,7 +638,7 @@ seeds_by_year <- setNames(
   lapply(years_to_run, function(ii) sample(100:9999, n_seeds)),
   as.character(years_to_run)
 )
-
+cat("Seed init by year:", seeds_by_year, "\n")
 # build jobs table (one row per (year,seed))
 jobs <- do.call(
   rbind,
