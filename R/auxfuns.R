@@ -638,7 +638,7 @@ seeds_by_year <- setNames(
   lapply(years_to_run, function(ii) sample(100:9999, n_seeds)),
   as.character(years_to_run)
 )
-cat("Seed init by year:", seeds_by_year, "\n")
+cat("Seed init by year:", unlist(seeds_by_year), "\n")
 # build jobs table (one row per (year,seed))
 jobs <- do.call(
   rbind,
