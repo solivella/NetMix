@@ -651,6 +651,7 @@ jobs <- do.call(
 run_job <- function(j) {
   i <- jobs$year[[j]]
   s <- jobs$seed[[j]]
+  set.seed(s)
 
   dy  <- dplyr::filter(data.dyad, year == i)
   sdf <- dplyr::filter(data.monad[[1]], year == i)
