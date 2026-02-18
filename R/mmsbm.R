@@ -633,7 +633,6 @@ set.seed(ctrl$seed)
   ##Initial gamma
   if(is.null(ctrl$gamma_init)){
     if(n_dyad_pred > 0){
-      set.seed(s)
       ctrl$gamma_init <- rnorm(length(ctrl$mu_gamma), ctrl$mu_gamma, sqrt(ctrl$var_gamma))
     } else {
       ctrl$gamma_init <- 0
