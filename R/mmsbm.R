@@ -823,6 +823,7 @@ set.seed(ctrl$seed)
 
   ## Create randomizer for order of updatePhis
   ctrl$phi_order <- rbinom(nrow(Z)[1],1,0.5) #ndyad
+  print(paste0("phi_order:",ctrl$phi_order))
   #test print
   #print(ctrl$b_init_t)
   #print(ctrl$beta2_init)
