@@ -592,6 +592,9 @@ mmsbm <- function(formula.dyad,
                        realign,
                        dyads_pp,
                        n.blocks, periods, directed, ctrl,data.dyad,data.monad)
+
+set.seed(ctrl$seed)
+
     init_lb<-mm_init[[2]]
     init_niter<-mm_init[[3]]
     init_lb_best<-mm_init[[4]]
@@ -630,6 +633,7 @@ mmsbm <- function(formula.dyad,
   ##Initial gamma
   if(is.null(ctrl$gamma_init)){
     if(n_dyad_pred > 0){
+      set.seed(s)
       ctrl$gamma_init <- rnorm(length(ctrl$mu_gamma), ctrl$mu_gamma, sqrt(ctrl$var_gamma))
     } else {
       ctrl$gamma_init <- 0
