@@ -825,7 +825,7 @@ set.seed(ctrl$seed)
   ctrl$phi_order <- rbinom(nrow(Z)[1],1,0.5) #ndyad
   #print(paste0("phi_order:",ctrl$phi_order))
   print(paste0("gamma_init:",ctrl$gamma_init))
-  print(paste0("block_init_t:",ctrl$ctrl$block_init_t))
+  print(paste0("block_init_t:",ctrl$block_init_t))
   #test print
   #print(ctrl$b_init_t)
   #print(ctrl$beta2_init)
@@ -837,7 +837,7 @@ set.seed(ctrl$seed)
   }
   X1_t <- t(X1)
   Z_t <- t(Z)
-
+print(paste0("seed:",ctrl$seed))
   ## Estimate model
   if(bipartite){
     X2_t <- t(X2)
@@ -873,7 +873,6 @@ set.seed(ctrl$seed)
                        ctrl$beta1_init,#array predictors1+1 x K1 x time
                        ctrl$beta2_init,#array predictors2+1 x K2 x time
                        ctrl$gamma_init,#numeric vector 
-                       ctrl$seed,
                        ctrl
     )
 
@@ -898,7 +897,6 @@ set.seed(ctrl$seed)
                      ctrl$block_init_t,
                      ctrl$beta1_init,
                      ctrl$gamma_init,
-                     ctrl$seed,
                      ctrl)
   }
   if(!fit[["converged"]]){
