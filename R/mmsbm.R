@@ -873,6 +873,7 @@ set.seed(ctrl$seed)
                        ctrl$beta1_init,#array predictors1+1 x K1 x time
                        ctrl$beta2_init,#array predictors2+1 x K2 x time
                        ctrl$gamma_init,#numeric vector 
+                       ctrl$seed,
                        ctrl
     )
 
@@ -897,6 +898,7 @@ set.seed(ctrl$seed)
                      ctrl$block_init_t,
                      ctrl$beta1_init,
                      ctrl$gamma_init,
+                     ctrl$seed,
                      ctrl)
   }
   if(!fit[["converged"]]){
