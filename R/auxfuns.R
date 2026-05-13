@@ -489,7 +489,7 @@
 }
 
 #' @rdname auxfuns
-.initPi <- function(formula.monad,formula.dyad,soc_mats,
+.initPi <- function(formula.monad, formula.dyad, soc_mats,
                     bipartite,
                     dyads,
                     edges,
@@ -498,7 +498,9 @@
                     moretimes,
                     fp5times,
                     dyads_pp,
-                    n.blocks, periods, directed, ctrl,data.dyad,data.monad){
+                    n.blocks, periods, directed, ctrl, data.dyad, data.monad,
+                    timeID, senderID, receiverID, nodeID) {
+
   res <- vector("list", 2L)
   init_lb<-list()
   init_niter<-list()
@@ -546,9 +548,13 @@
       for (i in c(1)){
         cat("Now running year:", i, "\n")
         # dy<-netSim[["df_dyad_1"]]%>%filter(year==i)
-        dy<-data.dyad%>%filter(year==i)
-        sdf<-data.monad[[1]]%>%filter(year==i)
-        bdf<-data.monad[[2]]%>%filter(year==i)
+     #   dy<-data.dyad%>%filter(year==i)
+     #   sdf<-data.monad[[1]]%>%filter(year==i)
+     #   bdf<-data.monad[[2]]%>%filter(year==i)
+     dy <- data.dyad[data.dyad[[timeID]] == i, , drop = FALSE]
+sdf <- data.monad[[1]][data.monad[[1]][[timeID]] == i, , drop = FALSE]
+bdf <- data.monad[[2]][data.monad[[2]][[timeID]] == i, , drop = FALSE]
+
 
         seeds<-c(sample(100:9999, 1)) #run 5 times
         if(fp5times){
@@ -587,8 +593,10 @@
                                           conv_tol = 1e-3,
                                           mu_gamma = ctrl[["mu_gamma"]],
                                           var_gamma = ctrl[["var_gamma"]],
-                                          var_beta=list(ctrl[["var_beta"]][[1]][,,1],
-                                                        ctrl[["var_beta"]][[2]][,,1]),
+                                         # var_beta=list(ctrl[["var_beta"]][[1]][,,1],
+                                         #               ctrl[["var_beta"]][[2]][,,1]),
+                                         var_beta = list(ctrl[["var_beta1"]][,,1, drop = FALSE][,,1],
+                ctrl[["var_beta2"]][,,1, drop = FALSE][,,1])
                                           #    mu_beta=list(ctrl[["mu_beta"]][[1]][,,1],
                                           #         ctrl[["mu_beta"]][[2]][,,1]),
                                           hessian = FALSE,
@@ -653,9 +661,13 @@ run_job <- function(j) {
   s <- jobs$seed[[j]]
   set.seed(s)
 
-  dy  <- dplyr::filter(data.dyad, year == i)
-  sdf <- dplyr::filter(data.monad[[1]], year == i)
-  bdf <- dplyr::filter(data.monad[[2]], year == i)
+ # dy  <- dplyr::filter(data.dyad, year == i)
+ # sdf <- dplyr::filter(data.monad[[1]], year == i)
+ # bdf <- dplyr::filter(data.monad[[2]], year == i)
+ dy <- data.dyad[data.dyad[[timeID]] == i, , drop = FALSE]
+sdf <- data.monad[[1]][data.monad[[1]][[timeID]] == i, , drop = FALSE]
+bdf <- data.monad[[2]][data.monad[[2]][[timeID]] == i, , drop = FALSE]
+
 
   m_s <- mmsbm(
 formula.dyad = formula.dyad,
@@ -744,9 +756,13 @@ fits_by_year <- split(fits_all, vapply(fits_all, `[[`, integer(1), "year"))
 
       for (i in 2:periods){
         cat("Now running year:", i, "\n")
-        dy<-data.dyad%>%filter(year==i)
-        sdf<-data.monad[[1]]%>%filter(year==i)
-        bdf<-data.monad[[2]]%>%filter(year==i)
+      #  dy<-data.dyad%>%filter(year==i)
+      #  sdf<-data.monad[[1]]%>%filter(year==i)
+      #  bdf<-data.monad[[2]]%>%filter(year==i)
+      dy <- data.dyad[data.dyad[[timeID]] == i, , drop = FALSE]
+sdf <- data.monad[[1]][data.monad[[1]][[timeID]] == i, , drop = FALSE]
+bdf <- data.monad[[2]][data.monad[[2]][[timeID]] == i, , drop = FALSE]
+
         if (moretimes){
           seeds<-c(sample(100:9999, 5))} #run 5 times
         else{

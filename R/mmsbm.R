@@ -159,12 +159,16 @@
 mmsbm <- function(formula.dyad,
                   formula.monad=~1,
                   bipartite = FALSE,
-                  senderID, 
-                  receiverID,
-                  nodeID = NULL,
-                  timeID = NULL,
+                #  senderID, 
+                 # receiverID,
+                 # nodeID = NULL,
+                  #timeID = NULL,
                   data.dyad,
                   data.monad = NULL,
+                  timeID = timeID,
+                  senderID = senderID,
+                  receiverID = receiverID,
+                  nodeID = nodeID,
                   n.blocks,
                   n.hmmstates = 1,
                   realign=TRUE, #whether use realign method
@@ -582,16 +586,18 @@ mmsbm <- function(formula.dyad,
   ##Initial mm 
   if(is.null(ctrl$mm_init_t1) & is.null(ctrl$mm_init_t2)){  
     #cat("mm_init_t is NULL\n")
-    mm_init <- .initPi(formula.monad,formula.dyad,soc_mats,
-                       bipartite,
-                       dyads,
-                       edges,
-                       nodes_pp,
-                       moretimes,
-                       fp5times,
-                       realign,
-                       dyads_pp,
-                       n.blocks, periods, directed, ctrl,data.dyad,data.monad)
+   mm_init <- .initPi(formula.monad, formula.dyad, soc_mats,
+                   bipartite,
+                   dyads,
+                   edges,
+                   nodes_pp,
+                   moretimes,
+                   fp5times,
+                   realign,
+                   dyads_pp,
+                   n.blocks, periods, directed, ctrl, data.dyad, data.monad,
+                   timeID, senderID, receiverID, nodeID)
+
 
 set.seed(ctrl$seed)
 
