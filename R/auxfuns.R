@@ -596,7 +596,7 @@ bdf <- data.monad[[2]][data.monad[[2]][[timeID]] == i, , drop = FALSE]
                                          # var_beta=list(ctrl[["var_beta"]][[1]][,,1],
                                          #               ctrl[["var_beta"]][[2]][,,1]),
                                          var_beta = list(ctrl[["var_beta1"]][,,1, drop = FALSE][,,1],
-                ctrl[["var_beta2"]][,,1, drop = FALSE][,,1])
+                ctrl[["var_beta2"]][,,1, drop = FALSE][,,1]),
                                           #    mu_beta=list(ctrl[["mu_beta"]][[1]][,,1],
                                           #         ctrl[["mu_beta"]][[2]][,,1]),
                                           hessian = FALSE,
