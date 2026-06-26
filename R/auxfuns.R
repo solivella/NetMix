@@ -634,42 +634,8 @@ bdf <- data.monad[[2]][data.monad[[2]][[timeID]] == i, , drop = FALSE]
         init_seed_i<-seeds 
 
         for (s in seeds){
-<<<<<<< HEAD
           fit_out <- fit_init_period(dy, sdf, bdf, s, verbose = TRUE)
           m_s <- fit_out$model
-=======
-          m_s<-mmsbm(formula.dyad = formula.dyad,
-                    formula.monad = list(formula.monad[[1]], 
-                                         formula.monad[[2]]),
-                    # timeID="year",
-                    # senderID = "id1",
-                    # receiverID = "id2",
-                    # nodeID = list("id","id"),
-                     timeID = timeID,
-senderID = senderID,
-receiverID = receiverID,
-nodeID = nodeID,
-                     bipartite= TRUE,
-                     data.dyad = dy,
-                     data.monad = list(sdf,bdf),
-                     n.blocks = c(n.blocks[1],n.blocks[2]), n.hmmstates = 1,
-                     mmsbm.control = list(verbose = TRUE,
-                                          threads=1,
-                                          svi = TRUE,
-                                          vi_iter = 20000,
-                                          #   batch_size = 1.0,
-                                          conv_tol = 1e-4,
-                                          mu_gamma = ctrl[["mu_gamma"]],
-                                          var_gamma = ctrl[["var_gamma"]],
-                                         # var_beta=list(ctrl[["var_beta"]][[1]][,,1],
-                                         #               ctrl[["var_beta"]][[2]][,,1]),
-                                         var_beta = list(ctrl[["var_beta1"]][,,1, drop = FALSE][,,1],
-                ctrl[["var_beta2"]][,,1, drop = FALSE][,,1]),
-                                          #    mu_beta=list(ctrl[["mu_beta"]][[1]][,,1],
-                                          #         ctrl[["mu_beta"]][[2]][,,1]),
-                                          hessian = FALSE,
-                                          seed=s))
->>>>>>> c9c6449fc70d7d4c1d4b9a67e77b2db8566ebd0b
           cat("Seed year 1:", s, "\n")
           if (!identical(m_s$seed, as.integer(s))) {
             cat("Selected retry seed year 1:", m_s$seed, "\n")
@@ -744,44 +710,8 @@ sdf <- data.monad[[1]][data.monad[[1]][[timeID]] == i, , drop = FALSE]
 bdf <- data.monad[[2]][data.monad[[2]][[timeID]] == i, , drop = FALSE]
 
 
-<<<<<<< HEAD
   fit_out <- fit_init_period(dy, sdf, bdf, s, verbose = FALSE)
   m_s <- fit_out$model
-=======
-  m_s <- mmsbm(
-formula.dyad = formula.dyad,
-                    formula.monad = list(formula.monad[[1]], 
-                                         formula.monad[[2]]),
-   # timeID = "year",
-   # senderID = "id1",
-   # receiverID = "id2",
-   # nodeID = list("id", "id"),
-   timeID = timeID,
-senderID = senderID,
-receiverID = receiverID,
-nodeID = nodeID,
-    bipartite = TRUE,
-    data.dyad = dy,
-    data.monad = list(sdf, bdf),
-    n.blocks = c(n.blocks[1], n.blocks[2]),
-    n.hmmstates = 1,
-    mmsbm.control = list(
-      verbose = FALSE,
-      threads = 1,        # keep inner algorithm single-threaded by default
-      svi = TRUE,
-      vi_iter = 20000,
-      conv_tol = 1e-4,
-      mu_gamma = ctrl[["mu_gamma"]],
-      var_gamma = ctrl[["var_gamma"]],
-      #var_beta = list(ctrl[["var_beta"]][[1]][,,1],
-      #                ctrl[["var_beta"]][[2]][,,1]),
-      var_beta = list(ctrl[["var_beta1"]][,,1, drop = FALSE][,,1],
-                ctrl[["var_beta2"]][,,1, drop = FALSE][,,1]),
-      hessian = FALSE,
-      seed = s
-    )
-  )
->>>>>>> c9c6449fc70d7d4c1d4b9a67e77b2db8566ebd0b
 
   list(
     year = i,
@@ -1176,7 +1106,7 @@ for (i in 2:periods) {
   best_matrix_list[[i]] <- result$best_matrix
 }
 
-# ---- Realign Year 1 to the Average of Years 2 to T ----Add commentMore actions
+# ---- Realign Year 1 to the Average of Years 2 to T ----
 bm_base_new <- Reduce("+", best_matrix_list[2:periods]) / (periods - 1)
 
 result_first <- find_closest_matrix(bm1[[1]], t_mat = bm_base_new)
