@@ -517,6 +517,65 @@
   moretimes<-FALSE
   fp5times<-TRUE
   bipartite<-TRUE
+  init_vi_iter <- if (!is.null(ctrl[["init_vi_iter"]])) as.integer(ctrl[["init_vi_iter"]]) else 10000L
+  init_conv_tol <- if (!is.null(ctrl[["init_conv_tol"]])) as.numeric(ctrl[["init_conv_tol"]]) else 1e-3
+  max_init_retries <- if (!is.null(ctrl[["max_init_retries"]])) max(1L, as.integer(ctrl[["max_init_retries"]])) else 5L
+
+  fit_init_period <- function(dy, sdf, bdf, seed, verbose = FALSE) {
+    best_model <- NULL
+    best_lower_bound <- -Inf
+    converged_model <- NULL
+
+    for (attempt in seq_len(max_init_retries)) {
+      attempt_seed <- as.integer(seed + attempt - 1L)
+      m_s <- mmsbm(
+        formula.dyad = formula.dyad,
+        formula.monad = list(formula.monad[[1]], formula.monad[[2]]),
+        timeID = timeID,
+        senderID = senderID,
+        receiverID = receiverID,
+        nodeID = nodeID,
+        bipartite = TRUE,
+        data.dyad = dy,
+        data.monad = list(sdf, bdf),
+        n.blocks = c(n.blocks[1], n.blocks[2]),
+        n.hmmstates = 1,
+        mmsbm.control = list(
+          verbose = verbose,
+          threads = 1,
+          svi = TRUE,
+          vi_iter = init_vi_iter,
+          conv_tol = init_conv_tol,
+          mu_gamma = ctrl[["mu_gamma"]],
+          var_gamma = ctrl[["var_gamma"]],
+          var_beta = list(ctrl[["var_beta1"]][,,1, drop = FALSE][,,1],
+                          ctrl[["var_beta2"]][,,1, drop = FALSE][,,1]),
+          hessian = FALSE,
+          seed = attempt_seed
+        )
+      )
+
+      if (is.null(best_model) || (!is.na(m_s$LowerBound) && m_s$LowerBound > best_lower_bound)) {
+        best_model <- m_s
+        best_lower_bound <- m_s$LowerBound
+      }
+
+      if (isTRUE(m_s$converged)) {
+        converged_model <- m_s
+        break
+      }
+    }
+
+    chosen_model <- if (!is.null(converged_model)) converged_model else best_model
+    if (is.null(converged_model) && verbose) {
+      cat("Initialization did not converge after", max_init_retries, "attempt(s) for base seed", seed, "\n")
+    }
+
+    list(
+      model = chosen_model,
+      converged = isTRUE(chosen_model$converged)
+    )
+  }
   if(bipartite){
     if (periods==1){
       phi_init_temp <- lapply(soc_mats, function(mat){
@@ -566,6 +625,7 @@ bdf <- data.monad[[2]][data.monad[[2]][[timeID]] == i, , drop = FALSE]
         # seeds<-c(02138) #only run once
 
         best_model <- NULL
+        best_model_converged <- FALSE
         best_lower_bound <- -Inf
 
         init_lb_i<-c()
@@ -574,53 +634,30 @@ bdf <- data.monad[[2]][data.monad[[2]][[timeID]] == i, , drop = FALSE]
         init_seed_i<-seeds 
 
         for (s in seeds){
-          m_s<-mmsbm(formula.dyad = formula.dyad,
-                    formula.monad = list(formula.monad[[1]], 
-                                         formula.monad[[2]]),
-                    # timeID="year",
-                    # senderID = "id1",
-                    # receiverID = "id2",
-                    # nodeID = list("id","id"),
-                     timeID = timeID,
-senderID = senderID,
-receiverID = receiverID,
-nodeID = nodeID,
-                     bipartite= TRUE,
-                     data.dyad = dy,
-                     data.monad = list(sdf,bdf),
-                     n.blocks = c(n.blocks[1],n.blocks[2]), n.hmmstates = 1,
-                     mmsbm.control = list(verbose = TRUE,
-                                          threads=1,
-                                          svi = TRUE,
-                                          vi_iter = 10000,
-                                          #   batch_size = 1.0,
-                                          conv_tol = 1e-3,
-                                          mu_gamma = ctrl[["mu_gamma"]],
-                                          var_gamma = ctrl[["var_gamma"]],
-                                         # var_beta=list(ctrl[["var_beta"]][[1]][,,1],
-                                         #               ctrl[["var_beta"]][[2]][,,1]),
-                                         var_beta = list(ctrl[["var_beta1"]][,,1, drop = FALSE][,,1],
-                ctrl[["var_beta2"]][,,1, drop = FALSE][,,1]),
-                                          #    mu_beta=list(ctrl[["mu_beta"]][[1]][,,1],
-                                          #         ctrl[["mu_beta"]][[2]][,,1]),
-                                          hessian = FALSE,
-                                          seed=s))
+          fit_out <- fit_init_period(dy, sdf, bdf, s, verbose = TRUE)
+          m_s <- fit_out$model
           cat("Seed year 1:", s, "\n")
+          if (!identical(m_s$seed, as.integer(s))) {
+            cat("Selected retry seed year 1:", m_s$seed, "\n")
+          }
           init_lb_i<-c(init_lb_i,m_s$LowerBound)
           init_niter_i<-c(init_niter_i,m_s$niter)
           init_bm_i<-append(init_bm_i,list(m_s$BlockModel))
 
 
-          if (m_s$LowerBound > best_lower_bound) {
+          if ((isTRUE(fit_out$converged) && !best_model_converged) ||
+              (isTRUE(fit_out$converged) && best_model_converged && m_s$LowerBound > best_lower_bound) ||
+              (!isTRUE(fit_out$converged) && !best_model_converged && m_s$LowerBound > best_lower_bound)) {
             best_lower_bound <- m_s$LowerBound
             best_model <- m_s
+            best_model_converged <- isTRUE(fit_out$converged)
           }
         }
         m<-best_model
         bm_year1<-m$BlockModel
         cat("BM1:", m$BlockModel, "\n")
-        init_lb_best<- append(init_lb,list(best_lower_bound))
-        init_niter_best<-append(init_niter,list(m$niter))
+        init_lb_best<- append(init_lb_best,list(best_lower_bound))
+        init_niter_best<-append(init_niter_best,list(m$niter))
         init_bm_best<-append(init_bm_best,list(m$BlockModel))
         init_seed_best<-append(init_seed_best,list(m$seed))
 
@@ -673,47 +710,18 @@ sdf <- data.monad[[1]][data.monad[[1]][[timeID]] == i, , drop = FALSE]
 bdf <- data.monad[[2]][data.monad[[2]][[timeID]] == i, , drop = FALSE]
 
 
-  m_s <- mmsbm(
-formula.dyad = formula.dyad,
-                    formula.monad = list(formula.monad[[1]], 
-                                         formula.monad[[2]]),
-   # timeID = "year",
-   # senderID = "id1",
-   # receiverID = "id2",
-   # nodeID = list("id", "id"),
-   timeID = timeID,
-senderID = senderID,
-receiverID = receiverID,
-nodeID = nodeID,
-    bipartite = TRUE,
-    data.dyad = dy,
-    data.monad = list(sdf, bdf),
-    n.blocks = c(n.blocks[1], n.blocks[2]),
-    n.hmmstates = 1,
-    mmsbm.control = list(
-      verbose = FALSE,
-      threads = 1,        # keep inner algorithm single-threaded by default
-      svi = TRUE,
-      vi_iter = 10000,
-      conv_tol = 1e-3,
-      mu_gamma = ctrl[["mu_gamma"]],
-      var_gamma = ctrl[["var_gamma"]],
-      #var_beta = list(ctrl[["var_beta"]][[1]][,,1],
-      #                ctrl[["var_beta"]][[2]][,,1]),
-      var_beta = list(ctrl[["var_beta1"]][,,1, drop = FALSE][,,1],
-                ctrl[["var_beta2"]][,,1, drop = FALSE][,,1]),
-      hessian = FALSE,
-      seed = s
-    )
-  )
+  fit_out <- fit_init_period(dy, sdf, bdf, s, verbose = FALSE)
+  m_s <- fit_out$model
 
   list(
     year = i,
-    seed = s,
+    job_seed = s,
+    seed = m_s$seed,
     m_s = m_s,
     LowerBound = m_s$LowerBound,
     niter = m_s$niter,
-    BlockModel = m_s$BlockModel
+    BlockModel = m_s$BlockModel,
+    converged = fit_out$converged
   )
 }
 
@@ -796,7 +804,7 @@ init_seed_i <- seeds
 fits_i <- fits_by_year[[as.character(i)]]
 
 # Ensure order matches 'seeds'
-ord <- match(seeds, vapply(fits_i, `[[`, numeric(1), "seed"))
+ord <- match(seeds, vapply(fits_i, `[[`, numeric(1), "job_seed"))
 fits_i <- fits_i[ord]
 
 # Fill exactly the same objects your downstream code expects
@@ -807,7 +815,10 @@ m_s_list      <- lapply(fits_i, `[[`, "m_s")
 
 # Optional: reproduce your logging in a clean ordered way
 for (k in seq_along(fits_i)) {
-  cat("Seed:", fits_i[[k]]$seed, "\n")
+  cat("Seed:", fits_i[[k]]$job_seed, "\n")
+  if (!identical(fits_i[[k]]$job_seed, fits_i[[k]]$seed)) {
+    cat("Selected retry seed:", fits_i[[k]]$seed, "\n")
+  }
   cat("BM original", i, fits_i[[k]]$BlockModel, "\n")
   cat("Current LB", i, fits_i[[k]]$LowerBound, "\n")
 }
@@ -953,10 +964,10 @@ for (k in seq_along(fits_i)) {
 
         #    cat("BM original (best)",i, m$BlockModel, "\n")
         #  cat("Best LB",i, m$LowerBound, "\n")
-        init_lb_best<- append(init_lb,list(best_lower_bound))
-        init_niter_best<-append(init_niter,list(m$niter))
+        init_lb_best<- append(init_lb_best,list(m$LowerBound))
+        init_niter_best<-append(init_niter_best,list(m$niter))
         init_bm_best<-append(init_bm_best,list(m$BlockModel))
-        init_seed_best<-append(init_bm_best,list(m$seed))
+        init_seed_best<-append(init_seed_best,list(m$seed))
 
         init_lb<- append(init_lb,list(init_lb_i))
         init_niter<-append(init_niter,list(init_niter_i))

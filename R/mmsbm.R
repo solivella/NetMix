@@ -58,6 +58,7 @@
 #'                           (i.e. stronger connections between groups). Defaults to \code{TRUE}.}        
 #'        \item{svi}{Boolean; should stochastic variational inference be used? Defaults to \code{TRUE}.}   
 #'        \item{vi_iter}{Number of maximum iterations in stochastic variational updates. Defaults to 5e2.}
+#'        \item{init_vi_iter}{Number of maximum iterations in per-period initialization fits. Defaults to 1e4.}
 #'        \item{batch_size}{Numeric vector. When \code{svi=TRUE}, proportion of family 1 and family 2 nodes sampled in each local. Defaults to c(0.05, 0.05) when \code{svi=TRUE}, and to c(1.0, 1.0) otherwise.}
 #'        \item{forget_rate}{When \code{svi=TRUE}, value between (0.5,1], controlling speed of decay of weight of prior
 #'                            parameter values in global steps. Defaults to 0.75 when \code{svi=TRUE}, and to 0.0 otherwise.}
@@ -105,8 +106,10 @@
 #'        \item{permute}{Boolean. Should all permutations be tested to realign initial block models in dynamic case? If \code{FALSE}, realignment is 
 #'                      done via faster graph matching algorithm, but may not be exact. Defaults to \code{TRUE}.}
 #'        \item{conv_tol}{Numeric value. Absolute tolerance for VI convergence. Defaults to 1e-4}
+#'        \item{init_conv_tol}{Numeric value. Absolute tolerance for per-period initialization fits. Defaults to 1e-3}
 #'        \item{verbose}{Boolean. Should extra information be printed as model iterates? Defaults to FALSE}
 #'        \item{parallel}{Boolean. Should parallel computing be used for initialization? Defaults to TRUE}
+#'        \item{max_init_retries}{Maximum number of retry attempts for each period's initialization fit before falling back to the best unconverged result. Defaults to 5}
 #'        }
 #'       
 #' @return Object of class \code{mmsbmB}. List with named components:
@@ -221,6 +224,7 @@ mmsbm <- function(formula.dyad,
                batch_size = c(0.05, 0.05),
                missing = "indicator method",
                vi_iter = 500,
+               init_vi_iter = 10000,
                hessian = TRUE,
                se_sim = 10,
                dyad_vcov_samp = 1000,
@@ -243,8 +247,10 @@ mmsbm <- function(formula.dyad,
                permute = TRUE,
                threads = 1,
                conv_tol = 1e-2,
+               init_conv_tol = 1e-3,
                verbose = FALSE,
-               parallel=TRUE)
+               parallel=TRUE,
+               max_init_retries = 5L)
   ctrl[names(mmsbm.control)] <- mmsbm.control
   ctrl$bipartite <- bipartite
   ctrl$directed <- ifelse(!bipartite,directed,TRUE) #patch currently, since not doing directed bipartite
