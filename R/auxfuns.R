@@ -514,7 +514,7 @@
   init_distance_best<-list()
 
   realign<-TRUE #manual
-  moretimes<-FALSE
+  moretimes<-TRUE
   fp5times<-TRUE
   bipartite<-TRUE
   if(bipartite){
