@@ -172,7 +172,7 @@ mmsbm <- function(formula.dyad,
                   n.blocks,
                   n.hmmstates = 1,
                   realign=TRUE, #whether use realign method
-                  moretimes=FALSE, #whether do 5 times for later periods
+                  moretimes=TRUE, #whether do 5 times for later periods
                   fp5times=TRUE, #whether do 5 times for the first period
                   directed = TRUE,
                   mmsbm.control = list()){

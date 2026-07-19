@@ -513,10 +513,10 @@
   init_distance<-list()
   init_distance_best<-list()
 
-  realign<-TRUE #manual
-  moretimes<-TRUE
-  fp5times<-TRUE
-  bipartite<-TRUE
+  #realign<-TRUE #manual
+  #moretimes<-TRUE
+  #fp5times<-TRUE
+  #bipartite<-TRUE
   if(bipartite){
     if (periods==1){
       phi_init_temp <- lapply(soc_mats, function(mat){
