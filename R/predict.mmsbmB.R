@@ -175,7 +175,7 @@ predict.mmsbmB <- function(object,
     if(!(tid %in% colnames(monad1))){tid <- "(tid)"}
     ts1 <- unique(monad1[,tid])
     ts2 <- unique(monad2[,tid])
-    if(ts1 != ts2){
+    if(length(ts1) != length(ts2)){
       stop("The number of time periods between two families must be equal")}
     new_kappa <- as.matrix(object$Kappa[,ncol(object$Kappa)] %*% .mpower(object$TransitionKernel, forecast))
     new_kappa1 <- matrix(new_kappa, nrow=ncol(new_kappa), ncol=nrow(monad1[monad1[,tid]==ts1[1],]),byrow=FALSE)
