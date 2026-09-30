@@ -187,8 +187,8 @@ predict.mmsbmB <- function(object,
         new_kappa2 <- cbind(new_kappa2, matrix(new_kappa[t,], nrow=ncol(new_kappa), ncol=nrow(monad2[monad2[,tid]==ts2[t],]),byrow=FALSE))
       }
     }
-    p1 <- .e.pi(alpha1, new_kappa1, C_mat1)
-    p2 <- .e.pi(alpha2, new_kappa2, C_mat2)
+    p1 <- .e.pi(alpha1[[1]], new_kappa1, C_mat1)
+    p2 <- .e.pi(alpha2[[1]], new_kappa2, C_mat2)
   } else {
     if(!(tid %in% colnames(monad1))){tid <- "(tid)"}
     p1 <- vapply(seq.int(length(alpha1)),
