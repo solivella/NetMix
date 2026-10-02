@@ -312,11 +312,13 @@ mmsbm <- function(formula.dyad,
 
     new_dat_monad1 <- .missHandle(formula.monad[[1]], data.monad[[1]], ctrl$missing)
     data.monad[[1]] <- new_dat_monad1$dat
-    formula.monad1 <- new_dat_monad1$form
+    #formula.monad1 <- new_dat_monad1$form
+    formula.monad[[1]] <- new_dat_monad1$form 
     if(bipartite){
       new_dat_monad2 <- .missHandle(formula.monad[[2]], data.monad[[2]], ctrl$missing)
       data.monad[[2]] <- new_dat_monad2$dat
-      formula.monad2 <- new_dat_monad2$form
+     # formula.monad2 <- new_dat_monad2$form
+     formula.monad[[2]] <- new_dat_monad2$form
     } 
 
     ## Drop dyads with nodes not in monadic dataset
