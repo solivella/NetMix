@@ -135,7 +135,7 @@
           x[is.na(x)] <- 0
           return(x)
         })
-        ret$data <- cbind(dat, m.ind)
+        ret$dat <- cbind(dat, m.ind)
         fc <- as.formula(paste0("~.+",
                                 paste(colnames(m.ind), collapse=" + ")))
         ret$form <- update.formula(form, fc)
@@ -145,7 +145,7 @@
       }
     } else { ## method = "listwise delete"
       keep_ind <- apply(as.matrix(dat[,var_names, drop = FALSE]), 1, function(x){!any(is.na(x))})
-      ret$dat <- data[keep_ind,,drop = FALSE]
+      ret$dat <- dat[keep_ind,,drop = FALSE]
       ret$form <- form
     }
   } else {
@@ -179,23 +179,52 @@
 
 
 #' @rdname auxfuns
+#.transf_muvar <- function(orig, is_var, is_array, des.mat, nblock=NULL, nstate=NULL){
+ # if(is_array){
+#    tmp <- array(ifelse(is_var, 5, 0.0), c(ncol(des.mat), nblock, nstate))
+#    rownames(tmp) <- colnames(des.mat)
+#    #tmp["(Intercept)",,] <- 5.0
+#  } else {
+#    tmp <- array(ifelse(is_var, 5, 0.0), ncol(des.mat))
+ #   names(tmp) <- colnames(des.mat)
+ # }
+ # if(length(orig) > 1){
+ #   if(is_array){
+  #    tmp[rownames(tmp),,] <- orig
+  #  } else {
+ #     tmp[rownames(tmp)] <- orig
+ #   }
+ # } else {
+ #   non_miss <- !grepl("_missing", colnames(des.mat))
+ #   if(is_array){
+  #    tmp[non_miss,,] <- orig
+ #   } else {
+ #     tmp[non_miss] <- orig
+ #   }
+ # }
+ # return(tmp)
+#}
+
 .transf_muvar <- function(orig, is_var, is_array, des.mat, nblock=NULL, nstate=NULL){
   if(is_array){
     tmp <- array(ifelse(is_var, 5, 0.0), c(ncol(des.mat), nblock, nstate))
     rownames(tmp) <- colnames(des.mat)
-    #tmp["(Intercept)",,] <- 5.0
   } else {
     tmp <- array(ifelse(is_var, 5, 0.0), ncol(des.mat))
     names(tmp) <- colnames(des.mat)
   }
+  non_miss <- !grepl("_missing", colnames(des.mat))
   if(length(orig) > 1){
-    if(is_array){
-      tmp[rownames(tmp),,] <- orig
+    if(length(orig) == length(tmp)){
+      tmp[] <- orig                      # full-size input (e.g. from .initPi)
+    } else if(is_array && length(orig) == sum(non_miss) * nblock * nstate){
+      tmp[non_miss,,] <- orig            # user input without indicator rows
+    } else if(!is_array && length(orig) == sum(non_miss)){
+      tmp[non_miss] <- orig
     } else {
-      tmp[rownames(tmp)] <- orig
+      stop("mu_beta/var_beta dimensions do not match the number of monadic covariates.")
     }
   } else {
-    non_miss <- !grepl("_missing", colnames(des.mat))
     if(is_array){
       tmp[non_miss,,] <- orig
     } else {
