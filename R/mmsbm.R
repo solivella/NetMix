@@ -672,9 +672,15 @@ set.seed(ctrl$seed)
                            c(2, 2)))
     prot <- array(.1, dim(ctrl$mu_beta1)[-3], dimnames=dimnames(ctrl$mu_beta1)[-3])
     # print(paste0("state when initializing beta 1: ",n.hmmstates))
-    ctrl$beta1_init <- vapply(seq.int(n.hmmstates),
+    #ctrl$beta1_init <- vapply(seq.int(n.hmmstates),
+       #                       function(m){
+       #                         lm.fit(X1, t(ctrl$mm_init_t[[1]]))$coefficients
+       #                       }, prot)
+           ctrl$beta1_init <- vapply(seq.int(n.hmmstates),
                               function(m){
-                                lm.fit(X1, t(ctrl$mm_init_t[[1]]))$coefficients
+                                b <- lm.fit(X1, t(ctrl$mm_init_t[[1]]))$coefficients
+                                b[is.na(b)] <- 0
+                                b
                               }, prot)
     #   ori_beta1<-ctrl$beta1_init
     #  if (length(unique(data.dyad[[timeID]]))==1){
@@ -753,10 +759,16 @@ set.seed(ctrl$seed)
     if(is.null(ctrl$beta2_init)){
       prot <- array(.1, dim(ctrl$mu_beta2)[-3], dimnames=dimnames(ctrl$mu_beta2)[-3])
       #      print(paste0("state when initializing beta 2: ",n.hmmstates))
+     # ctrl$beta2_init <- vapply(seq.int(n.hmmstates),
+      #                          function(m){
+      #                            lm.fit(X2,t(ctrl$mm_init_t[[2]]))$coefficients
+      #                          }, prot)
       ctrl$beta2_init <- vapply(seq.int(n.hmmstates),
                                 function(m){
-                                  lm.fit(X2,t(ctrl$mm_init_t[[2]]))$coefficients
-                                }, prot)
+                                  b <- lm.fit(X2, t(ctrl$mm_init_t[[2]]))$coefficients
+                                  b[is.na(b)] <- 0
+                                  b
+                                }, prot)                          
       #      ori_beta2<-ctrl$beta2_init
 
       #     if (length(unique(data.dyad[[timeID]]))==1){
