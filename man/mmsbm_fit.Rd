@@ -3,22 +3,58 @@
 \name{mmsbm_fit}
 \alias{mmsbm_fit}
 \title{Fitter Function for dynamic MMSBM Model}
+\usage{
+mmsbm_fit(
+  z_t,
+  x_t,
+  y,
+  time_id_dyad,
+  time_id_node,
+  nodes_per_period,
+  node_id_dyad,
+  node_id_period,
+  mu_b,
+  var_b,
+  mu_beta,
+  var_beta,
+  mu_gamma,
+  var_gamma,
+  pi_init,
+  kappa_init_t,
+  b_init_t,
+  beta_init_r,
+  gamma_init_r,
+  control
+)
+}
 \arguments{
-\item{z_t}{Numeric matrix; transpose of monadic design matrix. Should not include intercept row.}
+\item{z_t}{Numeric matrix; transpose of dyadic design matrix.}
 
-\item{x_t}{Numeric matrix; transpose of dyadic design matrix.}
+\item{x_t}{Numeric matrix; transpose of monadic design matrix.}
 
-\item{y}{Numeric vector; vector of edge values. Must have same number of elements as \code{ncol(x_t)}}
+\item{y}{Numeric vector; vector of edge values. Must have same number of elements as \code{ncol(z_t)}.}
 
-\item{time_id_dyad}{Integer vector; zero-based time-period identifier for each node.}
+\item{time_id_dyad}{Integer vector; zero-based time-period identifier for each dyad.}
+
+\item{time_id_node}{Integer vector; zero-based time-period identifier for each node.}
 
 \item{nodes_per_period}{Integer vector; total number of unique nodes observed in each time period.}
 
 \item{node_id_dyad}{Integer matrix; zero-based sender and receiver identifier per dyad.}
 
+\item{node_id_period}{List of integer vectors; identifiers of the nodes observed in each time period.}
+
 \item{mu_b}{Numeric matrix; matrix of prior means for elements in blockmodel matrix.}
 
 \item{var_b}{Numeric matrix; matrix of prior variances for elements in blockmodel matrix.}
+
+\item{mu_beta}{Numeric array; prior means of monadic coefficients (predictors by blocks by HMM states).}
+
+\item{var_beta}{Numeric array; prior variances of monadic coefficients (predictors by blocks by HMM states).}
+
+\item{mu_gamma}{Numeric vector; prior means of dyadic coefficients.}
+
+\item{var_gamma}{Numeric vector; prior variances of dyadic coefficients.}
 
 \item{pi_init}{Numeric matrix; matrix of initial mixed-memberships. Nodes along columns.}
 
@@ -26,11 +62,11 @@
 
 \item{b_init_t}{Numeric matrix; square matrix of initial values of blockmodel.}
 
-\item{beta_init}{Numeric vector; flat array (column-major order) of initial values of monadic coefficients.}
+\item{beta_init_r}{Numeric array; initial values of monadic coefficients (predictors by blocks by HMM states).}
 
-\item{gamma_init}{Numeric vector; vector of initial values of dyadic coefficients}
+\item{gamma_init_r}{Numeric vector; vector of initial values of dyadic coefficients.}
 
-\item{control}{List; see the \code{mmsbm.control} argument of \code{\link{mmsbm}}}
+\item{control}{List; see the \code{mmsbm.control} argument of \code{\link{mmsbm}}.}
 }
 \value{
 Unclassed list with named components; see \code{Value} of \code{\link{mmsbm}}
@@ -48,3 +84,4 @@ stochastic blockmodel for network regression.
 \author{
 Santiago Olivella (olivella@unc.edu), Adeline Lo (adelinel@princeton.edu), Tyler Pratt (tyler.pratt@yale.edu), Kosuke Imai (imai@harvard.edu)
 }
+\keyword{internal}

@@ -507,7 +507,7 @@ double MMModel::LB()
 double MMModel::LL()
 {
   double ll = 0.0;
-#pragma omp parallel for reduction(-:ll)
+#pragma omp parallel for reduction(+:ll)
   for(arma::uword d = 0; d < N_DYAD; ++d){
     if(dyad_in_batch[d]==0){
     arma::uword p, q;
