@@ -1,14 +1,14 @@
 Package: NetMix
 Type: Package
 Title: Dynamic Mixed-Membership Network Regression Model
-Version: 0.2.0.2
-Date: 2023-12-11
+Version: 0.2.0.4
+Date: 2026-11-15
 Encoding: UTF-8
-Author: Santiago Olivella [aut, cre],
-  Adeline Lo [aut, cre],
-	Tyler Pratt [aut, cre],
-	Kosuke Imai [aut, cre]
-Maintainer: Santiago Olivella <olivella@unc.edu>
+Authors@R: c(
+    person("Santiago", "Olivella", email = "olivella@unc.edu", role = c("aut", "cre")),
+    person("Adeline", "Lo", role = "aut"),
+    person("Tyler", "Pratt", role = "aut"),
+    person("Kosuke", "Imai", role = "aut"))
 Description: Stochastic collapsed variational inference on mixed-membership stochastic blockmodel for networks,
              incorporating node-level predictors of mixed-membership vectors, as well as 
              dyad-level predictors. For networks observed over time, the model defines a hidden

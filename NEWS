@@ -1,3 +1,9 @@
+NetMix 0.2.0.4
+--------------------------------------
+- Replace deprecated OpenMP '-' reduction operator
+- Add usage section and update argument documentation for mmsbm_fit
+- Remove obsolete Rcpp:::LdFlags() from Makevars
+
 NetMix 0.2.0.2
 --------------------------------------
 - Fix minor bugs
